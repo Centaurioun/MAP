@@ -72,6 +72,9 @@ Begin VB.Form frmFileHash
    End
    Begin VB.Menu mnuPopup 
       Caption         =   "mnuPopup"
+      Begin VB.Menu mnuNameMD5 
+         Caption         =   "Rename to MD5"
+      End
       Begin VB.Menu mnuStrings 
          Caption         =   "Strings"
       End
@@ -121,10 +124,14 @@ Sub ShowFileStats(fpath As String)
     Dim fname As String
     Dim mySHA As String
     
-    
     LoadedFile = fpath
     fs = DisableRedir()
     myMd5 = hash.HashFile(fpath)
+    
+    If myMd5 = fso.FileNameFromPath(fpath) Then
+        mnuNameMD5.Enabled = False
+    End If
+    
     'mySHA = hash.HashFile(fpath, SHA, HexFormat)
     sz = FileLen(fpath)
     RevertRedir fs
@@ -246,6 +253,23 @@ Private Sub mnuFileProps_Click()
     f = fso.GetFreeFileName(Environ("temp"))
     fso.WriteFile vbCrLf & vbCrLf & f, tmp
     Shell "notepad.exe """ & f & """", vbNormalFocus
+End Sub
+
+Private Sub mnuNameMD5_Click()
+    On Error Resume Next
+    Dim fNew As String
+    fNew = fso.GetParentFolder(LoadedFile) & "\" & myMd5
+    If fso.FileExists(fNew) Then
+        MsgBox "A file named the md5 already exists in the target directory", vbExclamation
+        Exit Sub
+    End If
+    Name LoadedFile As fNew
+    If Err.Number = 0 Then
+        LoadedFile = fNew
+        ShowFileStats fNew
+    Else
+        MsgBox "Error renaming file: " & Err.Description
+    End If
 End Sub
 
 Private Sub mnuSearchFileName_Click()
