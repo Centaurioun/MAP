@@ -22,6 +22,7 @@ Public isLoaded As Boolean
 Public MachineType As String
 Public is64Bit As Boolean
 Public is32Bit As Boolean
+Public EntryPoint As Long
 
 Private DOSHEADER As IMAGEDOSHEADER
 Private NTHEADER As IMAGE_NT_HEADERS
@@ -101,12 +102,54 @@ Private Type IMAGE_FILE_HEADER
     Characteristics As Integer
 End Type
 
+Private Type IMAGE_DATA_DIRECTORY
+    VirtualAddress As Long
+    size As Long
+End Type
+
+Private Type IMAGE_OPTIONAL_HEADER
+    Magic As Integer
+    MajorLinkerVersion As Byte
+    MinorLinkerVersion As Byte
+    SizeOfCode As Long
+    SizeOfInitializedData As Long
+    SizeOfUninitializedData As Long
+    AddressOfEntryPoint As Long
+    BaseOfCode As Long
+    BaseOfData As Long
+    ImageBase As Long
+    SectionAlignment As Long
+    FileAlignment As Long
+    MajorOperatingSystemVersion As Integer
+    MinorOperatingSystemVersion As Integer
+    MajorImageVersion As Integer
+    MinorImageVersion As Integer
+    MajorSubsystemVersion As Integer
+    MinorSubsystemVersion As Integer
+    Win32VersionValue As Long
+    SizeOfImage As Long
+    SizeOfHeaders As Long
+    CheckSum As Long
+    Subsystem As Integer
+    DllCharacteristics As Integer
+    SizeOfStackReserve As Long
+    SizeOfStackCommit As Long
+    SizeOfHeapReserve As Long
+    SizeOfHeapCommit As Long
+    LoaderFlags As Long
+    NumberOfRvaAndSizes As Long
+    DataDirectory(0 To 15) As IMAGE_DATA_DIRECTORY
+End Type
+
 Private Type IMAGE_NT_HEADERS
     Signature As String * 4
     FileHeader As IMAGE_FILE_HEADER
-    OptionalHeader_0 As String * 28 '224 total, we cheat here...
-    ImageBase As Long
-    OptionalHeader_1 As String * 192
+    OptionalHeader As IMAGE_OPTIONAL_HEADER
+    
+    'OptionalHeader_0 As String * 28 '224 total, we cheat here...
+    'ImageBase As Long
+    'OptionalHeader_1 As String * 192
+    
 End Type
 
 Function LoadFile(fpath As String) As Boolean
@@ -134,7 +177,7 @@ Function LoadFile(fpath As String) As Boolean
         
         If NTHEADER.Signature <> "PE" & Chr(0) & Chr(0) Then Err.Raise 2
         
-        Me.ImageBase = NTHEADER.ImageBase
+        Me.ImageBase = NTHEADER.OptionalHeader.ImageBase
         LoadSections f, NTHEADER
         
         Close f
@@ -142,6 +185,7 @@ Function LoadFile(fpath As String) As Boolean
         myFile = fpath
         isLoaded = True
         MachineType = getMachineType(NTHEADER.FileHeader.Machine)
+        EntryPoint = NTHEADER.OptionalHeader.AddressOfEntryPoint
         
 Exit Function
 hell:
@@ -194,7 +238,7 @@ Function OffsetToVA(ByVal foffset As Long, Optional sectName As String) As Long
     rva = OffsetToRVA(foffset, sectName)
     
     If rva <> 0 Then
-        OffsetToVA = rva + NTHEADER.ImageBase
+        OffsetToVA = rva + NTHEADER.OptionalHeader.ImageBase
     End If
     
 End Function

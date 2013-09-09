@@ -84,6 +84,9 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuFileProps 
          Caption         =   "File Properties"
       End
+      Begin VB.Menu mnuOffsetCalc 
+         Caption         =   "Offset Calculator"
+      End
       Begin VB.Menu mnuExternal 
          Caption         =   "External"
          Begin VB.Menu mnuSearchFileName 
@@ -162,6 +165,7 @@ Sub ShowFileStats(fpath As String)
     End If
         
     mnuFileProps.Enabled = isPE
+    mnuOffsetCalc.Enabled = isPE
     
     Text1 = Join(ret, vbCrLf)
     
@@ -250,8 +254,9 @@ Private Sub mnuFileProps_Click()
     fs = DisableRedir()
     tmp = FileProps.QuickInfo(LoadedFile)
     RevertRedir fs
+    If Len(tmp) = 0 Then Exit Sub
     f = fso.GetFreeFileName(Environ("temp"))
-    fso.WriteFile vbCrLf & vbCrLf & f, tmp
+    fso.WriteFile f, vbCrLf & vbCrLf & tmp
     Shell "notepad.exe """ & f & """", vbNormalFocus
 End Sub
 
@@ -269,6 +274,14 @@ Private Sub mnuNameMD5_Click()
         ShowFileStats fNew
     Else
         MsgBox "Error renaming file: " & Err.Description
+    End If
+End Sub
+
+Private Sub mnuOffsetCalc_Click()
+    On Error Resume Next
+    Dim pe As New CPEEditor
+    If pe.LoadFile(LoadedFile) Then
+        frmOffsets.Initilize pe
     End If
 End Sub
 

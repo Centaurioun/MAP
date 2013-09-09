@@ -57,11 +57,69 @@ Public Type IMAGE_FILE_HEADER
     Characteristics As Integer
 End Type
 
+Public Type IMAGE_DATA_DIRECTORY
+    VirtualAddress As Long
+    size As Long
+End Type
+
+Public Type IMAGE_OPTIONAL_HEADER
+    Magic As Integer
+    MajorLinkerVersion As Byte
+    MinorLinkerVersion As Byte
+    SizeOfCode As Long
+    SizeOfInitializedData As Long
+    SizeOfUninitializedData As Long
+    AddressOfEntryPoint As Long
+    BaseOfCode As Long
+    BaseOfData As Long
+    ImageBase As Long
+    SectionAlignment As Long
+    FileAlignment As Long
+    MajorOperatingSystemVersion As Integer
+    MinorOperatingSystemVersion As Integer
+    MajorImageVersion As Integer
+    MinorImageVersion As Integer
+    MajorSubsystemVersion As Integer
+    MinorSubsystemVersion As Integer
+    Win32VersionValue As Long
+    SizeOfImage As Long
+    SizeOfHeaders As Long
+    CheckSum As Long
+    Subsystem As Integer
+    DllCharacteristics As Integer
+    SizeOfStackReserve As Long
+    SizeOfStackCommit As Long
+    SizeOfHeapReserve As Long
+    SizeOfHeapCommit As Long
+    LoaderFlags As Long
+    NumberOfRvaAndSizes As Long
+    DataDirectory(0 To 15) As IMAGE_DATA_DIRECTORY
+End Type
+
 Public Type IMAGE_NT_HEADERS
     Signature As String * 4
     FileHeader As IMAGE_FILE_HEADER
-    'OptionalHeader As IMAGE_OPTIONAL_HEADER
+    OptionalHeader As IMAGE_OPTIONAL_HEADER
 End Type
+
+Enum eDATA_DIRECTORY
+    Export_Table = 0
+    Import_Table = 1
+    Resource_Table = 2
+    Exception_Table = 3
+    Certificate_Table = 4
+    Relocation_Table = 5
+    Debug_Data = 6
+    Architecture_Data = 7
+    Machine_Value = 8
+    TLS_Table = 9
+    Load_Configuration_Table = 10
+    Bound_Import_Table = 11
+    Import_Address_Table = 12
+    Delay_Import_Descriptor = 13
+    CLI_Header = 14
+    Reserved = 15
+End Enum
 
 Public Enum tmMsgs
         EM_UNDO = &HC7
@@ -326,7 +384,6 @@ Function GetCompileDateOrType(fpath As String, Optional ByRef out_isType As Bool
             Exit Function
         End If
         
-        
         Close f
         GetCompileDateOrType = CompiledDate(CDbl(NTHEADER.FileHeader.TimeDateStamp))
         out_isPE = True
@@ -338,6 +395,12 @@ Function GetCompileDateOrType(fpath As String, Optional ByRef out_isType As Bool
             GetCompileDateOrType = GetCompileDateOrType & " - 32 Bit"
         End If
         
+        Dim cli As Long 'Partition II, 24.2.3.3, CLI Header (rva)
+        cli = NTHEADER.OptionalHeader.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
+        If cli <> 0 Then
+            GetCompileDateOrType = GetCompileDateOrType & " .NET"
+        End If
+
         GetCompileDateOrType = GetCompileDateOrType & isExe_orDll(NTHEADER.FileHeader.Characteristics)
 Exit Function
 hell:
