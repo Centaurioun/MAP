@@ -321,6 +321,7 @@ Sub DecompileChm(pth As String)
         FileCopy pth, fn
         
         tmp = tmp & "\chm_src"
+        tmp = Replace(tmp, "\\", "\")
         If fso.FolderExists(tmp) Then fso.DeleteFolder tmp
         
         pf = tmp
