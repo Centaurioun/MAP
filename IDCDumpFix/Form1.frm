@@ -1,20 +1,20 @@
 VERSION 5.00
 Begin VB.Form Form1 
    Caption         =   "IAT DumpFix - Generate IDC file from olly dump for CALL PTR and JMP IATs"
-   ClientHeight    =   3840
+   ClientHeight    =   6150
    ClientLeft      =   60
    ClientTop       =   345
-   ClientWidth     =   7935
+   ClientWidth     =   8880
    LinkTopic       =   "Form1"
-   ScaleHeight     =   3840
-   ScaleWidth      =   7935
+   ScaleHeight     =   6150
+   ScaleWidth      =   8880
    StartUpPosition =   3  'Windows Default
    Begin VB.CheckBox Check1 
       Caption         =   "Make Unk"
       Height          =   255
-      Left            =   6600
+      Left            =   3840
       TabIndex        =   7
-      Top             =   3240
+      Top             =   180
       Width           =   1335
    End
    Begin VB.CommandButton cmdHelp 
@@ -22,15 +22,15 @@ Begin VB.Form Form1
       Height          =   375
       Left            =   3300
       TabIndex        =   6
-      Top             =   3420
+      Top             =   120
       Width           =   435
    End
    Begin VB.CommandButton cmdSave 
       Caption         =   "Save As"
       Height          =   375
-      Left            =   3960
+      Left            =   4980
       TabIndex        =   5
-      Top             =   3420
+      Top             =   120
       Width           =   1395
    End
    Begin VB.CommandButton Command3 
@@ -38,7 +38,7 @@ Begin VB.Form Form1
       Height          =   375
       Left            =   1920
       TabIndex        =   4
-      Top             =   3420
+      Top             =   120
       Width           =   1275
    End
    Begin VB.TextBox Text1 
@@ -55,33 +55,33 @@ Begin VB.Form Form1
       Left            =   60
       TabIndex        =   3
       Text            =   "*EAX,EAX*"
-      Top             =   3420
+      Top             =   120
       Width           =   1815
    End
    Begin VB.CommandButton Command2 
       Caption         =   "Copy"
       Height          =   375
-      Left            =   5460
+      Left            =   6420
       TabIndex        =   2
-      Top             =   3420
+      Top             =   120
       Width           =   1095
    End
    Begin VB.TextBox Text2 
-      Height          =   3315
+      Height          =   5595
       Left            =   0
       MultiLine       =   -1  'True
       OLEDropMode     =   1  'Manual
       ScrollBars      =   2  'Vertical
       TabIndex        =   1
-      Top             =   0
-      Width           =   7875
+      Top             =   480
+      Width           =   8775
    End
    Begin VB.CommandButton Command1 
       Caption         =   "Generate IDC"
       Height          =   375
-      Left            =   6660
+      Left            =   7560
       TabIndex        =   0
-      Top             =   3420
+      Top             =   120
       Width           =   1215
    End
 End
@@ -180,15 +180,15 @@ Private Sub Command1_Click()
         End If
 
 
-        If Len(import) = 0 Then GoTo nextone
+        If Len(import) = 0 Or Len(addr) = 0 Then GoTo nextone
 
-        unique.Add CStr(import), CStr(import)
-
-        import = Replace(import, "-", "_") 'some chars are reserved for IDA names
-
-        'MakeName(0X4010E8,  "THISISMYSUB_2");
-        If Check1.Value Then tmp = tmp & vbTab & "MakeUnkn(0X" & addr & ",1);" & vbCrLf
-        tmp = tmp & vbTab & "MakeName(0X" & addr & ",""" & import & "_"");" & vbCrLf
+        Err.Clear
+        unique.Add "0x" & addr, CStr(import)
+        If Err.Number = 0 Then
+            import = Replace(import, "-", "_") 'some chars are reserved for IDA names
+            If Check1.Value Then tmp = tmp & vbTab & "MakeUnkn(0X" & addr & ",1);" & vbCrLf 'MakeName(0X4010E8,  "THISISMYSUB_2");
+            tmp = tmp & vbTab & "MakeName(0X" & addr & ",""" & import & "_"");" & vbCrLf
+        End If
         
         
 nextone:
@@ -336,6 +336,14 @@ Private Sub Form_Load()
         Command1_Click
     End If
     
+End Sub
+
+Private Sub Form_Resize()
+    On Error Resume Next
+    With Text2
+        .Width = Me.Width - .Left - 200
+        .Height = Me.Height - .Top - 500
+    End With
 End Sub
 
 Private Sub Text2_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)

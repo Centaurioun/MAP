@@ -130,8 +130,8 @@ Const deco = "chm.file\shell\Decompile\command"
 Const m5 = "*\shell\Md5 Hash\command"
 Const vt = "*\shell\Virus Total\command"
 
-Private Sub cmdInstallRegKeys_Click()
-
+Sub InstallRegKeys()
+    
     Dim cmdline_1 As String
     Dim cmdline_2 As String
     Dim cmdline_3 As String
@@ -183,6 +183,35 @@ hell: MsgBox "Error adding keys: " & Err.Description
 End Sub
 
 
+Private Sub cmdInstallRegKeys_Click()
+    
+    If IsVistaPlus() Then
+        If Not IsUserAnAdministrator() Then
+            MsgBox "Must be an admin user to install these settings can not elevate.", vbInformation
+        Else
+            RunElevated App.path & "\shellext.exe", essSW_HIDE, , "/install"
+        End If
+    Else
+        InstallRegKeys
+    End If
+                
+End Sub
+
+Private Sub cmdRemoveRegKeys_Click()
+    
+    If IsVistaPlus() Then
+        If Not IsUserAnAdministrator() Then
+            MsgBox "Must be an admin user to remove these settings can not elevate.", vbInformation
+        Else
+             RunElevated App.path & "\shellext.exe", essSW_HIDE, , "/remove"
+        End If
+    Else
+        RemoveRegKeys
+    End If
+    
+End Sub
+
+
 Private Sub cmdMinLen_Click()
 
     If Not IsNumeric(Text1) Then
@@ -197,8 +226,8 @@ Private Sub cmdMinLen_Click()
     
 End Sub
 
-Private Sub cmdRemoveRegKeys_Click()
-    
+Function RemoveRegKeys()
+
     Dim reg As New clsRegistry2
     Dim a As Boolean, b As Boolean, c As Boolean
     
@@ -240,7 +269,7 @@ Private Sub cmdRemoveRegKeys_Click()
     
     End
     
-End Sub
+End Function
 
 Private Sub Form_Load()
        
@@ -266,13 +295,25 @@ Private Sub Form_Load()
         If VBA.Right(cmd, 5) = "/deco" Then mode = 3
         If VBA.Right(cmd, 5) = "/md5f" Then mode = 4
         
+        If VBA.Right(cmd, 8) = "/install" Then mode = 5 'required for Vista run elevated mode
+        If VBA.Right(cmd, 7) = "/remove" Then mode = 6
+        
         cmd = Trim(Mid(cmd, 1, Len(cmd) - 5))
+        
+        If mode = 5 Or mode = 6 Then
+            If IsVistaPlus() And Not IsProcessElevated() Then
+                MsgBox "Process must be elevated for this option to work..", vbInformation
+                'but cant hurt to try it anyway right...
+            End If
+        End If
         
         Select Case mode
             Case 1: frmStrings.ParseFile cmd
             Case 2: frmHash.HashDir cmd
             Case 3: DecompileChm cmd
             Case 4: frmFileHash.ShowFileStats cmd
+            Case 5: InstallRegKeys
+            Case 6: RemoveRegKeys
             Case Else: MsgBox "Unknown Option", vbExclamation
         End Select
         

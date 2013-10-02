@@ -79,6 +79,26 @@ Begin VB.Form Form2
       Top             =   480
       Width           =   4635
    End
+   Begin VB.Label Label4 
+      BackColor       =   &H8000000B&
+      Caption         =   "http://virustotal.com"
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   8.25
+         Charset         =   0
+         Weight          =   400
+         Underline       =   -1  'True
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      ForeColor       =   &H00FF0000&
+      Height          =   195
+      Left            =   6000
+      MousePointer    =   1  'Arrow
+      TabIndex        =   7
+      Top             =   540
+      Width           =   1515
+   End
    Begin VB.Label Label3 
       Caption         =   "Raw Json"
       BeginProperty Font 
@@ -193,6 +213,8 @@ Private Function FileExists(p) As Boolean
     If Dir(p, vbNormal Or vbHidden Or vbReadOnly Or vbSystem) <> "" Then FileExists = True
 End Function
 
+ 
+
 Private Sub Form_Load()
     Me.Show
 End Sub
@@ -200,4 +222,10 @@ End Sub
 Private Sub Label3_Click()
     On Error Resume Next
     Text1 = scan.RawJson
+End Sub
+
+Private Sub Label4_Click()
+    On Error Resume Next
+    Shell "cmd /c start http://virustotal.com", vbHide
+    'If Err.Number <> 0 Then MsgBox Err.Description
 End Sub
