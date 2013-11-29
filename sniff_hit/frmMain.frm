@@ -2,105 +2,109 @@ VERSION 5.00
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmMain 
    Caption         =   "sniff_hit"
-   ClientHeight    =   8370
+   ClientHeight    =   8910
    ClientLeft      =   165
    ClientTop       =   555
-   ClientWidth     =   9495
+   ClientWidth     =   9780
    Icon            =   "frmMain.frx":0000
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8370
-   ScaleWidth      =   9495
+   ScaleHeight     =   8910
+   ScaleWidth      =   9780
    StartUpPosition =   2  'CenterScreen
-   Begin VB.CheckBox ChkPromiscious 
-      Caption         =   "Promiscuous Mode"
-      Height          =   255
-      Left            =   3000
-      TabIndex        =   22
-      Top             =   750
-      Width           =   2445
-   End
-   Begin VB.ListBox lstDNS 
-      Height          =   2205
-      Left            =   7740
-      TabIndex        =   21
-      ToolTipText     =   "Double Click to Copy"
-      Top             =   6060
-      Width           =   1755
-   End
-   Begin VB.ListBox lstIRC 
-      Height          =   840
+   Begin VB.Frame frmRight 
+      BorderStyle     =   0  'None
+      Height          =   7395
       Left            =   7680
-      TabIndex        =   17
-      ToolTipText     =   "Double click to copy irc servers"
-      Top             =   4800
-      Width           =   1815
-   End
-   Begin VB.ListBox lstHTTP 
-      Height          =   840
-      Left            =   7680
-      TabIndex        =   16
-      ToolTipText     =   "Double click to copy http servers"
-      Top             =   3600
-      Width           =   1815
-   End
-   Begin VB.TextBox txtIRCPort 
-      Height          =   315
-      Left            =   2220
-      TabIndex        =   15
-      Text            =   "0"
-      Top             =   4440
-      Width           =   915
-   End
-   Begin VB.TextBox txtHttpPort 
-      Height          =   285
-      Left            =   1800
-      TabIndex        =   14
-      Text            =   "0"
-      Top             =   720
-      Width           =   915
-   End
-   Begin VB.CommandButton cmdClearHttp 
-      Caption         =   "Clear"
-      Height          =   255
-      Left            =   6660
-      TabIndex        =   11
-      Top             =   720
-      Width           =   795
-   End
-   Begin VB.CommandButton cmdCopyAllHTTP 
-      Caption         =   "Copy"
-      Height          =   255
-      Left            =   5640
-      TabIndex        =   10
-      Top             =   720
-      Width           =   1035
+      TabIndex        =   9
+      Top             =   1560
+      Width           =   2055
+      Begin VB.ListBox lstIP 
+         Height          =   2205
+         Left            =   0
+         TabIndex        =   13
+         ToolTipText     =   "Dounle click to copy"
+         Top             =   240
+         Width           =   1995
+      End
+      Begin VB.ListBox lstHTTP 
+         Height          =   840
+         Left            =   0
+         TabIndex        =   12
+         ToolTipText     =   "Double click to copy http servers"
+         Top             =   2760
+         Width           =   1995
+      End
+      Begin VB.ListBox lstIRC 
+         Height          =   840
+         Left            =   0
+         TabIndex        =   11
+         ToolTipText     =   "Double click to copy irc servers"
+         Top             =   3960
+         Width           =   1995
+      End
+      Begin VB.ListBox lstDNS 
+         Height          =   2205
+         Left            =   60
+         TabIndex        =   10
+         ToolTipText     =   "Double Click to Copy"
+         Top             =   5220
+         Width           =   1935
+      End
+      Begin VB.Label Label1 
+         Caption         =   "Unique IPs"
+         Height          =   195
+         Index           =   1
+         Left            =   60
+         TabIndex        =   17
+         Top             =   0
+         Width           =   975
+      End
+      Begin VB.Label Label1 
+         Caption         =   "Http Servers"
+         Height          =   195
+         Index           =   3
+         Left            =   0
+         TabIndex        =   16
+         Top             =   2520
+         Width           =   1335
+      End
+      Begin VB.Label Label1 
+         Caption         =   "IRC Servers"
+         Height          =   195
+         Index           =   4
+         Left            =   0
+         TabIndex        =   15
+         Top             =   3720
+         Width           =   1335
+      End
+      Begin VB.Label Label1 
+         Caption         =   "DNS Requests"
+         Height          =   195
+         Index           =   5
+         Left            =   60
+         TabIndex        =   14
+         Top             =   4980
+         Width           =   1335
+      End
    End
    Begin VB.TextBox txtIRC 
-      Height          =   3555
-      Left            =   120
+      Height          =   3615
+      Left            =   60
       MultiLine       =   -1  'True
       ScrollBars      =   3  'Both
-      TabIndex        =   9
+      TabIndex        =   5
       ToolTipText     =   "Double click to copy"
-      Top             =   4800
+      Top             =   5220
       Width           =   7515
-   End
-   Begin VB.ListBox lstIP 
-      Height          =   2205
-      Left            =   7680
-      TabIndex        =   7
-      ToolTipText     =   "Dounle click to copy"
-      Top             =   1080
-      Width           =   1755
    End
    Begin MSComctlLib.ListView lv 
-      Height          =   3375
+      Height          =   3495
       Left            =   60
-      TabIndex        =   5
-      Top             =   1020
+      TabIndex        =   4
+      Top             =   1620
       Width           =   7515
       _ExtentX        =   13256
-      _ExtentY        =   5953
+      _ExtentY        =   6165
       View            =   3
       LabelEdit       =   1
       LabelWrap       =   -1  'True
@@ -125,11 +129,67 @@ Begin VB.Form frmMain
    End
    Begin VB.Frame fInterface 
       Caption         =   "Network Interfaces"
-      Height          =   675
-      Left            =   180
+      Height          =   1455
+      Left            =   0
       TabIndex        =   0
-      Top             =   0
-      Width           =   9390
+      Top             =   60
+      Width           =   9750
+      Begin VB.CommandButton cmdCopyAllHTTP 
+         Caption         =   "Copy Http"
+         Height          =   315
+         Left            =   8400
+         TabIndex        =   26
+         Top             =   720
+         Width           =   1095
+      End
+      Begin VB.CommandButton cmdClearHttp 
+         Caption         =   "Clear Http"
+         Height          =   315
+         Left            =   8400
+         TabIndex        =   25
+         Top             =   1080
+         Width           =   1095
+      End
+      Begin VB.TextBox txtIRCPort 
+         Height          =   315
+         Left            =   7020
+         TabIndex        =   22
+         Text            =   "0"
+         Top             =   1020
+         Width           =   915
+      End
+      Begin VB.TextBox txtHttpPort 
+         Height          =   285
+         Left            =   3780
+         TabIndex        =   19
+         Text            =   "0"
+         Top             =   1020
+         Width           =   915
+      End
+      Begin VB.CheckBox ChkPromiscious 
+         Caption         =   "Promiscuous Mode"
+         Height          =   255
+         Left            =   780
+         TabIndex        =   18
+         Top             =   1050
+         Width           =   1665
+      End
+      Begin VB.CommandButton cmdBrowse 
+         Caption         =   "..."
+         Height          =   315
+         Left            =   6960
+         TabIndex        =   8
+         Top             =   600
+         Width           =   1035
+      End
+      Begin VB.TextBox txtLogDir 
+         Height          =   315
+         Left            =   780
+         Locked          =   -1  'True
+         TabIndex        =   7
+         Top             =   600
+         Width           =   5955
+      End
       Begin VB.ComboBox cmbInterface 
          Height          =   315
          Left            =   120
@@ -142,7 +202,7 @@ Begin VB.Form frmMain
          Caption         =   "Stop"
          Enabled         =   0   'False
          Height          =   315
-         Left            =   8160
+         Left            =   8400
          TabIndex        =   2
          Top             =   240
          Width           =   1095
@@ -155,76 +215,48 @@ Begin VB.Form frmMain
          Top             =   240
          Width           =   1035
       End
-   End
-   Begin VB.Label Label1 
-      Caption         =   "DNS Requests"
-      Height          =   195
-      Index           =   5
-      Left            =   7740
-      TabIndex        =   20
-      Top             =   5820
-      Width           =   1335
-   End
-   Begin VB.Label Label1 
-      Caption         =   "IRC Servers"
-      Height          =   195
-      Index           =   4
-      Left            =   7680
-      TabIndex        =   19
-      Top             =   4560
-      Width           =   1335
-   End
-   Begin VB.Label Label1 
-      Caption         =   "Http Servers"
-      Height          =   195
-      Index           =   3
-      Left            =   7680
-      TabIndex        =   18
-      Top             =   3360
-      Width           =   1335
-   End
-   Begin VB.Label Label3 
-      Caption         =   "Ports: 6660-6690, "
-      Height          =   255
-      Left            =   840
-      TabIndex        =   13
-      Top             =   4500
-      Width           =   1455
-   End
-   Begin VB.Label Label2 
-      Caption         =   "Ports: 80"
-      Height          =   255
-      Left            =   1020
-      TabIndex        =   12
-      Top             =   720
-      Width           =   735
-   End
-   Begin VB.Label Label1 
-      Caption         =   "IRC"
-      Height          =   195
-      Index           =   2
-      Left            =   120
-      TabIndex        =   8
-      Top             =   4500
-      Width           =   615
-   End
-   Begin VB.Label Label1 
-      Caption         =   "Unique IPs"
-      Height          =   195
-      Index           =   1
-      Left            =   7680
-      TabIndex        =   6
-      Top             =   840
-      Width           =   1335
-   End
-   Begin VB.Label Label1 
-      Caption         =   "HTTP"
-      Height          =   195
-      Index           =   0
-      Left            =   60
-      TabIndex        =   4
-      Top             =   780
-      Width           =   615
+      Begin VB.Label Label1 
+         Caption         =   "IRC"
+         Height          =   195
+         Index           =   2
+         Left            =   5280
+         TabIndex        =   24
+         Top             =   1080
+         Width           =   315
+      End
+      Begin VB.Label Label3 
+         Caption         =   "Ports: 6660-6690, "
+         Height          =   255
+         Left            =   5640
+         TabIndex        =   23
+         Top             =   1080
+         Width           =   1455
+      End
+      Begin VB.Label Label1 
+         Caption         =   "HTTP"
+         Height          =   195
+         Index           =   0
+         Left            =   2520
+         TabIndex        =   21
+         Top             =   1080
+         Width           =   435
+      End
+      Begin VB.Label Label2 
+         Caption         =   "Ports: 80,"
+         Height          =   255
+         Left            =   3060
+         TabIndex        =   20
+         Top             =   1080
+         Width           =   735
+      End
+      Begin VB.Label Label4 
+         Caption         =   "LogDir"
+         Height          =   255
+         Left            =   180
+         TabIndex        =   6
+         Top             =   660
+         Width           =   555
+      End
    End
    Begin VB.Menu mnuPopup 
       Caption         =   "mnuPopup"
@@ -296,9 +328,46 @@ Dim ActiveList As ListBox
 
 Dim userHttpPort As Long
 Dim userIRCPort As Long
+Dim logDir As String
+Dim fso As New CFileSystem2
+Dim dlg As New clsCmnDlg
+
+Private Enum dTypes
+    dt_http = 0
+    dt_irc = 1
+    dt_servers = 2
+End Enum
+
+Private Sub LogData(Data, dt As dTypes)
+
+    On Error Resume Next
+    Dim f
+    Dim pth As String
+    
+    If Len(logDir) = 0 Then Exit Sub
+    
+    f = Array("http", "irc", "servers")
+    pth = logDir & "\" & f(dt) & ".txt"
+    
+    If fso.FileExists(pth) Then
+        fso.AppendFile pth, Data
+    Else
+        fso.WriteFile pth, Data
+    End If
+    
+End Sub
+
 
 Private Sub ChkPromiscious_Click()
     sniffer.PromisciousMode = IIf(ChkPromiscious.Value = 1, True, False)
+End Sub
+
+Private Sub cmdBrowse_Click()
+    Dim pth As String
+    pth = dlg.FolderDialog(, Me.hWnd)
+    If Len(pth) = 0 Then Exit Sub
+    txtLogDir = pth
+    logDir = pth
 End Sub
 
 Private Sub cmdClearHttp_Click()
@@ -350,6 +419,7 @@ Private Sub cmdStart_Click()
     
     If sniffer.Startup(cmbInterface.Text) Then
     
+        cmdBrowse.Enabled = Not cmdStart.Enabled
         cmdStart.Enabled = Not cmdStart.Enabled
         cmdStop.Enabled = Not cmdStop.Enabled
         txtHttpPort.Enabled = Not txtHttpPort.Enabled
@@ -375,6 +445,7 @@ End Sub
 Private Sub cmdStop_Click()
     cmdStart.Enabled = Not cmdStart.Enabled
     cmdStop.Enabled = Not cmdStop.Enabled
+    cmdBrowse.Enabled = cmdStart.Enabled
     txtHttpPort.Enabled = Not txtHttpPort.Enabled
     txtIRCPort.Enabled = Not txtIRCPort.Enabled
     sniffer.Shutdown
@@ -382,6 +453,8 @@ End Sub
 
 Private Sub Form_Load()
 
+    On Error Resume Next
+    
     If App.PrevInstance Then
         MsgBox "Another instance is already running", vbExclamation
         End
@@ -401,7 +474,6 @@ Private Sub Form_Load()
         myIPs.Add X, X
     Next
     
-    On Error Resume Next
     defaultInterface = CLng(GetSetting("x", "x", "defaultInterface", 0))
     
     If defaultInterface < 0 Or defaultInterface > (cmbInterface.ListCount - 1) Then
@@ -409,11 +481,47 @@ Private Sub Form_Load()
     End If
     
     cmbInterface.Text = cmbInterface.List(defaultInterface)
-
-    If Trim(Command) = "/start" Then cmdStart_Click
     
+    Dim pth As String
+    
+    If InStr(1, Command, "/log", vbTextCompare) > 0 Then
+        pth = Replace(Command, "/start", "", , , vbTextCompare)
+        pth = Replace(pth, "/log", "", , , vbTextCompare)
+        pth = Trim(Replace(pth, """", ""))
+        If Len(pth) > 0 Then
+            If Not fso.FolderExists(pth) Then fso.buildPath pth
+            If fso.FolderExists(pth) Then logDir = pth
+            If Len(logDir) > 0 Then txtLogDir = logDir
+        End If
+    End If
+    
+    If InStr(1, Command, "/start", vbTextCompare) > 0 Then cmdStart_Click
+        
 End Sub
 
+
+Private Sub Form_Resize()
+    On Error Resume Next
+    
+    If Me.Width > 10000 Then
+        frmRight.Left = Me.Width - frmRight.Width - 200
+        lv.Width = frmRight.Left - lv.Left - 200
+        txtIRC.Width = lv.Width
+        fInterface.Width = Me.Width - fInterface.Left - 200
+        lv.ColumnHeaders(2).Width = lv.Width - lv.ColumnHeaders(2).Left - 75
+    End If
+    
+    Dim working As Long
+    If Me.Height > 10000 Then
+        working = Me.Height - fInterface.Height - 800
+        lv.Height = working / 2
+        txtIRC.Top = lv.Top + lv.Height + 100
+        txtIRC.Height = working / 2
+        frmRight.Height = working + 300
+        lstDNS.Height = working - lstDNS.Top + 200
+    End If
+        
+End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
     sniffer.Shutdown
@@ -519,12 +627,14 @@ Private Sub sniffer_UDPPacket(packet As CUDPPacket, Data() As Byte)
         If Not KeyExistsInCollection(uniqueIPs, .notMeIP) Then
             uniqueIPs.Add .notMeIP, .notMeIP
             lstIP.AddItem .notMeIP
+            LogData "IP:   " & .notMeIP, dt_servers
         End If
         If .isDNS Then
             If InStr(.DNSReqName, ".domain.invalid") > 0 Then Exit Sub
             If Not KeyExistsInCollection(dns, .DNSReqName) Then
                   dns.Add .DNSReqName, CStr(.DNSReqName)
                   lstDNS.AddItem .DNSReqName
+                  LogData "DNS:  " & .DNSReqName, dt_servers
             End If
         End If
     End With
@@ -546,6 +656,7 @@ Private Sub Sniffer_RecievedPacket(packet As CTcpPacket, Data As String)
         If Not KeyExistsInCollection(uniqueIPs, notMeIP) Then
             uniqueIPs.Add notMeIP, notMeIP
             lstIP.AddItem notMeIP
+            LogData "IP:   " & notMeIP, dt_servers
         End If
 
         If Len(Data) = 0 Then Exit Sub
@@ -557,6 +668,7 @@ Private Sub Sniffer_RecievedPacket(packet As CTcpPacket, Data As String)
                 If Not KeyExistsInCollection(httpServers, .IP_DestIP) Then
                       httpServers.Add .IP_DestIP, CStr(.IP_DestIP)
                       lstHTTP.AddItem .IP_DestIP & " : " & .DestPort
+                      LogData "HTTP: " & .IP_DestIP & " : " & .DestPort, dt_servers
                 End If
             End If
                 
@@ -565,6 +677,7 @@ Private Sub Sniffer_RecievedPacket(packet As CTcpPacket, Data As String)
                 If Not KeyExistsInCollection(ircServers, .IP_DestIP) Then
                       ircServers.Add .IP_DestIP, CStr(.IP_DestIP)
                       lstIRC.AddItem .IP_DestIP & " : " & .DestPort
+                      LogData "IRC:  " & .IP_DestIP & " : " & .DestPort, dt_servers
                 End If
             End If
         
@@ -574,6 +687,7 @@ Private Sub Sniffer_RecievedPacket(packet As CTcpPacket, Data As String)
                     If Not KeyExistsInCollection(ircServers, .IP_DestIP) Then
                           ircServers.Add .IP_DestIP, CStr(.IP_DestIP)
                           lstIRC.AddItem .IP_DestIP & " : " & .DestPort
+                          LogData "IRC:  " & .IP_DestIP & " : " & .DestPort, dt_servers
                     End If
                 End If
             End If
@@ -586,6 +700,7 @@ Private Sub Sniffer_RecievedPacket(packet As CTcpPacket, Data As String)
                     If Not KeyExistsInCollection(httpServers, .IP_DestIP) Then
                           httpServers.Add .IP_DestIP, CStr(.IP_DestIP)
                           lstHTTP.AddItem .IP_DestIP & " : " & .DestPort
+                          LogData "HTTP:  " & .IP_DestIP & " : " & .DestPort, dt_servers
                     End If
                 End If
             End If
@@ -599,12 +714,14 @@ Private Sub Sniffer_RecievedPacket(packet As CTcpPacket, Data As String)
         If isIRC Then
             txtIRC = txtIRC & Data
             txtIRC.SelStart = Len(txtIRC)
+            LogData Data, dt_irc
         End If
         
         If ishttp Then
             If InStr(Data, Chr(0)) < 1 Then 'assume not binary
                 Set li = lv.ListItems.Add(, , IIf(isMeSending, "-> ", "<- ") & notMeIP & ":" & IIf(isMeSending, .DestPort, .SourcePort))
                 li.SubItems(1) = Data
+                LogData Data, dt_http
             End If
         End If
                  

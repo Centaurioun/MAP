@@ -3,14 +3,30 @@ Begin VB.Form Form2
    Caption         =   "Virus Total Sample Lookup"
    ClientHeight    =   6345
    ClientLeft      =   60
-   ClientTop       =   345
+   ClientTop       =   630
    ClientWidth     =   9210
    LinkTopic       =   "Form2"
    ScaleHeight     =   6345
    ScaleWidth      =   9210
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton cmdSubmit 
+      Caption         =   "Submit File"
+      Height          =   255
+      Left            =   7920
+      TabIndex        =   8
+      Top             =   540
+      Width           =   1215
+   End
+   Begin VB.CommandButton cmdSaveReport 
+      Caption         =   "Save Report"
+      Height          =   315
+      Left            =   7920
+      TabIndex        =   7
+      Top             =   60
+      Width           =   1215
+   End
    Begin VB.Timer Timer1 
-      Left            =   7830
+      Left            =   7320
       Top             =   390
    End
    Begin VB.TextBox Text1 
@@ -42,10 +58,10 @@ Begin VB.Form Form2
          Strikethrough   =   0   'False
       EndProperty
       Height          =   315
-      Left            =   870
+      Left            =   840
       TabIndex        =   4
       Top             =   60
-      Width           =   8265
+      Width           =   6945
    End
    Begin VB.ListBox List1 
       BeginProperty Font 
@@ -93,29 +109,11 @@ Begin VB.Form Form2
       EndProperty
       ForeColor       =   &H00FF0000&
       Height          =   195
-      Left            =   6000
+      Left            =   5640
       MousePointer    =   1  'Arrow
-      TabIndex        =   7
-      Top             =   540
-      Width           =   1515
-   End
-   Begin VB.Label Label3 
-      Caption         =   "Raw Json"
-      BeginProperty Font 
-         Name            =   "MS Sans Serif"
-         Size            =   8.25
-         Charset         =   0
-         Weight          =   400
-         Underline       =   -1  'True
-         Italic          =   0   'False
-         Strikethrough   =   0   'False
-      EndProperty
-      ForeColor       =   &H00FF0000&
-      Height          =   225
-      Left            =   8340
       TabIndex        =   6
       Top             =   540
-      Width           =   795
+      Width           =   1515
    End
    Begin VB.Label Label2 
       Caption         =   "File: "
@@ -153,12 +151,15 @@ Begin VB.Form Form2
    End
    Begin VB.Menu mnuPopup 
       Caption         =   "mnuPopup"
-      Visible         =   0   'False
       Begin VB.Menu mnuCopyLine 
          Caption         =   "Copy Line"
+         Visible         =   0   'False
       End
       Begin VB.Menu mnuCopyTable 
          Caption         =   "Copy Table"
+      End
+      Begin VB.Menu mnuViewRawJson 
+         Caption         =   "View Raw Json"
       End
    End
 End
@@ -170,6 +171,7 @@ Attribute VB_Exposed = False
 Dim md5 As New MD5Hash
 Dim vt As New CVirusTotal
 Dim scan As CScan
+Public abort As Boolean
 
 Public Function StartFromFile(fpath As String)
 
@@ -183,9 +185,14 @@ Public Function StartFromFile(fpath As String)
         Exit Function
     End If
     
-    StartFromHash md5.HashFile(fpath)
+    Me.Show
+    txtHash = md5.HashFile(fpath)
+    Set scan = vt.GetReport(txtHash, List1, Timer1)
+    Text1 = scan.GetReport()
 
 End Function
+
+
 
 Public Function StartFromHash(hash As String)
     
@@ -193,6 +200,7 @@ Public Function StartFromHash(hash As String)
     
     txtFile.Enabled = False
     txtFile.BackColor = &H8000000F
+    cmdSubmit.Enabled = False
     
     If Len(hash) = 0 Then
         MsgBox "Error starting up from hash, no value specified?", vbInformation
@@ -213,19 +221,83 @@ Private Function FileExists(p) As Boolean
     If Dir(p, vbNormal Or vbHidden Or vbReadOnly Or vbSystem) <> "" Then FileExists = True
 End Function
 
- 
+
+Private Sub cmdSaveReport_Click()
+    
+    On Error Resume Next
+    Dim pf As String
+    Dim path As String
+    Dim dlg As New CCmnDlg
+    Dim fso As New CFileSystem2
+    Dim bn As String
+    
+    bn = fso.GetBaseName(txtFile)
+    pf = fso.GetParentFolder(txtFile)
+    If Len(bn) = 0 Then bn = Mid(txtHash, 1, 5)
+    bn = "VT_" & bn & ".txt"
+    
+    path = dlg.SaveDialog(AllFiles, pf, "Save As", , Me.hWnd, bn)
+    If Len(path) = 0 Then Exit Sub
+    fso.writeFile path, Text1
+    
+End Sub
+
+Private Sub cmdSubmit_Click()
+   
+    On Error Resume Next
+    If Not FileExists(txtFile) Then
+        MsgBox "File not found?"
+        Exit Sub
+    End If
+    
+    Set scan = vt.SubmitFile(txtFile, List1, Timer1)
+    scan.response_code = 2 'manually overridden for getreport() display purposes..
+    Text1 = scan.GetReport()
+
+ End Sub
 
 Private Sub Form_Load()
     Me.Show
+    mnuPopup.Visible = False
+    Set vt.owner = Me
 End Sub
 
-Private Sub Label3_Click()
+Private Sub Form_Resize()
     On Error Resume Next
-    Text1 = scan.RawJson
+    List1.Width = Me.Width - List1.Left - 200
+    Text1.Width = Me.Width - Text1.Left - 200
+    Text1.Height = Me.Height - Text1.Top - 400
+End Sub
+
+Private Sub Form_Unload(Cancel As Integer)
+    On Error Resume Next
+    abort = True
+    DoEvents
+    Timer1.Enabled = False
+    End
 End Sub
 
 Private Sub Label4_Click()
     On Error Resume Next
     Shell "cmd /c start http://virustotal.com", vbHide
     'If Err.Number <> 0 Then MsgBox Err.Description
+End Sub
+
+Private Sub List1_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As Single)
+    If Button = 2 Then PopupMenu mnuPopup
+End Sub
+
+Private Sub mnuCopyTable_Click()
+    On Error Resume Next
+    Dim r
+    For i = 0 To List1.ListCount
+        r = r & List1.list(i) & vbCrLf
+    Next
+    Clipboard.Clear
+    Clipboard.SetText r
+End Sub
+
+Private Sub mnuViewRawJson_Click()
+    On Error Resume Next
+    Text1 = scan.RawJson
 End Sub

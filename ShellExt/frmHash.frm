@@ -4,7 +4,7 @@ Begin VB.Form frmHash
    Caption         =   "Directory File Hasher - Right Click on ListView for Menu Options"
    ClientHeight    =   4080
    ClientLeft      =   60
-   ClientTop       =   345
+   ClientTop       =   630
    ClientWidth     =   12060
    LinkTopic       =   "Form1"
    ScaleHeight     =   4080
@@ -66,7 +66,6 @@ Begin VB.Form frmHash
    End
    Begin VB.Menu mnuPopup 
       Caption         =   "mnuPopup"
-      Visible         =   0   'False
       Begin VB.Menu mnuCopyTable 
          Caption         =   "Copy Table"
       End
@@ -94,6 +93,9 @@ Begin VB.Form frmHash
       Begin VB.Menu mnuCustomExtension 
          Caption         =   "Set All Custom Extension "
       End
+      Begin VB.Menu mnuMakeSubFolders 
+         Caption         =   "Make folders for each"
+      End
       Begin VB.Menu mnuSpacer33 
          Caption         =   "-"
       End
@@ -102,6 +104,9 @@ Begin VB.Form frmHash
       End
       Begin VB.Menu mnuVTLookupSelected 
          Caption         =   "Virus Total Lookup On Selected"
+      End
+      Begin VB.Menu mnuSubmitSelToVT 
+         Caption         =   "Submit Selected to Virus Total"
       End
       Begin VB.Menu mnuGoogleSelected 
          Caption         =   "Google Selected"
@@ -144,9 +149,10 @@ Attribute VB_Exposed = False
 '9.18.12 added x64 file system redirection awareness to main hashing routines (not to all right click options..)
 
 Dim path As String
+
 Sub setpb(cur, max)
     On Error Resume Next
-    pb.value = (cur / max) * 100
+    pb.Value = (cur / max) * 100
     Me.Refresh
     DoEvents
 End Sub
@@ -180,14 +186,14 @@ Sub HashDir(dPath As String)
     End If
      
     'MsgBox "Going to scan " & UBound(f) & " files"
-    pb.value = 0
+    pb.Value = 0
     Me.Visible = True
     
     For i = 0 To UBound(f)
          handleFile f(i)
          setpb i, UBound(f)
     Next
-    pb.value = 0
+    pb.Value = 0
     'MsgBox "ready to show"
      
     On Error Resume Next
@@ -238,10 +244,13 @@ Private Sub mnuCopySelected_Click()
 
     Dim li As ListItem
     Dim t As String
+    Dim ln As Long
+    
+    ln = LongestFileName() + 3
     
     For Each li In lv.ListItems
         If li.Selected Then
-            t = t & li.Text & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & vbCrLf
+            t = t & rpad(li.Text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & vbCrLf
         End If
     Next
     
@@ -412,14 +421,28 @@ nextone:
     
 End Sub
 
+Private Function LongestFileName() As Long
+    Dim li As ListItem
+    Dim r As Long
+    
+    For Each li In lv.ListItems
+        If Len(li.Text) > r Then r = Len(li.Text)
+    Next
+    
+    LongestFileName = r + 1
+    
+End Function
 
 Private Sub mnuCopyTable_Click()
 
     Dim li As ListItem
     Dim t As String
+    Dim ln As Long
+    
+    ln = LongestFileName() + 2
     
     For Each li In lv.ListItems
-        t = t & li.Text & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & vbCrLf
+        t = t & rpad(li.Text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & vbCrLf
     Next
     
     Clipboard.Clear
@@ -456,6 +479,7 @@ Sub handleFile(f As String)
 End Sub
 
 Private Sub Form_Load()
+    mnuPopup.Visible = False
     lv.ColumnHeaders(1).Width = lv.Width - lv.ColumnHeaders(2).Width - 400 - lv.ColumnHeaders(3).Width - lv.ColumnHeaders(4).Width
 End Sub
 
@@ -491,7 +515,7 @@ Private Sub mnuGoogleSelected_Click()
     End If
     
     For Each x In hashs
-        Google CStr(x), Me.hwnd
+        Google CStr(x), Me.hWnd
     Next
     
 End Sub
@@ -529,6 +553,24 @@ Private Sub mnuMakeExtSafe_Click()
 nextone:
     Next
    
+End Sub
+
+Private Sub mnuMakeSubFolders_Click()
+    
+    On Error Resume Next
+    Dim li As ListItem
+    Dim pdir As String
+    Dim baseName As String
+    Dim fpath As String
+    
+    For Each li In lv.ListItems
+        fpath = li.Tag
+        fname = li.Text
+        pdir = fso.GetParentFolder(fpath) & "\"
+        baseName = fso.GetBaseName(fpath)
+        MkDir pdir & baseName
+    Next
+        
 End Sub
 
 Private Sub mnuRenameToMD5_Click()
@@ -573,6 +615,38 @@ nextone:
     
 End Sub
 
+Private Sub mnuSubmitSelToVT_Click()
+    On Error Resume Next
+    Dim paths() As String
+    Dim li As ListItem
+    Dim i As Long
+    Dim f As String
+    
+    For Each li In lv.ListItems
+        If li.Selected Then
+            f = path & "\" & li.Text
+            If fso.FileExists(f) Then
+                push paths, f
+                i = i + 1
+            End If
+        End If
+    Next
+
+    If i = 0 Then
+        MsgBox "No items were selected!", vbInformation
+        Exit Sub
+    End If
+    
+    If i = 1 Then
+        Shell App.path & "\virustotal.exe ""/submit " & paths(0) & """", vbNormalFocus
+    Else
+        Clipboard.Clear
+        Clipboard.SetText Join(paths, vbCrLf)
+        Shell App.path & "\virustotal.exe /submitbulk", vbNormalFocus
+    End If
+    
+End Sub
+
 Private Sub mnuVTAll_Click()
 
     On Error Resume Next
@@ -581,7 +655,8 @@ Private Sub mnuVTAll_Click()
     
     For Each li In lv.ListItems
         If InStr(h, "Error") < 1 Then
-             t = t & li.SubItems(2) & vbCrLf
+             't = t & li.SubItems(2) & vbCrLf
+             t = t & li.SubItems(2) & "," & path & "\" & li.Text & vbCrLf 'new format hash,path
         End If
     Next
     
@@ -604,7 +679,8 @@ Private Sub mnuVTLookupSelected_Click()
         If li.Selected Then
             h = li.SubItems(2)
             If Len(h) > 0 And InStr(h, "Error") < 1 Then
-                push hashs, li.SubItems(2)
+                'push hashs, li.SubItems(2)
+                push hashs, li.SubItems(2) & "," & path & "\" & li.Text & vbCrLf 'new format hash,path
                 i = i + 1
             End If
         End If
@@ -616,6 +692,7 @@ Private Sub mnuVTLookupSelected_Click()
     End If
     
     If i = 1 Then
+        'will this allow submit to work? is it path or hash?
         Shell App.path & "\virustotal.exe """ & lv.SelectedItem.Tag & """", vbNormalFocus
     Else
         Clipboard.Clear

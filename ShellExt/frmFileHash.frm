@@ -78,14 +78,23 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuStrings 
          Caption         =   "Strings"
       End
-      Begin VB.Menu mnuVt 
-         Caption         =   "Virus Total"
-      End
       Begin VB.Menu mnuFileProps 
          Caption         =   "File Properties"
       End
       Begin VB.Menu mnuOffsetCalc 
          Caption         =   "Offset Calculator"
+      End
+      Begin VB.Menu mnuSpacer 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuVt 
+         Caption         =   "Virus Total"
+      End
+      Begin VB.Menu mnuSubmitToVT 
+         Caption         =   "Submit To VirusTotal"
+      End
+      Begin VB.Menu mnuSpacer2 
+         Caption         =   "-"
       End
       Begin VB.Menu mnuExternal 
          Caption         =   "External"
@@ -132,7 +141,7 @@ Sub ShowFileStats(fpath As String)
     myMd5 = hash.HashFile(fpath)
     
     If myMd5 = fso.FileNameFromPath(fpath) Then
-        mnuNameMD5.Enabled = False
+        mnuNameMD5.enabled = False
     End If
     
     'mySHA = hash.HashFile(fpath, SHA, HexFormat)
@@ -164,8 +173,8 @@ Sub ShowFileStats(fpath As String)
         End If
     End If
         
-    mnuFileProps.Enabled = isPE
-    mnuOffsetCalc.Enabled = isPE
+    mnuFileProps.enabled = isPE
+    mnuOffsetCalc.enabled = isPE
     
     Text1 = Join(ret, vbCrLf)
     
@@ -206,7 +215,8 @@ Private Sub cmdVT_Click()
         MsgBox "VirusTotal app not found?: " & vt, vbInformation
         Exit Sub
     End If
-    Shell vt & " /hash " & myMd5
+    'Shell vt & " /hash " & myMd5
+    Shell vt & " " & LoadedFile 'so submit button is active..
 End Sub
 
 Private Sub Form_Load()
@@ -299,6 +309,17 @@ Private Sub mnuStrings_Click()
     On Error Resume Next
     exe = App.path & IIf(IsIde(), "\..\", "") & "\shellext.exe"
     Shell exe & " """ & LoadedFile & """ /peek"
+End Sub
+
+Private Sub mnuSubmitToVT_Click()
+    On Error Resume Next
+    Dim vt As String
+    vt = App.path & IIf(IsIde(), "\..\", "") & "\virustotal.exe"
+    If Not fso.FileExists(vt) Then
+        MsgBox "VirusTotal app not found?: " & vt, vbInformation
+        Exit Sub
+    End If
+    Shell vt & " /submit " & LoadedFile
 End Sub
 
 Private Sub mnuVt_Click()

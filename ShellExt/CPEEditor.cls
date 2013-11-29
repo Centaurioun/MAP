@@ -23,6 +23,7 @@ Public MachineType As String
 Public is64Bit As Boolean
 Public is32Bit As Boolean
 Public EntryPoint As Long
+Public LoadedFile As String
 
 Private DOSHEADER As IMAGEDOSHEADER
 Private NTHEADER As IMAGE_NT_HEADERS
@@ -159,6 +160,7 @@ Function LoadFile(fpath As String) As Boolean
         Dim f As Long
         Dim udtSH As IMAGE_SECTION_HEADER
         
+        LoadedFile = fpath
         isLoaded = False
         errMessage = Empty
         is64Bit = False

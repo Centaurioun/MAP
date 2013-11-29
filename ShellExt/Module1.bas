@@ -181,7 +181,7 @@ Private Const VER_PLATFORM_WIN32_NT = 2
 Private Const TOKEN_READ As Long = &H20008
 Private Const TOKEN_QUERY As Long = &H8
 Private Const TOKEN_ELEVATION_TYPE As Long = 18
-Private Declare Function IsUserAnAdmin Lib "Shell32" Alias "#680" () As Integer
+Private Declare Function IsUserAnAdmin Lib "shell32" Alias "#680" () As Integer
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function OpenProcessToken Lib "advapi32.dll" (ByVal ProcessHandle As Long, ByVal DesiredAccess As Long, TokenHandle As Long) As Long
 Private Declare Function GetTokenInformation Lib "advapi32.dll" (ByVal TokenHandle As Long, ByVal TokenInformationClass As Long, TokenInformation As Any, ByVal TokenInformationLength As Long, ReturnLength As Long) As Long
@@ -667,8 +667,8 @@ Private Function DetectFileType(buf As String, fname As String) As String
     Else
         dot = InStrRev(fname, ".")
         If dot > 0 And dot <> Len(fname) Then
-            DetectFileType = Mid(fname, dot + 1) & " File"
-            If Len(DetectFileType) > 5 Then DetectFileType = "Unknown File Type." '<-- subtle identifier ending period
+            DetectFileType = UCase(Mid(fname, dot + 1)) & " File"
+            If Len(DetectFileType) > 12 Then DetectFileType = "Unknown File Type." '<-- subtle identifier ending period
         Else
             DetectFileType = "Unknown File Type"
         End If

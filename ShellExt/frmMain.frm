@@ -107,6 +107,8 @@ Option Explicit
 '
 '         5) "Virus Total" context menu added for all file types (added 4-19-12)
 '
+'         6) "Submit to VirusTotal" context menu added for all file types (added 11-11-13)
+'
 '
 'License: Copyright (C) 2005 David Zimmer <david@idefense.com, dzzie@yahoo.com>
 '
@@ -129,6 +131,7 @@ Const hash = "Folder\shell\Hash Files\command"
 Const deco = "chm.file\shell\Decompile\command"
 Const m5 = "*\shell\Md5 Hash\command"
 Const vt = "*\shell\Virus Total\command"
+Const vtsubmit = "*\shell\Submit to VirusTotal\command"
 
 Sub InstallRegKeys()
     
@@ -137,6 +140,8 @@ Sub InstallRegKeys()
     Dim cmdline_3 As String
     Dim cmdline_4 As String
     Dim cmdline_5 As String
+    Dim cmdline_6 As String
+    
     Dim reg As New clsRegistry2
     
     'note app.path will be wrong value to use in IDE unless you actually compile
@@ -147,6 +152,7 @@ Sub InstallRegKeys()
     cmdline_3 = """" & App.path & "\shellext.exe"" ""%1"" /deco"
     cmdline_4 = """" & App.path & "\shellext.exe"" ""%1"" /md5f"
     cmdline_5 = """" & App.path & "\virustotal.exe"" ""%1"""
+    cmdline_6 = """" & App.path & "\virustotal.exe"" ""%1"" /submit"
     
     On Error GoTo hell
     
@@ -173,6 +179,10 @@ Sub InstallRegKeys()
     
     If reg.CreateKey(vt) Then
         reg.SetValue vt, "", cmdline_5, REG_SZ
+    End If
+    
+    If reg.CreateKey(vtsubmit) Then
+        reg.SetValue vtsubmit, "", cmdline_6, REG_SZ
     End If
     
     MsgBox "Entries Added", vbInformation
@@ -248,6 +258,11 @@ Function RemoveRegKeys()
     If reg.keyExists(vt) Then
         a = reg.DeleteKey(vt)
         a = reg.DeleteKey("*\shell\Virus Total\")
+    End If
+    
+    If reg.keyExists(vtsubmit) Then
+        a = reg.DeleteKey(vtsubmit)
+        a = reg.DeleteKey("*\shell\Submit to VirusTotal\")
     End If
     
     If reg.keyExists(hash) Then

@@ -106,6 +106,8 @@ Source: findDll\FindDll.sln; DestDir: {app}\findDll\
 Source: findDll\FindDll.vcproj; DestDir: {app}\findDll\
 Source: VirusTotal\CResult.cls; DestDir: {app}\VirusTotal\
 Source: VirusTotal\CScan.cls; DestDir: {app}\VirusTotal\
+Source: VirusTotal\CFile.cls; DestDir: {app}\VirusTotal\
+Source: VirusTotal\CCmnDlg.cls; DestDir: {app}\VirusTotal\
 Source: VirusTotal\CVirusTotal.cls; DestDir: {app}\VirusTotal\
 Source: VirusTotal\Form1.frm; DestDir: {app}\VirusTotal\
 Source: VirusTotal\Form2.frm; DestDir: {app}\VirusTotal\
@@ -113,6 +115,7 @@ Source: VirusTotal\MD5Hash.cls; DestDir: {app}\VirusTotal\
 Source: VirusTotal\Project1.vbp; DestDir: {app}\VirusTotal\
 Source: VirusTotal\Project1.vbw; DestDir: {app}\VirusTotal\
 Source: VirusTotal\sample.txt; DestDir: {app}\VirusTotal\
+Source: VirusTotal\frmSubmit.frm; DestDir: {app}\VirusTotal\
 Source: virustotal.exe; DestDir: {app}; Flags: ignoreversion
 Source: loadlib\loadlib.cpp; DestDir: {app}\loadlib\
 Source: loadlib\loadlib.dsp; DestDir: {app}\loadlib\

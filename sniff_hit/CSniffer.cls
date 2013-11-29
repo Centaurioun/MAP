@@ -212,8 +212,8 @@ Public EventWindow As Form
 
 Public PromisciousMode As Boolean
 
-Event RecievedPacket(packet As CTcpPacket, Data As String)
-Event UDPPacket(packet As CUDPPacket, Data() As Byte)
+Event RecievedPacket(packet As CTcpPacket, data As String)
+Event UDPPacket(packet As CUDPPacket, data() As Byte)
 
 Private myInterfaces As Collection
 Private ListeningIP As Long
@@ -518,7 +518,9 @@ Function AvailableInterfaces() As Collection
         lngIp = buf.iInfo(i).iiAddress.AddressIn.sin_addr
         CopyMemory ByVal VarPtr(ip(0)), VarPtr(lngIp), 4
         sIp = ip(0) & "." & ip(1) & "." & ip(2) & "." & ip(3)
-        ret.Add sIp, sIp
+        If sIp <> "127.0.0.1" Then
+            ret.Add sIp, sIp
+        End If
     Next i
       
     Set myInterfaces = ret

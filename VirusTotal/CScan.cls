@@ -25,6 +25,19 @@ Attribute VB_Exposed = False
 '"md5": "0a2ba6d0d8c7220d0db6d8a8f1eb5890",
 '"scans": {
 
+'Example response from a submission:
+'{
+'    "scan_id": "e5212347fddae865d3b09df23b3701b607912d914598ed889a3d74b142b60c28-1383901546",
+'    "sha1": "66f3eeceb1e6750d922c8ea786fc833d79214abe",
+'    "resource": "e5212347fddae865d3b09df23b3701b607912d914598ed889a3d74b142b60c28",
+'    "response_code": 1,
+'    "sha256": "e5212347fddae865d3b09df23b3701b607912d914598ed889a3d74b142b60c28",
+'    "permalink": "https://www.virustotal.com/file/e5212347fddae865d3b09df23b3701b607912d914598ed889a3d74b142b60c28/analysis/1383901546/",
+'    "md5": "0800344e45b1aada2917a6f90df0e6e3",
+'    "verbose_msg": "Scan request successfully queued, come back later for the report"
+'}
+
+
 Public permalink
 Public sha1
 Public resource
@@ -36,6 +49,8 @@ Public sha256
 Public positives
 Public total
 Public md5
+
+Public LocalFilePath 'not part of VT response, we add manually for UI
 
 Public RawJson As String
 Public HTTP_ResponseCode As Long
@@ -52,22 +67,36 @@ Public Function GetReport() As String
     If response_code <> 1 Then
         tmp = verbose_msg
     Else
+
+        tmp = "Scan Date:   " & Me.scan_date & vbCrLf
+        tmp = tmp & "Hash:        " & Me.md5 & vbCrLf
+        
+        If Len(LocalFilePath) > 0 Then tmp = tmp & "File:        " & FileNameFromPath(LocalFilePath) & vbCrLf
+        
         If positives = 0 Then
-            tmp = "File had no detections" & vbCrLf & "Scan Date: " & Me.scan_date
+            tmp = tmp & vbCrLf & "File had no detections" & vbCrLf
         Else
-            tmp = "Scan Date:   " & Me.scan_date & vbCrLf
-            tmp = tmp & "Hash:        " & Me.md5 & vbCrLf
-            tmp = tmp & String(30, "-") & vbCrLf
+            tmp = tmp & String(45, "-") & vbCrLf
             For Each r In results
                 If r.detected Then
                     tmp = tmp & r.PaddedScanner() & r.result & vbCrLf
                 End If
             Next
         End If
+            
     End If
     
-    GetReport = tmp
+    GetReport = tmp & vbCrLf
     
+End Function
+
+Private Function FileNameFromPath(fullpath) As String
+    If InStr(fullpath, "\") > 0 Then
+        tmp = Split(fullpath, "\")
+        FileNameFromPath = CStr(tmp(UBound(tmp)))
+    Else
+        FileNameFromPath = fullpath
+    End If
 End Function
 
 Public Function setbyname(name As Variant, value As Variant)
@@ -117,7 +146,7 @@ Public Sub ParseResponse(json As String)
         
     'main = Mid(json, 2, a)
    
-    tmp = Split(main, ",")
+    tmp = Split(main, ",") 'small bug to simple..verbose_msg can contains commas...complexity of fix not worth it..
     For Each entry In tmp
         entry = Trim(entry)
         If Len(entry) = 0 Then GoTo nextone

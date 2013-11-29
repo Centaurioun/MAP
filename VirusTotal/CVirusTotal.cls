@@ -24,16 +24,18 @@ Const API_KEY = "a949ea9c64e7145a065b0e562673a66216a132712e958168c8c00ee5f451485
 Private List1 As ListBox 'for logging...
 Private WithEvents Timer1 As Timer
 Attribute Timer1.VB_VarHelpID = -1
+
 Private NeedsDelay As Boolean
 Private LastQueryTime As Long
+Public delayInterval As Long
 
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function GetTickCount Lib "kernel32" () As Long
 
 Public report_cache_dir As String 'if this is set it will cache the results here in case looked up again.
 Dim repeatOnce As Boolean
-Public delayInterval As Long
 Public owner As Form
+Const LANG_US = &H409
 
 'this class supports a couple nice things..
 '1) if you set the cache dir, it will save raw json there as optimization in case you lookup the same file
@@ -73,41 +75,17 @@ Function GetReport(hash As String, list As ListBox, tmr As Timer) As CScan
         errorMsg = "Could not create XMLHTTP Object"
         GoTo errorExit
     End If
-
-    curtime = GetTickCount
-    If LastQueryTime = 0 Then
-        LastQueryTime = curtime
-        NeedsDelay = False
-    Else
-        If NeedsDelay = True Then
-            Interval = curtime - LastQueryTime
-            If Interval < delayInterval Then
-                Interval = delayInterval - Interval
-                List1.AddItem "Must delay for " & Interval & " milliseconds"
-                Timer1.Interval = Interval
-                Timer1.Enabled = True
-                While Timer1.Enabled
-                    DoEvents
-                    Sleep 20
-                    If testAbort Then Timer1.Enabled = False
-                Wend
-                NeedsDelay = False
-                LastQueryTime = curtime
-            End If
-        Else
-            NeedsDelay = False
-            LastQueryTime = curtime
-        End If
-    End If
         
     If FolderExists(report_cache_dir) Then
         If FileExists(report_cache_dir & "\" & hash & ".txt") Then
-            List1.AddItem "Cached report found for" & hash
+            List1.AddItem "Cached report found for " & hash
             my_json = ReadFile(report_cache_dir & "\" & hash & ".txt")
             GoTo parse_json
         End If
     End If
             
+    DelayIfNeeded
+    
     List1.Clear
     List1.AddItem "Connecting to VirusTotal to query report for " & hash
     
@@ -155,7 +133,7 @@ Private Function Get_Web_Report(hash, out_response As String, out_status As Stri
     
     Err.Clear
         
-    Dim x As Variant
+    Dim X As Variant
     out_status = Empty
     out_response = Empty
     repeatOnce = True
@@ -219,7 +197,7 @@ Function AddComment(hash, comment, out_response As String, out_status As String,
     Err.Clear
     On Error GoTo hell
     
-    Dim x As Variant
+    Dim X As Variant
     out_status = Empty
     out_response = Empty
     
@@ -289,3 +267,130 @@ End Sub
 Private Sub Timer1_Timer()
     Timer1.Enabled = False
 End Sub
+
+Private Function DelayIfNeeded()
+
+    curtime = GetTickCount
+    If LastQueryTime = 0 Then
+        LastQueryTime = curtime
+        NeedsDelay = False
+    Else
+        If NeedsDelay = True Then
+            Interval = curtime - LastQueryTime
+            If Interval < delayInterval Then
+                Interval = delayInterval - Interval
+                List1.AddItem "Must delay for " & Interval & " milliseconds"
+                Timer1.Interval = Interval
+                Timer1.Enabled = True
+                While Timer1.Enabled
+                    DoEvents
+                    Sleep 20
+                    If testAbort Then Timer1.Enabled = False
+                Wend
+                NeedsDelay = False
+                LastQueryTime = curtime
+            End If
+        Else
+            NeedsDelay = False
+            LastQueryTime = curtime
+        End If
+    End If
+    
+End Function
+
+Function SubmitFile(fpath As String, list As ListBox, tmr As Timer) As CScan
+
+    'base example from: http://wqweto.wordpress.com/2011/07/12/vb6-using-wininet-to-post-binary-file/
+    Const STR_BOUNDARY  As String = "3fbd04f5-b1ed-4060-99b9-fca7ff59c113"
+    Dim sPostData       As String
+    Dim fName As String
+    Dim fData As String
+    
+    On Error Resume Next
+    
+    Dim scan As New CScan
+    scan.LocalFilePath = fpath
+    
+    Dim my_json As String
+    Dim sStatus As String
+    Dim status As Long
+    Dim curtime As Long
+    Dim success As Boolean
+    Dim errorMsg As String
+    
+    Set List1 = list
+    Set Timer1 = tmr
+    Timer1.Enabled = False
+    Timer1.Interval = delayInterval
+    'List1.Clear
+    
+    If Not FileExists(fpath) Then
+        errorMsg = "Upload file does not exist: " & fpath
+        GoTo errorExit
+    End If
+    
+    Set http = New XMLHTTP
+    
+    If http Is Nothing Then
+        errorMsg = "Could not create XMLHTTP Object"
+        GoTo errorExit
+    End If
+    
+    fName = fpath
+    If InStr(fName, "\") > 0 Then fName = Mid$(fpath, InStrRev(fpath, "\") + 1)
+    
+    fData = ReadFile(fpath)
+    
+    sPostData = "--" & STR_BOUNDARY & vbCrLf & _
+        "Content-Disposition: form-data; name=""file""; filename=""" & fName & """" & vbCrLf & _
+        "Content-Type: application/octet-stream" & vbCrLf & vbCrLf & _
+        fData & vbCrLf & _
+        "--" & STR_BOUNDARY & vbCrLf & _
+        "Content-Disposition: form-data; name=""key"" " & vbCrLf & vbCrLf & _
+        API_KEY & vbCrLf & _
+        "--" & STR_BOUNDARY & "--"
+    
+    DelayIfNeeded
+    
+    List1.AddItem "Connecting to VirusTotal to submit file: " & fName
+    NeedsDelay = True 'need 4 second delay for next
+    DoEvents
+    LastQueryTime = GetTickCount
+    
+    http.Open "POST", URL_API_BASIS & URL_SCAN_FILE, False
+    http.setRequestHeader "Content-Type", "multipart/form-data; boundary=" & STR_BOUNDARY
+    http.send pvToByteArray(sPostData) 'blocking call until it returns..
+    
+    DoEvents
+     
+    scan.HTTP_ResponseCode = http.status
+    scan.HTTP_StatusMessage = http.statusText
+    scan.ParseResponse http.responseText
+    Set SubmitFile = scan
+    
+    'Response Codes:
+    ' -4: file not found.
+    ' -3: public API request rate exceeded.
+    ' -2: resource is currently being analyzed.
+    ' -1: you do not have the required privileges (wrong API key?).
+     
+    List1.AddItem "Result: " & scan.verbose_msg & " Response Code: " & scan.response_code
+    
+    Exit Function
+
+errorExit:
+
+    List1.AddItem errorMsg
+    scan.Errors.Add errorMsg
+    scan.HadError = True
+    Set SubmitFile = scan
+    
+    
+End Function
+
+
+Private Function pvToByteArray(sText As String) As Byte()
+    pvToByteArray = StrConv(sText, vbFromUnicode, LANG_US)
+End Function
+
+

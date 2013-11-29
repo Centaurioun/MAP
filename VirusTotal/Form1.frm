@@ -4,7 +4,7 @@ Begin VB.Form Form1
    Caption         =   "Bulk Hash Lookup"
    ClientHeight    =   7770
    ClientLeft      =   60
-   ClientTop       =   345
+   ClientTop       =   630
    ClientWidth     =   11190
    LinkTopic       =   "Form2"
    ScaleHeight     =   7770
@@ -43,7 +43,7 @@ Begin VB.Form Form1
    Begin VB.CommandButton cmdAbort 
       Caption         =   "Abort"
       Height          =   405
-      Left            =   9510
+      Left            =   9480
       TabIndex        =   5
       Top             =   60
       Width           =   1455
@@ -144,7 +144,6 @@ Begin VB.Form Form1
    End
    Begin VB.Menu mnuPopup 
       Caption         =   "mnuPopup"
-      Visible         =   0   'False
       Begin VB.Menu mnuCopyTable 
          Caption         =   "Copy Table"
       End
@@ -190,6 +189,21 @@ Begin VB.Form Form1
       Begin VB.Menu mnuViewRaw 
          Caption         =   "View raw JSON"
       End
+      Begin VB.Menu mnuSpacer4 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuSubmitSelected 
+         Caption         =   "Submit Selected Files"
+      End
+      Begin VB.Menu mnuSPacer5 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuClearCache 
+         Caption         =   "Clear Cache"
+      End
+      Begin VB.Menu mnuClearSelectedFromCache 
+         Caption         =   "Clear Selected From Cache"
+      End
    End
 End
 Attribute VB_Name = "Form1"
@@ -202,6 +216,8 @@ Dim selli As ListItem
 Public abort As Boolean
 Dim dlg As New clsCmnDlg
 Dim fso As New CFileSystem2
+
+Dim files As New Collection
 
 Private Sub cmdAbort_Click()
     abort = True
@@ -228,6 +244,7 @@ Private Sub cmdQuery_Click()
     Dim detections As Long
     Dim li As ListItem
     Dim scan As CScan
+    Dim pth As String
     
     On Error Resume Next
     
@@ -238,7 +255,7 @@ Private Sub cmdQuery_Click()
     
     vt.report_cache_dir = Empty
     
-    If chkCache.value = 1 Then
+    If chkCache.value = 1 Then        'currently sets cache_dir to exist or not once at start of sub, cant change during operation..
         If Len(txtCacheDir) = 0 Then
             chkCache.value = 0
         Else
@@ -266,6 +283,9 @@ Private Sub cmdQuery_Click()
         
         Set scan = vt.GetReport(li.Text, List1, tmrDelay)
         
+        pth = PathForHash(li.Text)
+        If Len(pth) > 0 Then scan.LocalFilePath = pth
+    
         If Not scan.HadError Then
             li.SubItems(1) = scan.positives
             li.SubItems(2) = scan.scan_date
@@ -331,18 +351,44 @@ Private Sub Command2_Click()
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
+    abort = True
     SaveSetting "vt", "settings", "cachedir", txtCacheDir.Text
     SaveSetting "vt", "settings", "usecache", chkCache.value
 End Sub
 
 Private Sub mnuAddHashs_Click()
     On Error Resume Next
-    x = Clipboard.GetText
-    tmp = Split(x, vbCrLf)
-    For Each x In tmp
-        If Len(Trim(x)) > 0 Then lv.ListItems.Add , , Trim(x)
+    Dim f As CFile
+    
+    X = Clipboard.GetText
+    tmp = Split(X, vbCrLf)
+    For Each X In tmp
+        X = Trim(X)
+        If Len(X) > 0 Then
+            If InStr(X, ",") > 0 Then 'new "hash,path" format
+                Y = Split(X, ",")
+                Set f = New CFile
+                f.hash = Y(0)
+                f.path = Y(1)
+                lv.ListItems.Add , , f.hash
+                If fso.FileExists(f.path) Then files.Add f
+            Else
+                lv.ListItems.Add , , X
+            End If
+        End If
     Next
+    
 End Sub
+
+Private Sub Form_Resize()
+    On Error Resume Next
+    List1.Width = Me.Width - List1.Left - 200
+    Text2.Width = List1.Width
+    lv.Width = List1.Width
+    pb.Width = List1.Width
+    Text2.Height = Me.Height - Text2.Top - 400
+End Sub
+
 
 
 Private Sub Form_Load()
@@ -352,12 +398,14 @@ Private Sub Form_Load()
     Dim path As String
     Dim hash_mode As Boolean
     
+    mnuPopup.Visible = False
     Set vt.owner = Me
     txtCacheDir = GetSetting("vt", "settings", "cachedir", "c:\VT_Cache")
     chkCache.value = GetSetting("vt", "settings", "usecache", 0)
     
     lv.ColumnHeaders(4).Width = lv.Width - lv.ColumnHeaders(4).Left - 150
     
+    'bulk can be a raw crlf hash list, or it can be a crlf hash,file list in which case submit is available, as well as file path included in report..
     If InStr(Command, "/bulk") > 0 Then
        If InStr(Command, "/bulktest") > 0 Then
             Clipboard.Clear
@@ -367,6 +415,24 @@ Private Sub Form_Load()
        Me.Show
        mnuAddHashs_Click
        cmdQuery_Click
+       
+    ElseIf InStr(Command, "/submit") > 0 Then
+        
+        If InStr(Command, "/submitbulk") > 0 Then
+            frmSubmit.SubmitBulk
+        Else
+           path = Replace(Command, """", Empty)
+           path = Replace(path, "/submit", Empty)
+           path = Trim(path)
+           If Not fso.FileExists(path) Then
+                MsgBox "File not found for /submit path=" & path, vbInformation
+                End
+           End If
+           frmSubmit.SubmitFile CStr(path)
+        End If
+        
+        Unload Me
+        
     Else
         hash_mode = IIf(InStr(Command, "/hash") > 0, True, False)
         path = Replace(Command, """", Empty)
@@ -401,13 +467,55 @@ Private Sub lv_ItemClick(ByVal Item As MSComctlLib.ListItem)
     Text2 = scan.GetReport()
 End Sub
 
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Function PathForHash(hash As String) As String
+    Dim f As CFile
+    For Each f In files
+        If f.hash = hash Then
+            PathForHash = f.path
+            Exit Function
+        End If
+    Next
+End Function
+
+Private Sub lv_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
 
+Private Sub mnuClearCache_Click()
+    
+    Dim f() As String
+    Dim ff
+    
+    If fso.FolderExists(txtCacheDir) Then
+        f() = fso.GetFolderFiles(txtCacheDir, "*.txt")
+        For Each ff In f
+            If Len(fso.FileNameFromPath(CStr(ff))) = 36 Then fso.DeleteFile CStr(ff)
+        Next
+    End If
+    
+End Sub
+
 Private Sub mnuClearList_Click()
     cmdClear_Click
+End Sub
+
+Private Sub mnuClearSelectedFromCache_Click()
+    Dim li As ListItem
+    Dim fpath As String
+    
+    If fso.FolderExists(txtCacheDir) Then
+        For Each li In lv.ListItems
+            If li.Selected Then
+                fpath = txtCacheDir & "\" & li.Text & ".txt"
+                If fso.FileExists(fpath) Then fso.DeleteFile fpath
+                li.SubItems(1) = Empty
+                li.SubItems(2) = Empty
+                li.SubItems(3) = Empty
+            End If
+        Next
+    End If
+    
 End Sub
 
 Private Sub mnuCopyAll_Click()
@@ -425,12 +533,15 @@ Private Sub mnuCopyAll_Click()
     
     For Each li In lv.ListItems
         Set scan = li.Tag
-        r = r & li.Text & vbCrLf & scan.GetReport() & vbCrLf & String(50, "-") & vbCrLf
+        r = r & scan.GetReport() & vbCrLf & String(60, "-") & vbCrLf & vbCrLf
     Next
     
-    Clipboard.Clear
-    Clipboard.SetText r
-    MsgBox Len(r) & " bytes copied to clipboard"
+    r = vbCrLf & "This is a temp file do a file SaveAs if you want to keep it." & vbCrLf & vbCrLf & r
+    
+    Dim tf As String
+    tf = fso.GetFreeFileName(Environ("temp"))
+    fso.writeFile tf, r
+    Shell "notepad.exe """ & tf & """", vbNormalFocus
     
 End Sub
 
@@ -460,9 +571,19 @@ On Error Resume Next
 
     Dim li As ListItem
     Dim r
+    Dim s As CScan
     
     For Each li In lv.ListItems
-        r = r & li.Text & "  Detections: " & li.SubItems(1) & "  ScanDate: " & li.SubItems(2) & vbCrLf
+        r = r & li.Text & "  Detections: " & li.SubItems(1) & "  ScanDate: " & li.SubItems(2)
+            
+        Set s = li.Tag
+        If Not s Is Nothing Then
+            If Len(s.LocalFilePath) > 0 Then
+                r = r & "  File: " & fso.FileNameFromPath(s.LocalFilePath)
+            End If
+        End If
+        
+        r = r & vbCrLf
     Next
     
     Clipboard.Clear
@@ -509,6 +630,9 @@ Private Sub mnuRescanSelected_Click()
             
                 Set scan = vt.GetReport(li.Text, List1, tmrDelay)
                 
+                pth = PathForHash(li.Text)
+                If Len(pth) > 0 Then scan.LocalFilePath = pth
+                
                 If Not scan.HadError Then
                     li.SubItems(1) = scan.positives
                     li.SubItems(2) = scan.scan_date
@@ -538,6 +662,7 @@ Private Sub mnuSaveReports_Click()
     Dim li As ListItem
     Dim pf As String
     Dim scan As CScan
+    Dim report As String
     
     pf = dlg.FolderDialog()
     If Len(pf) = 0 Then Exit Sub
@@ -545,7 +670,14 @@ Private Sub mnuSaveReports_Click()
     For Each li In lv.ListItems
         hash = li.Text
         Set scan = li.Tag
-        fso.writeFile pf & "\VT_" & hash & ".txt", li.Text & "  Detections: " & li.SubItems(1) & "  ScanDate: " & li.SubItems(2) & vbCrLf & String(50, "-") & vbCrLf & scan.GetReport()
+        
+        report = "Hash: " & li.Text & vbCrLf & _
+                 "Detections: " & li.SubItems(1) & vbCrLf & _
+                 "ScanDate: " & li.SubItems(2) & vbCrLf & _
+                 String(50, "-") & vbCrLf & vbCrLf & _
+                 scan.GetReport()
+                 
+        fso.writeFile pf & "\VT_" & hash & ".txt", report
     Next
 
 End Sub
@@ -579,6 +711,39 @@ Private Sub mnuSearch_Click()
     Next
     
     Me.Caption = found & " matches found for string: " & find
+    
+End Sub
+
+Private Sub mnuSubmitSelected_Click()
+
+    Dim li As ListItem
+    Dim scan As CScan
+    Dim pth As String
+    
+    List1.Clear
+    List1.AddItem "Submitting selected files"
+    
+    For Each li In lv.ListItems
+
+        If li.Selected Then
+            If Len(Trim(li.Text)) > 0 Then
+            
+                pth = PathForHash(li.Text)
+                If Len(pth) > 0 Then
+                    Set scan = vt.SubmitFile(pth, List1, tmrDelay)
+                    scan.response_code = 2 'manually overridden for getreport() display purposes..
+                    li.SubItems(1) = scan.verbose_msg
+                    Set li.Tag = scan
+                Else
+                    List1.AddItem "No file path found for " & li.Text
+                End If
+                
+                li.EnsureVisible
+                DoEvents
+                
+            End If
+        End If
+    Next
     
 End Sub
 

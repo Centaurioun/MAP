@@ -122,6 +122,24 @@ Begin VB.Form frmOffsets
          Object.Width           =   1235
       EndProperty
    End
+   Begin VB.Label lblDumpFix 
+      Caption         =   "Dump Fix"
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   8.25
+         Charset         =   0
+         Weight          =   400
+         Underline       =   -1  'True
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      ForeColor       =   &H00FF0000&
+      Height          =   195
+      Left            =   6000
+      TabIndex        =   11
+      Top             =   2160
+      Width           =   675
+   End
    Begin VB.Label lblEntryPoint 
       Caption         =   "Entry Point: "
       Height          =   315
@@ -220,12 +238,46 @@ Private Sub cmdCalculate_Click()
                 txtVA = Hex(va)
     End Select
         
+    
+    
+    Dim f As Long, i As Long
+    Dim b(5) As Byte
+    f = FreeFile
+    Open mParent.LoadedFile For Binary As f
+    Get f, fo + 1, b()
+    Close f
+    
+    sectName = sectName & "   "
+    
+    For i = 0 To UBound(b)
+        sectName = sectName & " " & Right("00" & Hex(b(i)), 2)
+    Next
+    
     lblSection.Caption = sectName
     
 End Sub
 
 
  
+
+Private Sub lblDumpFix_Click()
+    On Error Resume Next
+    Dim qdf As New CDumpFix
+    Dim fout As String
+    
+    fout = mParent.LoadedFile & ".fix"
+    If Not fso.FileExists(mParent.LoadedFile) Then Exit Sub
+    FileCopy mParent.LoadedFile, fout
+    
+    If Not qdf.QuickDumpFix(fout) Then
+        fso.DeleteFile fout
+        MsgBox "Failed", vbInformation
+    End If
+    
+    mParent.LoadFile fout
+    MsgBox "Dump Fix saved as: " & fout, vbInformation
+    
+End Sub
 
 Private Sub Option1_Click(index As Integer)
 

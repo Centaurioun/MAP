@@ -126,6 +126,7 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
+      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -230,7 +231,7 @@ Dim abort As Boolean
 Dim running As Boolean
 
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-Private Declare Function LockWindowUpdate Lib "User32" (ByVal hwndLock As Long) As Long
+Private Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) As Long
 
 
 Option Compare Binary
@@ -277,7 +278,7 @@ Private Sub cmdFindAll_Click()
     If Len(Text1) = 0 Then Exit Sub
     tmp = Split(rtf.Text, vbCrLf)
     
-    pb.value = 0
+    pb.Value = 0
     For Each x In tmp
          i = i + 1
         If InStr(Text1, "*") > 0 Then
@@ -291,7 +292,7 @@ Private Sub cmdFindAll_Click()
         End If
         If i Mod 5 = 0 Then setpb i, UBound(tmp)
     Next
-    pb.value = 0
+    pb.Value = 0
     
     x = UBound(ret)
     If x < 0 Then
@@ -337,36 +338,37 @@ End Sub
 Private Sub Command3_Click()
     Dim f As String
     Dim def As String
-    On Error GoTo hell
+    Dim pf As String
+    On Error Resume Next
+    pf = fso.GetParentFolder(curFile)
     def = fso.GetBaseName(curFile)
     If Len(def) > 12 Then def = VBA.Left(def, 5)
     def = "str_" & def & ".txt"
-    f = dlg.SaveDialog(textFiles, , "Save Report as", , Me.hwnd, def)
+    f = dlg.SaveDialog(textFiles, pf, "Save Report as", , Me.hWnd, def)
     If Len(f) = 0 Then Exit Sub
     fso.WriteFile f, rtf.Text
-hell:
 End Sub
 
 Private Sub Form_Load()
     sSearch = -1
     txtMinLen = minStrLen 'global
     pb.max = 100
-    pb.value = 0
+    pb.Value = 0
     RestoreFormSizeAnPosition Me
     Me.Visible = True
-    chkShowOffsets.value = GetMySetting("offsests", 1)
-    chkFilter.value = GetMySetting("Filter", 0)
-    optRaw.value = IIf(GetMySetting("Raw", 1) = 1, True, False)
-    If Not optRaw.value Then optVa.value = True
+    chkShowOffsets.Value = GetMySetting("offsests", 1)
+    chkFilter.Value = GetMySetting("Filter", 0)
+    optRaw.Value = IIf(GetMySetting("Raw", 1) = 1, True, False)
+    If Not optRaw.Value Then optVa.Value = True
     formLoaded = True
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
    abort = True
    SaveFormSizeAnPosition Me
-   SaveMySetting "offsests", chkShowOffsets.value
-   SaveMySetting "Filter", chkFilter.value
-   SaveMySetting "Raw", IIf(optRaw.value, 1, 0)
+   SaveMySetting "offsests", chkShowOffsets.Value
+   SaveMySetting "Filter", chkFilter.Value
+   SaveMySetting "Raw", IIf(optRaw.Value, 1, 0)
    End
 End Sub
 
@@ -378,7 +380,7 @@ End Sub
  
  Sub setpb(cur, max)
     On Error Resume Next
-    pb.value = (cur / max) * 100
+    pb.Value = (cur / max) * 100
     Me.Refresh
     DoEvents
  End Sub
@@ -415,7 +417,7 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
     
     If running Then
         abort = True
-        tmrReRun.Enabled = True 'relaunch in 200ms
+        tmrReRun.enabled = True 'relaunch in 200ms
         RevertRedir fs
         Exit Sub
     End If
@@ -436,7 +438,7 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
     ReDim buf(9000)
     Open fpath For Binary Access Read As f
     
-    pb.value = 0
+    pb.Value = 0
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
@@ -465,7 +467,7 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
     pointer = 1
     Seek f, 1
     
-    pb.value = 0
+    pb.Value = 0
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
@@ -476,7 +478,7 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
         search buf, pointer
         setpb pointer, LOF(f)
     Loop
-    pb.value = 0
+    pb.Value = 0
     
     Close f
      
@@ -484,7 +486,7 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
     Dim topLine As Integer
     
     lines = lines + UBound(ret)
-    LockWindowUpdate rtf.hwnd 'try to make it not jump when we add more...
+    LockWindowUpdate rtf.hWnd 'try to make it not jump when we add more...
     topLine = TopLineIndex(rtf)
     rtf.Text = rtf.Text & vbCrLf & vbCrLf & Join(ret, vbCrLf)
     ScrollToLine rtf, topLine
@@ -494,7 +496,7 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
     Me.Caption = lines & " matches found..."
     Me.Show 1
    
-    If chkFilter.value = 1 Then
+    If chkFilter.Value = 1 Then
         Me.Caption = Me.Caption & "  ( " & UBound(filtered) & " results filtered)"
     End If
     
@@ -514,7 +516,7 @@ aborting:
       RevertRedir fs
       running = False
       abort = False
-      pb.value = 0
+      pb.Value = 0
       
 End Sub
 
@@ -528,8 +530,8 @@ Private Sub search(buf() As Byte, offset As Long)
     For Each m In mc
         DoEvents
         If abort Then Exit Sub
-        If chkFilter.value = 1 Then
-            If Not Filter(m.value) Then AddResult m, offset
+        If chkFilter.Value = 1 Then
+            If Not Filter(m.Value) Then AddResult m, offset
         Else
             AddResult m, offset
         End If
@@ -540,9 +542,9 @@ End Sub
 Function AddResult(m As match, offset As Long)
     Dim x As Long, xx As Long, sect As String, o As String
     
-    If chkShowOffsets.value = 1 Then
+    If chkShowOffsets.Value = 1 Then
         x = m.FirstIndex + offset - 1
-        If optVa.value And pe.isLoaded = True Then
+        If optVa.Value And pe.isLoaded = True Then
             xx = pe.OffsetToVA(x, sect)
             If xx = 0 Then
                 o = pad(x) & "  "
@@ -554,7 +556,7 @@ Function AddResult(m As match, offset As Long)
         End If
     End If
     
-    push ret(), o & Replace(m.value, Chr(0), Empty)
+    push ret(), o & Replace(m.Value, Chr(0), Empty)
     
 End Function
 
@@ -609,15 +611,15 @@ Function Filter(x As String) As Boolean
     If InStr(x, "http://") > 0 Then
         Filter = False
     ElseIf toManySpecialChars(x) Then
-        If isIde() Then f = vbTab & vbTab & "(SpecialCharsFilter)"
+        If IsIde() Then f = vbTab & vbTab & "(SpecialCharsFilter)"
         push filtered, x & f
         Filter = True
     ElseIf toManyRepeats(x) Then
-        If isIde() Then f = vbTab & vbTab & "(RepeatFilter)"
+        If IsIde() Then f = vbTab & vbTab & "(RepeatFilter)"
         push filtered, x & f
         Filter = True
     ElseIf toManyNumbers(x) Then
-        If isIde() Then f = vbTab & vbTab & "(NumberFilter)"
+        If IsIde() Then f = vbTab & vbTab & "(NumberFilter)"
         push filtered, x & f
         Filter = True
     Else
@@ -626,11 +628,11 @@ Function Filter(x As String) As Boolean
  
 End Function
 
-Function isIde() As Boolean
+Function IsIde() As Boolean
     On Error GoTo hell
     Debug.Print 1 / 0
     Exit Function
-hell: isIde = True
+hell: IsIde = True
 End Function
 
 Function toManyRepeats(ByVal s As String) As Boolean
@@ -737,15 +739,15 @@ End Sub
 
 Private Sub optRaw_Click()
     If Not formLoaded Then Exit Sub
-    If chkShowOffsets.value = 1 Then ParseFile curFile, True
+    If chkShowOffsets.Value = 1 Then ParseFile curFile, True
 End Sub
 
 Private Sub optVa_Click()
     If Not formLoaded Then Exit Sub
-    If chkShowOffsets.value = 1 Then ParseFile curFile, True
+    If chkShowOffsets.Value = 1 Then ParseFile curFile, True
 End Sub
 
 Private Sub tmrReRun_Timer()
-    tmrReRun.Enabled = False
+    tmrReRun.enabled = False
     ParseFile curFile
 End Sub
