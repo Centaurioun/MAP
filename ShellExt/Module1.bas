@@ -156,8 +156,8 @@ Public Enum tmMsgs
         EM_SETMARGINS = &HD3
 End Enum
 
-Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
-Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpszOp As String, ByVal lpszFile As String, ByVal lpszParams As String, ByVal LpszDir As String, ByVal FsShowCmd As Long) As Long
+Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpszOp As String, ByVal lpszFile As String, ByVal lpszParams As String, ByVal LpszDir As String, ByVal FsShowCmd As Long) As Long
 
 Private Declare Function Wow64DisableWow64FsRedirection Lib "kernel32.dll" (ByRef old As Long) As Long
 Private Declare Function Wow64RevertWow64FsRedirection Lib "kernel32.dll" (ByRef old As Long) As Long
@@ -227,7 +227,7 @@ End Enum
 Private Type SHELLEXECUTEINFO
         cbSize        As Long
         fMask         As Long
-        hWnd          As Long
+        hwnd          As Long
         lpVerb        As String
         lpFile        As String
         lpParameters  As String
@@ -273,7 +273,7 @@ Public Function RunElevated(ByVal FilePath As String, Optional ShellShowType As 
         .nShow = ShellShowType              ' How the program will be displayed
         .lpDirectory = PathGetFolder(FilePath)
         .lpParameters = EXEParameters       ' Each parameter must be separated by space. If the lpFile member specifies a document file, lpParameters should be NULL.
-        .hWnd = hWndOwner                   ' Owner window handle
+        .hwnd = hWndOwner                   ' Owner window handle
         .lpVerb = "runas"
     End With
 
@@ -463,9 +463,9 @@ Function RevertRedir(old As Long) As Boolean 'really only reverts firstHandle wh
 End Function
 
 
-Function Google(hash As String, Optional hWnd As Long = 0)
+Function Google(hash As String, Optional hwnd As Long = 0)
     Const u = "http://www.google.com/#hl=en&output=search&q="
-    ShellExecute hWnd, "Open", u & hash, "", "C:\", 1
+    ShellExecute hwnd, "Open", u & hash, "", "C:\", 1
 End Function
 
 Sub push(ary, Value) 'this modifies parent ary object
@@ -697,10 +697,10 @@ Sub ScrollIncremental(t As Object, Optional horz As Integer = 0, Optional vert A
     
     Dim r As Long
     r = CLng(&H10000 * horz) + vert
-    r = SendMessage(t.hWnd, EM_LINESCROLL, 0, ByVal r)
+    r = SendMessage(t.hwnd, EM_LINESCROLL, 0, ByVal r)
 
 End Sub
 
 Function TopLineIndex(x As Object) As Long
-    TopLineIndex = SendMessage(x.hWnd, EM_GETFIRSTVISIBLELINE, 0, ByVal 0&) + 1
+    TopLineIndex = SendMessage(x.hwnd, EM_GETFIRSTVISIBLELINE, 0, ByVal 0&) + 1
 End Function

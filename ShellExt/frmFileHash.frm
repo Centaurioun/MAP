@@ -123,10 +123,10 @@ Attribute VB_Exposed = False
 Dim myMd5 As String
 Dim LoadedFile As String
 Dim isPE As Boolean
-Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
+Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 
 
-Sub ShowFileStats(fpath As String)
+Sub ShowFileStats(fPath As String)
     
     On Error Resume Next
     Dim ret() As String
@@ -136,21 +136,21 @@ Sub ShowFileStats(fpath As String)
     Dim fname As String
     Dim mySHA As String
     
-    LoadedFile = fpath
+    LoadedFile = fPath
     fs = DisableRedir()
-    myMd5 = hash.HashFile(fpath)
+    myMd5 = hash.HashFile(fPath)
     
-    If myMd5 = fso.FileNameFromPath(fpath) Then
+    If myMd5 = fso.FileNameFromPath(fPath) Then
         mnuNameMD5.enabled = False
     End If
     
     'mySHA = hash.HashFile(fpath, SHA, HexFormat)
-    sz = FileLen(fpath)
+    sz = FileLen(fPath)
     RevertRedir fs
     
-    fname = fso.FileNameFromPath(fpath)
+    fname = fso.FileNameFromPath(fPath)
     If Len(fname) > 50 Then
-        fname = GetShortName(fpath)
+        fname = GetShortName(fPath)
         fname = fso.FileNameFromPath(fname)
     End If
     
@@ -162,17 +162,28 @@ Sub ShowFileStats(fpath As String)
     push ret(), rpad("MD5:") & myMd5
     'push ret(), rpad("SHA:") & mySHA
     
-    compiled = GetCompileDateOrType(fpath, istype, isPE)
+    compiled = GetCompileDateOrType(fPath, istype, isPE)
     push ret(), IIf(istype, rpad("FileType: "), rpad("Compiled:")) & compiled
     
     If isPE Then
         Dim fp As FILEPROPERTIE
-        fp = FileProps.FileInfo(fpath)
+        fp = FileProps.FileInfo(fPath)
         If Len(fp.FileVersion) > 0 Then
             push ret(), rpad("Version:") & fp.FileVersion
         End If
     End If
         
+    Dim v As SigResults
+    Dim subject As String, issuer As String
+    v = VerifyFileSignature(fPath)
+    If isSigned(v) Then
+        push ret(), rpad("Signature ") & SigToStr(v)
+        If GetSigner(fPath, issuer, subject) Then
+            If Len(subject) > 0 Then push ret(), rpad("Subject:") & subject
+            If Len(issuer) > 0 Then push ret(), rpad("Issuer:") & issuer
+        End If
+    End If
+    
     mnuFileProps.enabled = isPE
     mnuOffsetCalc.enabled = isPE
     
@@ -222,6 +233,8 @@ End Sub
 Private Sub Form_Load()
     mnuPopup.Visible = False 'IsIde()
 
+    Me.Icon = frmMain.Icon
+    
     Dim ext As String
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
     If fso.FileExists(ext) Then
@@ -298,11 +311,11 @@ End Sub
 Private Sub mnuSearchFileName_Click()
     Dim f As String
     f = fso.FileNameFromPath(LoadedFile)
-    Google f, Me.hWnd
+    Google f, Me.hwnd
 End Sub
 
 Private Sub mnuSearchHash_Click()
-    Google myMd5, Me.hWnd
+    Google myMd5, Me.hwnd
 End Sub
 
 Private Sub mnuStrings_Click()

@@ -457,6 +457,7 @@ Private Sub Form_Load()
     
     If App.PrevInstance Then
         MsgBox "Another instance is already running", vbExclamation
+        'todo: findwindow sendmessage
         End
     End If
     

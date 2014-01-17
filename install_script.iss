@@ -34,6 +34,8 @@ Source: ./ShellExt\frmPeek.frx; DestDir: {app}\ShellExt
 Source: ./ShellExt\frmMain.frx; DestDir: {app}\ShellExt
 Source: ./ShellExt\CPEEditor.cls; DestDir: {app}\ShellExt
 Source: ./ShellExt\CSection.cls; DestDir: {app}\ShellExt
+Source: ./ShellExt\mWinVerify.bas; DestDir: {app}\ShellExt
+Source: ./ShellExt\mCryptQuery.bas; DestDir: {app}\ShellExt
 Source: ./socketTool\Project1.vbw; DestDir: {app}\socketTool
 Source: ./socketTool\Form1.frm; DestDir: {app}\socketTool
 Source: ./socketTool\Project1.vbp; DestDir: {app}\socketTool
@@ -51,6 +53,7 @@ Source: ./dependancies\spSubclass2.dll; DestDir: {win}; Flags: regserver
 Source: ./dependancies\MSWINSCK.OCX; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\mscomctl.ocx; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\RICHTX32.OCX; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
+Source: ./dependancies\hexed.ocx; DestDir: {win}; Flags: regserver
 Source: ./sniff_hit\CTcpPacket.cls; DestDir: {app}\sniff_hit
 Source: ./sniff_hit\CUdpPacket.cls; DestDir: {app}\sniff_hit
 Source: ./sniff_hit\frmData.frx; DestDir: {app}\sniff_hit
@@ -126,6 +129,15 @@ Source: fakedns\CStrings.cls; DestDir: {app}\fakedns\
 Source: proc_watch.exe; DestDir: {app}
 Source: dirwatch_ui.exe; DestDir: {app}
 Source: shellext.external.txt; DestDir: {app}
+Source: pe_carve\CPEEditor.cls; DestDir: {app}\pe_carve\
+Source: pe_carve\CSection.cls; DestDir: {app}\pe_carve\
+Source: pe_carve\Form1.frm; DestDir: {app}\pe_carve\
+Source: pe_carve\Module1.bas; DestDir: {app}\pe_carve\
+Source: pe_carve\Project1.vbp; DestDir: {app}\pe_carve\
+Source: pe_carve\Project1.vbw; DestDir: {app}\pe_carve\
+Source: pe_carve\README.txt; DestDir: {app}\pe_carve\
+Source: pe_carve\screenshot.png; DestDir: {app}\pe_carve\
+Source: pecarve.exe; DestDir: {app}
 
 [Dirs]
 Name: {app}\IDCDumpFix
@@ -145,6 +157,7 @@ Name: {app}\jsDecode
 Name: {app}\findDll
 Name: {app}\VirusTotal
 Name: {app}\loadlib
+Name: {app}\pe_carve
 
 [Run]
 Filename: {app}\ShellExt.exe; Description: Install Shell Extensions Now; Flags: postinstall
@@ -161,6 +174,7 @@ Name: {group}\src\Mailpot.vbp; Filename: {app}\mailPot\Mailpot.vbp
 Name: {group}\src\SckTool.vbp; Filename: {app}\socketTool\Project1.vbp
 Name: {group}\src\ShellExt.vbp; Filename: {app}\ShellExt\ShellExt.vbp
 Name: {group}\src\Dumpfix.vbp; Filename: {app}\IDCDumpFix\Project1.vbp
+Name: {group}\src\Pe_Carve.vbp; Filename: {app}\pe_carve\Project1.vbp
 Name: {group}\Readme; Filename: {app}\map_help.chm
 Name: {group}\Apps\Sniff_hit; Filename: {app}\sniff_hit.exe
 Name: {group}\src\sniff_hit.vbp; Filename: {app}\sniff_hit\sniff_hit.vbp

@@ -65,6 +65,7 @@ Public Function GetReport() As String
     Dim tmp As String
     
     If response_code <> 1 Then
+        If Len(LocalFilePath) > 0 Then tmp = tmp & "File:        " & FileNameFromPath(LocalFilePath) & vbCrLf & vbCrLf
         tmp = verbose_msg
     Else
 

@@ -126,7 +126,6 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
-      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -344,12 +343,13 @@ Private Sub Command3_Click()
     def = fso.GetBaseName(curFile)
     If Len(def) > 12 Then def = VBA.Left(def, 5)
     def = "str_" & def & ".txt"
-    f = dlg.SaveDialog(textFiles, pf, "Save Report as", , Me.hWnd, def)
+    f = dlg.SaveDialog(textFiles, pf, "Save Report as", , Me.hwnd, def)
     If Len(f) = 0 Then Exit Sub
     fso.WriteFile f, rtf.Text
 End Sub
 
 Private Sub Form_Load()
+    Me.Icon = frmMain.Icon
     sSearch = -1
     txtMinLen = minStrLen 'global
     pb.max = 100
@@ -386,7 +386,7 @@ End Sub
  End Sub
 
 
-Sub ParseFile(fpath As String, Optional force As Boolean = False)
+Sub ParseFile(fPath As String, Optional force As Boolean = False)
     'On Error GoTo hell
     
     Dim f As Long, pointer As Long
@@ -400,7 +400,7 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
     Erase filtered
     
     f = FreeFile
-    curFile = fpath
+    curFile = fPath
     
     If Not IsNumeric(txtMinLen) Then txtMinLen = 4
     
@@ -408,12 +408,12 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
     lastSize = CLng(txtMinLen)
     
     fs = DisableRedir()
-    If Not fso.FileExists(fpath) Then
-        MsgBox "File not found: " & fpath, vbExclamation
+    If Not fso.FileExists(fPath) Then
+        MsgBox "File not found: " & fPath, vbExclamation
         GoTo done
     End If
     
-    pe.LoadFile fpath
+    pe.LoadFile fPath
     
     If running Then
         abort = True
@@ -430,13 +430,13 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
     d.Global = True
     
     Me.Caption = "Scanning for ASCII Strings..."
-    push ret, "File: " & fso.FileNameFromPath(fpath)
-    push ret, "MD5:  " & LCase(hash.HashFile(fpath))
-    push ret, "Size: " & FileLen(fpath) & vbCrLf
+    push ret, "File: " & fso.FileNameFromPath(fPath)
+    push ret, "MD5:  " & LCase(hash.HashFile(fPath))
+    push ret, "Size: " & FileLen(fPath) & vbCrLf
     push ret, "Ascii Strings:" & vbCrLf & String(75, "-")
     
     ReDim buf(9000)
-    Open fpath For Binary Access Read As f
+    Open fPath For Binary Access Read As f
     
     pb.Value = 0
     Do While pointer < LOF(f)
@@ -486,7 +486,7 @@ Sub ParseFile(fpath As String, Optional force As Boolean = False)
     Dim topLine As Integer
     
     lines = lines + UBound(ret)
-    LockWindowUpdate rtf.hWnd 'try to make it not jump when we add more...
+    LockWindowUpdate rtf.hwnd 'try to make it not jump when we add more...
     topLine = TopLineIndex(rtf)
     rtf.Text = rtf.Text & vbCrLf & vbCrLf & Join(ret, vbCrLf)
     ScrollToLine rtf, topLine

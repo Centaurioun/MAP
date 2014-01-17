@@ -260,6 +260,10 @@ End Sub
 
  
 
+Private Sub Form_Load()
+     Me.Icon = frmMain.Icon
+End Sub
+
 Private Sub lblDumpFix_Click()
     On Error Resume Next
     Dim qdf As New CDumpFix

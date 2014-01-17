@@ -42,6 +42,15 @@ Begin VB.Form frmHash
       BackColor       =   -2147483643
       BorderStyle     =   1
       Appearance      =   1
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+         Name            =   "MS Sans Serif"
+         Size            =   8.25
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
       OLEDropMode     =   1
       NumItems        =   4
       BeginProperty ColumnHeader(1) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
@@ -279,9 +288,9 @@ Private Sub mnuCustomExtension_Click()
     
     For Each li In lv.ListItems
         i = 1
-        fpath = li.Tag
+        fPath = li.Tag
         fname = li.Text
-        pdir = fso.GetParentFolder(fpath) & "\"
+        pdir = fso.GetParentFolder(fPath) & "\"
         
         If InStrRev(fname, ".") > 1 Then
             fname = Mid(fname, 1, InStrRev(fname, ".") - 1)
@@ -297,7 +306,7 @@ Private Sub mnuCustomExtension_Click()
             i = i + 1
         Wend
         
-        Name fpath As pdir & h
+        Name fPath As pdir & h
     
         li.Text = h
         li.Tag = pdir & h
@@ -456,18 +465,23 @@ Sub handleFile(f As String)
     Dim li As ListItem
     Dim e, fs As Long
     Dim sz As Long
+    Dim v As SigResults
     
     On Error Resume Next
     
     fs = DisableRedir()
     h = LCase(hash.HashFile(f))
+    v = VerifyFileSignature(f) 'can be slow on large files but most viruses are small and they are our target workign set. option to disable?
     sz = FileLen(f)
     RevertRedir fs
+    
+   
+    Dim ss As String
     
     If Len(h) = 0 Then
         e = Split(hash.error_message, "-")
         e = Replace(e(UBound(e)), vbCrLf, Empty)
-        h = "Error: " & e 'library error...can happen if filesize > maxlong i think?
+        h = "Error: " & e 'library error...can happen if filesize > maxlong i think? fix me eventually..
     End If
     
     Set li = lv.ListItems.Add(, , fso.FileNameFromPath(f))
@@ -476,9 +490,14 @@ Sub handleFile(f As String)
     li.SubItems(3) = GetCompileDateOrType(f)
     li.Tag = f
     
+    If isSigned(v) Then
+         SetLiColor li, SigToColor(v)
+    End If
+    
 End Sub
 
 Private Sub Form_Load()
+    Me.Icon = frmMain.Icon
     mnuPopup.Visible = False
     lv.ColumnHeaders(1).Width = lv.Width - lv.ColumnHeaders(2).Width - 400 - lv.ColumnHeaders(3).Width - lv.ColumnHeaders(4).Width
 End Sub
@@ -515,7 +534,7 @@ Private Sub mnuGoogleSelected_Click()
     End If
     
     For Each x In hashs
-        Google CStr(x), Me.hWnd
+        Google CStr(x), Me.hwnd
     Next
     
 End Sub
@@ -528,9 +547,9 @@ Private Sub mnuMakeExtSafe_Click()
     
     For Each li In lv.ListItems
         i = 1
-        fpath = li.Tag
+        fPath = li.Tag
         fname = li.Text
-        pdir = fso.GetParentFolder(fpath) & "\"
+        pdir = fso.GetParentFolder(fPath) & "\"
         h = fname & "_"
         
         If LCase(VBA.Right(fname, 4)) = ".txt" Then GoTo nextone  'txt files are fine..
@@ -542,7 +561,7 @@ Private Sub mnuMakeExtSafe_Click()
             i = i + 1
         Wend
         
-        Name fpath As pdir & h
+        Name fPath As pdir & h
     
         li.Text = h
         li.Tag = pdir & h
@@ -561,13 +580,13 @@ Private Sub mnuMakeSubFolders_Click()
     Dim li As ListItem
     Dim pdir As String
     Dim baseName As String
-    Dim fpath As String
+    Dim fPath As String
     
     For Each li In lv.ListItems
-        fpath = li.Tag
+        fPath = li.Tag
         fname = li.Text
-        pdir = fso.GetParentFolder(fpath) & "\"
-        baseName = fso.GetBaseName(fpath)
+        pdir = fso.GetParentFolder(fPath) & "\"
+        baseName = fso.GetBaseName(fPath)
         MkDir pdir & baseName
     Next
         
@@ -587,10 +606,10 @@ Private Sub mnuRenameToMD5_Click()
     
     For Each li In lv.ListItems
         i = 2
-        fpath = li.Tag
+        fPath = li.Tag
         fname = li.Text
         h = li.SubItems(2)
-        pdir = fso.GetParentFolder(fpath) & "\"
+        pdir = fso.GetParentFolder(fPath) & "\"
         
         If InStr(h, "Error") >= 1 Then GoTo nextone
         If LCase(fname) = LCase(h) Then GoTo nextone
@@ -600,7 +619,7 @@ Private Sub mnuRenameToMD5_Click()
         Wend
         
         rlog = rlog & fname & vbTab & "->" & vbTab & h & vbCrLf
-        Name fpath As pdir & h
+        Name fPath As pdir & h
     
         li.Text = h
         li.Tag = pdir & h
