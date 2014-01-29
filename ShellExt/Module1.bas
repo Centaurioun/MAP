@@ -350,7 +350,7 @@ Function IsProcessElevated() As Boolean
     Dim hToken As Long
 
     'Open the primary access token of the process with TOKEN_QUERY.
-    If OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, hToken) = 0 Then GoTo Cleanup
+    If OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, hToken) = 0 Then GoTo cleanup
      
     Dim elevation As TOKEN_ELEVATION
     Dim dwSize As Long
@@ -358,12 +358,12 @@ Function IsProcessElevated() As Boolean
         'When the process is run on operating systems prior to Windows Vista, GetTokenInformation returns FALSE with the
         'ERROR_INVALID_PARAMETER error code because TokenElevation is not supported on those operating systems.
          dwError = Err.LastDllError
-         GoTo Cleanup
+         GoTo cleanup
     End If
 
     fIsElevated = IIf(elevation.TokenIsElevated = 0, False, True)
 
-Cleanup:
+cleanup:
     If hToken Then CloseHandle (hToken)
     'if ERROR_SUCCESS <> dwError then err.Raise
     IsProcessElevated = fIsElevated
@@ -541,7 +541,7 @@ Private Function CompiledDate(stamp As Double) As String
 
 End Function
 
-Function GetCompileDateOrType(fpath As String, Optional ByRef out_isType As Boolean, Optional ByRef out_isPE As Boolean) As String
+Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Boolean, Optional ByRef out_isPE As Boolean) As String
     On Error GoTo hell
         
         Dim i As Long
@@ -556,18 +556,18 @@ Function GetCompileDateOrType(fpath As String, Optional ByRef out_isType As Bool
         out_isType = False
         
         fs = DisableRedir()
-        If Not fso.FileExists(fpath) Then Exit Function
+        If Not fso.FileExists(fPath) Then Exit Function
             
         f = FreeFile
         
-        Open fpath For Binary Access Read As f
+        Open fPath For Binary Access Read As f
         Get f, , DOSHEADER
         
         If DOSHEADER.e_magic <> &H5A4D Then
             Get f, 1, buf()
             Close f
             sbuf = StrConv(buf(), vbUnicode, LANG_US)
-            GetCompileDateOrType = DetectFileType(sbuf, fpath)
+            GetCompileDateOrType = DetectFileType(sbuf, fPath)
             out_isType = True
             RevertRedir fs
             Exit Function
@@ -579,7 +579,7 @@ Function GetCompileDateOrType(fpath As String, Optional ByRef out_isType As Bool
             Get f, 1, buf()
             Close f
             sbuf = StrConv(buf(), vbUnicode, LANG_US)
-            GetCompileDateOrType = DetectFileType(sbuf, fpath)
+            GetCompileDateOrType = DetectFileType(sbuf, fPath)
             out_isType = True
             RevertRedir fs
             Exit Function
@@ -652,6 +652,9 @@ Private Function DetectFileType(buf As String, fname As String) As String
         DetectFileType = "Zip file"
     ElseIf InStr(1, buf, "%PDF", vbTextCompare) > 0 Then
         DetectFileType = "Pdf File"
+    ElseIf VBA.Left(buf, 8) = Chr(&HD0) & Chr(&HCF) & Chr(&H11) & Chr(&HE0) & _
+                              Chr(&HA1) & Chr(&HB1) & Chr(&H1A) & Chr(&HE1) Then
+        DetectFileType = "MSI Installer"
     ElseIf VBA.Left(buf, 4) = Chr(&HD0) & Chr(&HCF) & Chr(&H11) & Chr(&HE0) Then
         DetectFileType = "Office Document"
     ElseIf VBA.Left(buf, 4) = "L" & Chr(0) & Chr(0) & Chr(0) Then

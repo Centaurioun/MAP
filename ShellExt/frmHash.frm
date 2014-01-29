@@ -75,6 +75,9 @@ Begin VB.Form frmHash
    End
    Begin VB.Menu mnuPopup 
       Caption         =   "mnuPopup"
+      Begin VB.Menu mnuSaveTable 
+         Caption         =   "Save Table"
+      End
       Begin VB.Menu mnuCopyTable 
          Caption         =   "Copy Table"
       End
@@ -129,6 +132,9 @@ Begin VB.Form frmHash
       Begin VB.Menu mnuDeleteDuplicates 
          Caption         =   "Delete All Duplicates"
       End
+      Begin VB.Menu mnuHashDiff 
+         Caption         =   "Hash Diff against.."
+      End
    End
 End
 Attribute VB_Name = "frmHash"
@@ -157,16 +163,99 @@ Attribute VB_Exposed = False
 '5.17.12 added progress bar, fixed integer overflow in vbDevKit.CWinHash
 '9.18.12 added x64 file system redirection awareness to main hashing routines (not to all right click options..)
 
-Dim path As String
+Private Declare Function GetWindowLong Lib "User" (ByVal hwnd As Long, ByVal nIndex As Long) As Long
+Private Declare Function SetWindowLong Lib "User" (ByVal hwnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+Private Declare Function AppendMenu Lib "user32" Alias "AppendMenuA" (ByVal hMenu As Long, ByVal wFlags As Long, ByVal wIDNewItem As Long, ByVal lpNewItem As String) As Long
+Private Declare Function GetSystemMenu Lib "user32" (ByVal hwnd As Long, ByVal bRevert As Long) As Long
+Private Declare Function DrawMenuBar Lib "user32" (ByVal hwnd As Long) As Long
+
+Const MF_STRING As Long = &H0
+Const IDM_COMPARE As Long = 1010
+Const IDM_HASHSEARCH As Long = 1011
+Const WM_SYSCOMMAND = &H112
+   
+Dim WithEvents sc As CSubclass2
+Attribute sc.VB_VarHelpID = -1
+ 
+Public path As String
+Public isComplete As Boolean
+
+Private Sub Form_Unload(Cancel As Integer)
+    sc.DetatchMessage Me.hwnd, WM_SYSCOMMAND
+End Sub
+
+Private Sub sc_MessageReceived(hwnd As Long, wMsg As Long, wParam As Long, lParam As Long, Cancel As Boolean)
+    If wParam = IDM_COMPARE Then frmCompareHashSets.Show
+    If wParam = IDM_HASHSEARCH Then
+        frmMD5FileSearch.Show
+        frmMD5FileSearch.txtBaseDir = Me.path
+    End If
+End Sub
+
+Sub Form_Load()
+    On Error Resume Next
+    
+    'Me.Icon = frmMain.Icon   'can not do this as frmMain has code in form_load and its already unloaded by this point (if we use the diff feature only) !! I so confuzzzed..
+    
+    mnuPopup.Visible = False
+    lv.ColumnHeaders(1).Width = lv.Width - lv.ColumnHeaders(2).Width - 400 - lv.ColumnHeaders(3).Width - lv.ColumnHeaders(4).Width
+    
+    If sc Is Nothing Then
+        Set sc = New CSubclass2
+        sc.AttachMessage Me.hwnd, WM_SYSCOMMAND
+        AppendMenu GetSystemMenu(Me.hwnd, 0), MF_STRING, IDM_COMPARE, "Compare Hash Sets..."
+        AppendMenu GetSystemMenu(Me.hwnd, 0), MF_STRING, IDM_HASHSEARCH, "Hash Search..."
+    End If
+    
+End Sub
+
+Private Sub Form_Resize()
+    On Error Resume Next
+    lv.Width = Me.Width - lv.Left - 140
+    lv.Height = Me.Height - lv.Top - 450
+    pb.Width = lv.Width
+    lv.ColumnHeaders(lv.ColumnHeaders.Count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.Count).Left - 100
+End Sub
+
+Public Function GetFilesForHash(md5, Optional ByRef totalHits As Long, Optional includeCount As Boolean = True) As String    ' returns csv of file names or nothing
+
+    Dim li As ListItem
+    Dim ret As String
+    Dim cnt As Long
+     
+    md5 = CStr(md5)
+    
+    For Each li In lv.ListItems
+        If li.SubItems(2) = md5 Then
+            ret = ret & li.Text & " , "
+            cnt = cnt + 1
+        End If
+    Next
+    
+    ret = Trim(ret)
+    If Len(ret) > 0 And Right(ret, 1) = "," Then
+        ret = Mid(ret, 1, Len(ret) - 1)
+    End If
+    
+    If Len(ret) > 0 Then
+        If includeCount Then
+            GetFilesForHash = cnt & " hits: " & ret
+        Else
+            GetFilesForHash = ret
+        End If
+        totalHits = totalHits + cnt
+    End If
+       
+End Function
 
 Sub setpb(cur, max)
     On Error Resume Next
-    pb.Value = (cur / max) * 100
+    pb.value = (cur / max) * 100
     Me.Refresh
     DoEvents
 End Sub
 
-Sub HashDir(dPath As String)
+Sub HashDir(dPath As String, Optional diffMode As Boolean = False)
    
     On Error GoTo out
     Dim f() As String, i As Long
@@ -195,18 +284,22 @@ Sub HashDir(dPath As String)
     End If
      
     'MsgBox "Going to scan " & UBound(f) & " files"
-    pb.Value = 0
+    pb.value = 0
     Me.Visible = True
     
     For i = 0 To UBound(f)
          handleFile f(i)
          setpb i, UBound(f)
     Next
-    pb.Value = 0
+    pb.value = 0
     'MsgBox "ready to show"
      
     On Error Resume Next
     Me.Show 1
+    
+    Me.Caption = Me.Caption & "    Files: " & lv.ListItems.Count
+    
+    isComplete = True
     
     Exit Sub
 out:
@@ -214,7 +307,9 @@ out:
 done:
     'Unload Me
     RevertRedir fs
-    End
+    isComplete = True
+    If Not diffMode Then End
+    
 End Sub
 
 
@@ -232,7 +327,7 @@ Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
     LV_ColumnSort lv, ColumnHeader
 End Sub
 
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
     If Button = vbRightButton Then PopupMenu mnuPopup
 End Sub
 
@@ -325,6 +420,9 @@ Private Sub mnuDeleteDuplicates_Click()
     Dim hashs As New Collection
     Dim h As String
     Dim f As String
+    Dim cnt As Long
+    
+    Close
     
     Const msg As String = "Are you sure you want to DELETE all DUPLICATE files?"
     If MsgBox(msg, vbYesNo) = vbNo Then Exit Sub
@@ -334,6 +432,7 @@ Private Sub mnuDeleteDuplicates_Click()
         If InStr(h, "Error") < 1 Then
             If KeyExistsInCollection(hashs, h) Then
                 li.Tag = "DeleteMe"
+                cnt = cnt + 1
             Else
                 li.Tag = ""
                 hashs.Add h, h
@@ -341,17 +440,24 @@ Private Sub mnuDeleteDuplicates_Click()
         End If
     Next
         
-nextone:
-    For Each li In lv.ListItems
+    On Error Resume Next
+    Dim errs As Long
+    
+    For i = lv.ListItems.Count To 1 Step -1
+        Set li = lv.ListItems(i)
         If li.Tag = "DeleteMe" Then
             f = path & "\" & li.Text
             If fso.FileExists(f) Then
-                Kill f
+                If Not fso.DeleteFile(f) Then
+                    errs = errs + 1
+                    Err.Clear
+                End If
             End If
             lv.ListItems.Remove li.index
-            GoTo nextone
         End If
     Next
+
+    MsgBox cnt & " files deleted, " & lv.ListItems.Count & " remain" & IIf(errs > 0, " " & errs & " errors", ""), vbInformation
     
 End Sub
 
@@ -386,7 +492,7 @@ Private Sub mnuDisplayUnique_Click()
      Dim tmp() As String
          
      For i = 1 To UBound(h)
-        push tmp, h(i) & "   -   " & b(i)
+        push tmp, b(i) & "   -   " & Me.GetFilesForHash(b(i))
      Next
      
      Dim t As String
@@ -447,11 +553,16 @@ Private Sub mnuCopyTable_Click()
     Dim li As ListItem
     Dim t As String
     Dim ln As Long
+    Dim sig As String
     
     ln = LongestFileName() + 2
     
     For Each li In lv.ListItems
-        t = t & rpad(li.Text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & vbCrLf
+        sig = Empty
+        If li.ForeColor <> &H80000008 And li.ForeColor <> vbBlack Then
+            sig = " " & vbTab & IIf(li.ForeColor = vbBlue, " VALID", " INVALID") & " signature"
+        End If
+        t = t & "  " & rpad(li.Text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & sig & vbCrLf
     Next
     
     Clipboard.Clear
@@ -492,23 +603,12 @@ Sub handleFile(f As String)
     
     If isSigned(v) Then
          SetLiColor li, SigToColor(v)
+         li.ToolTipText = SigToStr(v)
     End If
     
 End Sub
 
-Private Sub Form_Load()
-    Me.Icon = frmMain.Icon
-    mnuPopup.Visible = False
-    lv.ColumnHeaders(1).Width = lv.Width - lv.ColumnHeaders(2).Width - 400 - lv.ColumnHeaders(3).Width - lv.ColumnHeaders(4).Width
-End Sub
 
-Private Sub Form_Resize()
-    On Error Resume Next
-    lv.Width = Me.Width - lv.Left - 140
-    lv.Height = Me.Height - lv.Top - 450
-    pb.Width = lv.Width
-    lv.ColumnHeaders(lv.ColumnHeaders.Count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.Count).Left - 100
-End Sub
 
 Private Sub mnuGoogleSelected_Click()
     On Error Resume Next
@@ -537,6 +637,94 @@ Private Sub mnuGoogleSelected_Click()
         Google CStr(x), Me.hwnd
     Next
     
+End Sub
+
+Private Sub mnuHashDiff_Click()
+    
+    Dim pth2 As String, tmp As String
+    Dim f As frmHash
+    Dim li As ListItem
+    Dim results As String
+    Dim r As String, report As String
+    Dim totalHits As Long
+    Dim unique2 As String
+    Dim unique2_hits As Long
+    
+    Dim unique1 As String
+    Dim unique1_hits As Long
+    
+    pth2 = dlg.FolderDialog(, Me.hwnd)
+    If Len(pth2) = 0 Then Exit Sub
+    
+    Set f = New frmHash
+    f.Visible = True
+    f.Left = Me.Left + 300
+    f.Top = Me.Top + 300
+    f.Refresh
+    DoEvents
+    
+    f.HashDir pth2, True
+
+    Dim hashs As New Collection
+    Dim hashs2 As New Collection
+    Dim h
+    
+    'build a unique list of hashs in base directory set..
+    For Each li In lv.ListItems
+        h = li.SubItems(2)
+        If Not KeyExistsInCollection(hashs, CStr(h)) Then
+            hashs.Add h, CStr(h)
+        End If
+     Next
+     
+     'build a unique list of hashs in compare directory set..
+     For Each li In f.lv.ListItems
+        h = li.SubItems(2)
+        If Not KeyExistsInCollection(hashs2, CStr(h)) Then
+            hashs2.Add h, CStr(h)
+        End If
+     Next
+     
+    For Each h In hashs
+        results = f.GetFilesForHash(h, totalHits)
+        If Len(results) > 0 Then
+            r = r & h & vbTab & results & vbCrLf
+        Else
+            unique1 = unique1 & h & vbTab & GetFilesForHash(h, , False) & vbCrLf
+            unique1_hits = unique1_hits + 1
+        End If
+    Next
+    
+    'now we find the files from the second directory not found in main compare dir..
+    For Each h In hashs2
+        results = GetFilesForHash(h)
+        If Len(results) = 0 Then
+            unique2 = unique2 & h & vbTab & f.GetFilesForHash(h, , False) & vbCrLf
+            unique2_hits = unique2_hits + 1
+        End If
+    Next
+    
+    If Len(r) > 0 Then
+        
+        report = "Base Dir:    " & path & " " & vbTab & lv.ListItems.Count & " files / " & hashs.Count & " unique" & vbCrLf & _
+                 "Compare Dir: " & f.path & " " & vbTab & f.lv.ListItems.Count & " files / " & hashs2.Count & " unique" & vbCrLf & vbCrLf & _
+                 "Files found in both sets:  " & totalHits & vbCrLf & vbCrLf & _
+                 r & vbCrLf & vbCrLf & _
+                 "Files unique to base dir: " & unique1_hits & " files" & vbCrLf & vbCrLf & _
+                 unique1 & vbCrLf & vbCrLf & _
+                 "Files unique to compare dir: " & unique2_hits & " files" & vbCrLf & vbCrLf & _
+                 unique2
+                
+        tmp = fso.GetFreeFileName(Environ("temp"))
+        fso.WriteFile tmp, report
+        Shell "notepad.exe " & tmp, vbNormalFocus
+    Else
+        MsgBox "There were no hash matches in these two sample sets.", vbInformation
+    End If
+    
+    On Error Resume Next
+    'Unload f
+     
 End Sub
 
 Private Sub mnuMakeExtSafe_Click()
@@ -634,6 +822,36 @@ nextone:
     
 End Sub
 
+Private Sub mnuSaveTable_Click()
+    
+    Dim pdir As String
+    Dim ppdir As String
+    Dim defName As String
+    Dim fname As String
+    Dim dat As String
+    Dim li As ListItem
+    
+    On Error Resume Next
+    
+    defName = fso.GetBaseName(path) & "_hashs.txt"
+    pdir = fso.GetParentFolder(path)
+    ppdir = fso.GetParentFolder(pdir)
+    
+    'fname = dlg.SaveDialog(AllFiles, pdir, "Save output as", True, Me.hwnd, defName)
+    'If Len(fname) = 0 Then Exit Sub
+    
+    fname = pdir & "\" & defName
+    
+    mnuCopyTable_Click
+    
+    dat = vbCrLf & Now() & " Directory hashs for " & lv.ListItems.Count & " files in: " & _
+            Replace(path, ppdir, Empty) & _
+            vbCrLf & vbCrLf & Clipboard.GetText
+    
+    fso.WriteFile fname, dat
+    
+End Sub
+
 Private Sub mnuSubmitSelToVT_Click()
     On Error Resume Next
     Dim paths() As String
@@ -720,3 +938,5 @@ Private Sub mnuVTLookupSelected_Click()
     End If
     
 End Sub
+
+

@@ -2,76 +2,95 @@ VERSION 5.00
 Begin VB.Form frmMain 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Install Shell Extensions"
-   ClientHeight    =   2790
+   ClientHeight    =   4110
    ClientLeft      =   45
    ClientTop       =   330
-   ClientWidth     =   5130
+   ClientWidth     =   5745
    Icon            =   "frmMain.frx":0000
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   2790
-   ScaleWidth      =   5130
+   ScaleHeight     =   4110
+   ScaleWidth      =   5745
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
    Visible         =   0   'False
-   Begin VB.TextBox Text2 
-      Appearance      =   0  'Flat
-      Height          =   1575
-      Left            =   60
-      Locked          =   -1  'True
-      MultiLine       =   -1  'True
+   Begin VB.PictureBox pict 
+      AutoRedraw      =   -1  'True
+      BeginProperty Font 
+         Name            =   "Courier"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      ForeColor       =   &H0000FFFF&
+      Height          =   2895
+      Left            =   120
+      Picture         =   "frmMain.frx":030A
+      ScaleHeight     =   2835
+      ScaleWidth      =   5505
       TabIndex        =   6
-      Text            =   "frmMain.frx":030A
       Top             =   60
-      Width           =   4995
+      Width           =   5565
    End
    Begin VB.Frame Frame1 
       Height          =   615
-      Left            =   60
+      Left            =   90
       TabIndex        =   2
-      Top             =   1650
-      Width           =   4995
+      Top             =   3000
+      Width           =   5595
       Begin VB.CommandButton cmdMinLen 
-         Caption         =   "Update"
-         Height          =   255
-         Left            =   4080
+         Caption         =   "Set"
+         Height          =   285
+         Left            =   4680
          TabIndex        =   5
-         Top             =   240
+         Top             =   210
          Width           =   795
       End
       Begin VB.TextBox Text1 
          Alignment       =   1  'Right Justify
          Height          =   285
-         Left            =   3480
+         Left            =   4050
          TabIndex        =   4
          Text            =   "4"
-         Top             =   180
+         Top             =   210
          Width           =   495
       End
       Begin VB.Label Label2 
-         Caption         =   """Strings"" minimum match length"
+         Caption         =   "Strings min match length"
+         BeginProperty Font 
+            Name            =   "Courier"
+            Size            =   9.75
+            Charset         =   0
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
          Height          =   255
-         Left            =   1080
+         Left            =   870
          TabIndex        =   3
          Top             =   240
-         Width           =   2355
+         Width           =   2955
       End
    End
    Begin VB.CommandButton cmdInstallRegKeys 
       Caption         =   "Install"
       Height          =   315
-      Left            =   4020
+      Left            =   4620
       TabIndex        =   1
-      Top             =   2370
+      Top             =   3720
       Width           =   1035
    End
    Begin VB.CommandButton cmdRemoveRegKeys 
       Caption         =   "Remove"
       Height          =   315
-      Left            =   2880
+      Left            =   3240
       TabIndex        =   0
-      Top             =   2370
+      Top             =   3720
       Width           =   1035
    End
 End
@@ -128,10 +147,16 @@ Option Explicit
 
 Const peek = "*\shell\Strings\command"
 Const hash = "Folder\shell\Hash Files\command"
+Const hSearch = "Folder\shell\Hash Search\command"
 Const deco = "chm.file\shell\Decompile\command"
 Const m5 = "*\shell\Md5 Hash\command"
 Const vt = "*\shell\Virus Total\command"
 Const vtsubmit = "*\shell\Submit to VirusTotal\command"
+
+Function ap() As String
+    ap = App.path
+    If IsIde() Then ap = fso.GetParentFolder(ap)
+End Function
 
 Sub InstallRegKeys()
     
@@ -141,19 +166,21 @@ Sub InstallRegKeys()
     Dim cmdline_4 As String
     Dim cmdline_5 As String
     Dim cmdline_6 As String
+    Dim cmdline_7 As String
     
     Dim reg As New clsRegistry2
     
     'note app.path will be wrong value to use in IDE unless you actually compile
     'a version to app.path, default compile dir is /source dir/../
     
-    cmdline_1 = """" & App.path & "\shellext.exe"" ""%1"" /peek"
-    cmdline_2 = """" & App.path & "\shellext.exe"" ""%1"" /hash"
-    cmdline_3 = """" & App.path & "\shellext.exe"" ""%1"" /deco"
-    cmdline_4 = """" & App.path & "\shellext.exe"" ""%1"" /md5f"
-    cmdline_5 = """" & App.path & "\virustotal.exe"" ""%1"""
-    cmdline_6 = """" & App.path & "\virustotal.exe"" ""%1"" /submit"
-    
+    cmdline_1 = """" & ap() & "\shellext.exe"" ""%1"" /peek"
+    cmdline_2 = """" & ap() & "\shellext.exe"" ""%1"" /hash"
+    cmdline_3 = """" & ap() & "\shellext.exe"" ""%1"" /deco"
+    cmdline_4 = """" & ap() & "\shellext.exe"" ""%1"" /md5f"
+    cmdline_5 = """" & ap() & "\virustotal.exe"" ""%1"""
+    cmdline_6 = """" & ap() & "\virustotal.exe"" ""%1"" /submit"
+    cmdline_7 = """" & ap() & "\shellext.exe"" ""%1"" /hsch"
+        
     On Error GoTo hell
     
     reg.hive = HKEY_CLASSES_ROOT
@@ -183,6 +210,10 @@ Sub InstallRegKeys()
     
     If reg.CreateKey(vtsubmit) Then
         reg.SetValue vtsubmit, "", cmdline_6, REG_SZ
+    End If
+    
+    If reg.CreateKey(hSearch) Then
+        reg.SetValue hSearch, "", cmdline_7, REG_SZ
     End If
     
     MsgBox "Entries Added", vbInformation
@@ -270,6 +301,11 @@ Function RemoveRegKeys()
         b = reg.DeleteKey("Folder\shell\Hash Files")
     End If
     
+    If reg.keyExists(hSearch) Then
+        b = reg.DeleteKey(hSearch)
+        b = reg.DeleteKey("Folder\shell\Hash Search")
+    End If
+    
     If reg.keyExists(deco) Then
        c = reg.DeleteKey(deco)
        c = reg.DeleteKey("chm.file\shell\Decompile")
@@ -287,10 +323,25 @@ Function RemoveRegKeys()
 End Function
 
 Private Sub Form_Load()
-       
+    
     Dim mode As Long
     Dim cmd As String
        
+    pict.CurrentY = 100
+    pict.Print " CHM Files:" & vbCrLf & _
+               "    Decompile" & vbCrLf & _
+               "" & vbCrLf & _
+               " All files: " & vbCrLf & _
+               "    Strings" & vbCrLf & _
+               "    Md5 Hash" & vbCrLf & _
+               "    VirusTotal" & vbCrLf & _
+               "    Submit to Virus Total" & vbCrLf & _
+               "" & vbCrLf & _
+               " All folders:" & vbCrLf & _
+               "    Hash Files" & vbCrLf & _
+               "    Hash Search"
+                 
+
     cmd = Replace(Command, """", "")
     
     On Error Resume Next
@@ -309,6 +360,7 @@ Private Sub Form_Load()
         If VBA.Right(cmd, 5) = "/hash" Then mode = 2
         If VBA.Right(cmd, 5) = "/deco" Then mode = 3
         If VBA.Right(cmd, 5) = "/md5f" Then mode = 4
+        If VBA.Right(cmd, 5) = "/hsch" Then mode = 7
         
         If VBA.Right(cmd, 8) = "/install" Then mode = 5 'required for Vista run elevated mode
         If VBA.Right(cmd, 7) = "/remove" Then mode = 6
@@ -329,6 +381,7 @@ Private Sub Form_Load()
             Case 4: frmFileHash.ShowFileStats cmd
             Case 5: InstallRegKeys
             Case 6: RemoveRegKeys
+            Case 7: frmMD5FileSearch.Launch cmd
             Case Else: MsgBox "Unknown Option", vbExclamation
         End Select
         
@@ -395,3 +448,4 @@ Sub DecompileChm(pth As String)
     Exit Sub
 hell: MsgBox "Error Decompiling CHM: " & Err.Description
 End Sub
+
