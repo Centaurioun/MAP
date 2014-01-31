@@ -172,6 +172,8 @@ Private Declare Function DrawMenuBar Lib "user32" (ByVal hwnd As Long) As Long
 Const MF_STRING As Long = &H0
 Const IDM_COMPARE As Long = 1010
 Const IDM_HASHSEARCH As Long = 1011
+Const IDM_STRINGDUMP As Long = 1012
+
 Const WM_SYSCOMMAND = &H112
    
 Dim WithEvents sc As CSubclass2
@@ -184,17 +186,39 @@ Private Sub Form_Unload(Cancel As Integer)
     sc.DetatchMessage Me.hwnd, WM_SYSCOMMAND
 End Sub
 
+Private Sub mnuStringsDumpAll_Click()
+    
+    On Error Resume Next
+    Dim li As ListItem
+    Dim f As String
+    
+    For Each li In lv.ListItems
+        If VBA.Left(li.Text, 4) <> "str_" Then
+            f = path & "\" & li.Text
+            If fso.FileExists(f) Then
+                frmStrings.ParseFile f
+                frmStrings.AutoSave
+            End If
+        End If
+    Next
+    
+    Unload frmStrings
+    
+End Sub
+
 Private Sub sc_MessageReceived(hwnd As Long, wMsg As Long, wParam As Long, lParam As Long, Cancel As Boolean)
     If wParam = IDM_COMPARE Then frmCompareHashSets.Show
     If wParam = IDM_HASHSEARCH Then
         frmMD5FileSearch.Show
         frmMD5FileSearch.txtBaseDir = Me.path
     End If
+    If wParam = IDM_STRINGDUMP Then mnuStringsDumpAll_Click
 End Sub
 
 Sub Form_Load()
     On Error Resume Next
     
+    Me.Icon = myIcon
     'Me.Icon = frmMain.Icon   'can not do this as frmMain has code in form_load and its already unloaded by this point (if we use the diff feature only) !! I so confuzzzed..
     
     mnuPopup.Visible = False
@@ -205,6 +229,7 @@ Sub Form_Load()
         sc.AttachMessage Me.hwnd, WM_SYSCOMMAND
         AppendMenu GetSystemMenu(Me.hwnd, 0), MF_STRING, IDM_COMPARE, "Compare Hash Sets..."
         AppendMenu GetSystemMenu(Me.hwnd, 0), MF_STRING, IDM_HASHSEARCH, "Hash Search..."
+        AppendMenu GetSystemMenu(Me.hwnd, 0), MF_STRING, IDM_STRINGDUMP, "Generate Strings Dump for All"
     End If
     
 End Sub
@@ -250,7 +275,7 @@ End Function
 
 Sub setpb(cur, max)
     On Error Resume Next
-    pb.value = (cur / max) * 100
+    pb.Value = (cur / max) * 100
     Me.Refresh
     DoEvents
 End Sub
@@ -284,14 +309,14 @@ Sub HashDir(dPath As String, Optional diffMode As Boolean = False)
     End If
      
     'MsgBox "Going to scan " & UBound(f) & " files"
-    pb.value = 0
+    pb.Value = 0
     Me.Visible = True
     
     For i = 0 To UBound(f)
          handleFile f(i)
          setpb i, UBound(f)
     Next
-    pb.value = 0
+    pb.Value = 0
     'MsgBox "ready to show"
      
     On Error Resume Next

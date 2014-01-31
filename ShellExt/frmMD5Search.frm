@@ -5,11 +5,20 @@ Begin VB.Form frmMD5FileSearch
    ClientHeight    =   4965
    ClientLeft      =   60
    ClientTop       =   345
-   ClientWidth     =   10335
+   ClientWidth     =   11685
    LinkTopic       =   "Form1"
    ScaleHeight     =   4965
-   ScaleWidth      =   10335
+   ScaleWidth      =   11685
    StartUpPosition =   2  'CenterScreen
+   Begin VB.OptionButton optHash 
+      Caption         =   "File Name"
+      Height          =   375
+      Index           =   2
+      Left            =   7800
+      TabIndex        =   14
+      Top             =   90
+      Width           =   1275
+   End
    Begin VB.OptionButton optHash 
       Caption         =   "SHA1"
       Height          =   315
@@ -32,7 +41,7 @@ Begin VB.Form frmMD5FileSearch
    Begin VB.CommandButton cmdDefault 
       Caption         =   "default"
       Height          =   315
-      Left            =   9450
+      Left            =   10800
       TabIndex        =   11
       Top             =   540
       Width           =   765
@@ -42,8 +51,8 @@ Begin VB.Form frmMD5FileSearch
       Left            =   150
       TabIndex        =   10
       Top             =   1320
-      Width           =   10065
-      _ExtentX        =   17754
+      Width           =   11415
+      _ExtentX        =   20135
       _ExtentY        =   503
       _Version        =   393216
       Appearance      =   1
@@ -64,12 +73,12 @@ Begin VB.Form frmMD5FileSearch
       ScrollBars      =   3  'Both
       TabIndex        =   9
       Top             =   1680
-      Width           =   10125
+      Width           =   11445
    End
    Begin VB.CommandButton cmdScan 
       Caption         =   "Scan"
       Height          =   375
-      Left            =   9120
+      Left            =   10530
       TabIndex        =   8
       Top             =   60
       Width           =   1125
@@ -77,9 +86,9 @@ Begin VB.Form frmMD5FileSearch
    Begin VB.CommandButton cmdBrowse 
       Caption         =   "..."
       Height          =   285
-      Left            =   9450
+      Left            =   10800
       TabIndex        =   7
-      Top             =   960
+      Top             =   990
       Width           =   765
    End
    Begin VB.TextBox txtBaseDir 
@@ -93,23 +102,24 @@ Begin VB.Form frmMD5FileSearch
          Strikethrough   =   0   'False
       EndProperty
       Height          =   315
-      Left            =   1470
+      Left            =   1500
       OLEDropMode     =   1  'Manual
       TabIndex        =   6
       ToolTipText     =   "supports drag and drop"
       Top             =   900
-      Width           =   7875
+      Width           =   9105
    End
    Begin VB.CheckBox chkRecursive 
       Caption         =   "Recursive"
       Height          =   255
-      Left            =   7920
+      Left            =   9330
       TabIndex        =   4
       Top             =   150
       Value           =   1  'Checked
       Width           =   1095
    End
    Begin VB.TextBox txtExt 
+      BackColor       =   &H00FFFFFF&
       BeginProperty Font 
          Name            =   "Courier"
          Size            =   9.75
@@ -123,7 +133,7 @@ Begin VB.Form frmMD5FileSearch
       Left            =   1470
       TabIndex        =   3
       Top             =   510
-      Width           =   7845
+      Width           =   9135
    End
    Begin VB.TextBox txtHash 
       BeginProperty Font 
@@ -191,6 +201,7 @@ End Sub
 Private Sub cmdScan_Click()
     
     Dim hashs() As String
+    Dim ignore As Boolean
     
     txtHash = Trim(txtHash)
     txtResults = Trim(txtResults)
@@ -221,7 +232,7 @@ Private Sub cmdScan_Click()
     Dim method As HashTypes 'also supports md2/md4 but dont see any reason to complicate ui..
     If optHash(0).Value Then method = md5 Else method = SHA
     
-    push ret, "Scanning " & UBound(tmp) & " files in base directory for " & UBound(hashs) & " hash(s)"
+    push ret, "Scanning " & UBound(tmp) + 1 & " files in base directory for " & UBound(hashs) + 1 & " hash(s)"
     Me.Caption = ret(0)
     
     If UBound(tmp) > 0 Then pb.max = UBound(tmp) + 1
@@ -231,17 +242,30 @@ Private Sub cmdScan_Click()
         Me.Caption = "Scanning " & f
         ext = fso.GetExtension(f)
         If Len(ext) > 2 Then ext = Mid(ext, 2)   'remove leading dot
-        If Len(ext) = 0 Or InStr(1, txtExt, ext, vbTextCompare) < 1 Then 'not found in ignore list
-            h = hash.HashFile(CStr(f), method)
-            Debug.Print h
+        If Len(ext) = 0 Or _
+            InStr(1, txtExt, ext, vbTextCompare) < 1 Or _
+            optHash(2).Value = True _
+        Then 'not found in ignore list or is a file name search..
+        
+            If optHash(2).Value = True Then 'is file name search
+                h = CStr(f)
+            Else
+                h = hash.HashFile(CStr(f), method)
+            End If
+            
             For Each hh In hashs                 'cycle through each hash given to match..
                 hh = Trim(hh)
                 If Len(hh) > 0 And InStr(1, h, hh, vbTextCompare) > 0 Then
-                    compiled = GetCompileDateOrType(CStr(f))
-                    push ret, h & vbCrLf & compiled & vbCrLf & f & vbCrLf
+                    If optHash(2).Value = True Then
+                        push ret, f
+                    Else
+                        compiled = GetCompileDateOrType(CStr(f))
+                        push ret, h & vbCrLf & compiled & vbCrLf & f & vbCrLf
+                    End If
                     c = c + 1
                 End If
             Next
+            
         End If
         pb.Refresh
         Me.Refresh
@@ -267,6 +291,7 @@ init: ReDim ary(0): ary(0) = Value
 End Sub
 
 Private Sub Form_Load()
+    Me.Icon = myIcon
     cmdDefault_Click
     txtExt = GetSetting("shellext", "settings", "txtExt", txtExt.Text)
 End Sub
@@ -279,6 +304,10 @@ End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
     SaveSetting "shellext", "settings", "txtExt", txtExt.Text
+End Sub
+
+Private Sub optHash_Click(index As Integer)
+    txtExt.BackColor = IIf(index = 2, &HC0C0C0, vbWhite) 'ignore list not used for file name search..
 End Sub
 
 Private Sub txtBaseDir_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)

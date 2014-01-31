@@ -377,7 +377,7 @@ oops: AryIsEmpty = True
 End Function
 
 
-Function GetAllElements(lv As ListView) As String
+Function GetAllElements(lv As ListView, Optional selOnly As Boolean = False) As String
     Dim ret() As String, i As Integer, tmp As String
     Dim li As ListItem
 
@@ -389,11 +389,25 @@ Function GetAllElements(lv As ListView) As String
     push ret, String(50, "-")
 
     For Each li In lv.ListItems
-        tmp = li.Text & vbTab
+        
+        tmp = Empty
+        
+        If selOnly Then
+            If li.Selected Then tmp = li.Text & vbTab
+        Else
+            tmp = li.Text & vbTab
+        End If
+        
         For i = 1 To lv.ColumnHeaders.Count - 1
-            tmp = tmp & li.SubItems(i) & vbTab
+            If selOnly Then
+                If li.Selected Then tmp = tmp & li.SubItems(i) & vbTab
+            Else
+                tmp = tmp & li.SubItems(i) & vbTab
+            End If
         Next
-        push ret, tmp
+        
+        If Len(tmp) > 0 Then push ret, tmp
+        
     Next
 
     GetAllElements = Join(ret, vbCrLf)

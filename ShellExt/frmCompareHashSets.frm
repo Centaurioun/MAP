@@ -216,3 +216,6 @@ init:     ReDim ary(0): ary(0) = Value
 End Sub
 
 
+Private Sub Form_Load()
+    Me.Icon = myIcon
+End Sub

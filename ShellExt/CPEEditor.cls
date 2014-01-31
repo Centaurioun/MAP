@@ -15,7 +15,7 @@ Option Explicit
 'dzzie@yahoo.com
 'http://sandsprite.com
 
-Public Sections As Collection
+Public sections As Collection
 Public errMessage As String
 Public ImageBase As Long
 Public isLoaded As Boolean
@@ -153,41 +153,44 @@ Private Type IMAGE_NT_HEADERS
     
 End Type
 
-Function LoadFile(fpath As String) As Boolean
+Function LoadFile(fPath As String, Optional sections_csv As String) As Boolean
     On Error GoTo hell
         
         Dim i As Long
         Dim f As Long
         Dim udtSH As IMAGE_SECTION_HEADER
         
-        LoadedFile = fpath
+        LoadedFile = fPath
         isLoaded = False
         errMessage = Empty
         is64Bit = False
         is32Bit = False
         MachineType = ""
         
-        If Not FileExists(fpath) Then Err.Raise 1
+        If Not FileExists(fPath) Then Err.Raise 1
             
-        Set Sections = New Collection
+        Set sections = New Collection
 
         f = FreeFile
         
-        Open fpath For Binary Access Read As f
+        Open fPath For Binary Access Read As f
         Get f, , DOSHEADER
         Get f, DOSHEADER.e_lfanew + 1, NTHEADER
         
         If NTHEADER.Signature <> "PE" & Chr(0) & Chr(0) Then Err.Raise 2
         
         Me.ImageBase = NTHEADER.OptionalHeader.ImageBase
-        LoadSections f, NTHEADER
+        LoadSections f, NTHEADER, sections_csv
         
         Close f
         LoadFile = True
-        myFile = fpath
+        myFile = fPath
         isLoaded = True
         MachineType = getMachineType(NTHEADER.FileHeader.Machine)
         EntryPoint = NTHEADER.OptionalHeader.AddressOfEntryPoint
+        
+        sections_csv = Trim(sections_csv)
+        If Len(sections_csv) > 0 Then sections_csv = Mid(sections_csv, 1, Len(sections_csv) - 1) 'remove trailing comma
         
 Exit Function
 hell:
@@ -195,20 +198,20 @@ hell:
     Close f
     
     Select Case Err.Number
-        Case 1: errMessage = "File not found: " & fpath
+        Case 1: errMessage = "File not found: " & fPath
         Case 2: errMessage = "Invalid PE signature: " & NTHEADER.Signature
         Case Else: errMessage = Err.Description
     End Select
     
 End Function
 
-Private Sub LoadSections(fhand As Long, nth As IMAGE_NT_HEADERS)
+Private Sub LoadSections(fhand As Long, nth As IMAGE_NT_HEADERS, Optional sections_csv As String)
     
     Dim i As Long
     Dim udtSH As IMAGE_SECTION_HEADER
     Dim CSect As CSection
     
-    Set Sections = New Collection
+    Set sections = New Collection
     
     For i = 1 To nth.FileHeader.NumberOfSections
         Get fhand, , udtSH
@@ -227,7 +230,8 @@ Private Sub LoadSections(fhand As Long, nth As IMAGE_NT_HEADERS)
             CSect.Characteristics = .Characteristics
         End With
         CSect.index = i
-        Sections.Add CSect
+        sections.Add CSect
+        sections_csv = sections_csv & CSect.nameSec & ", "
     Next
     
 End Sub
@@ -248,7 +252,7 @@ End Function
  
 Function RvaToOffset(ByVal rva As Long, Optional ByRef VirtualSectionBase As Long, Optional sectName As String)
         
-    If Sections.Count = 0 Then
+    If sections.Count = 0 Then
         MsgBox "No Sections Loaded", vbInformation
         Exit Function
     End If
@@ -256,7 +260,7 @@ Function RvaToOffset(ByVal rva As Long, Optional ByRef VirtualSectionBase As Lon
     Dim c As CSection
     Dim vBase As Long, vSize As Long, vMax As Long
     
-    For Each c In Sections
+    For Each c In sections
        vBase = c.VirtualAddress
        vSize = c.VirtualSize
        vMax = vBase + vSize
@@ -276,7 +280,7 @@ End Function
 
 Function OffsetToRVA(ByVal foffset As Long, Optional sectName As String)
     
-    If Sections.Count = 0 Then
+    If sections.Count = 0 Then
         'MsgBox "No Sections Loaded", vbInformation
         Exit Function
     End If
@@ -284,7 +288,7 @@ Function OffsetToRVA(ByVal foffset As Long, Optional sectName As String)
     Dim c As CSection
     Dim rBase As Long, rSize As Long, rMax As Long
     
-    For Each c In Sections
+    For Each c In sections
        rBase = c.PointerToRawData
        rSize = c.SizeOfRawData
        rMax = rBase + rSize
@@ -300,7 +304,7 @@ End Function
 
 Function GetSectionFromRVA(rva As Long) As CSection
       
-    If Sections.Count = 0 Then
+    If sections.Count = 0 Then
         MsgBox "No Sections Loaded", vbInformation
         Exit Function
     End If
@@ -308,7 +312,7 @@ Function GetSectionFromRVA(rva As Long) As CSection
     Dim c As CSection
     Dim vBase As Long, vSize As Long, vMax As Long
     
-    For Each c In Sections
+    For Each c In sections
        vBase = c.VirtualAddress
        vSize = c.VirtualSize
        vMax = vBase + vSize

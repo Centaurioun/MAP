@@ -235,9 +235,9 @@ Private Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) 
 
 Option Compare Binary
 
-Sub DisplayList(data As String)
+Sub DisplayList(Data As String)
     
-    rtf.Text = data
+    rtf.Text = Data
     Me.Show 1
     
 End Sub
@@ -299,12 +299,19 @@ Private Sub cmdFindAll_Click()
         Exit Sub
     End If
     
+    Dim Data As String
+    Data = Join(ret, vbCrLf)
+    
+    If Len(Data) = 0 Then
+        Me.Caption = "Search for: " & Text1 & " 0 hits"
+        Exit Sub
+    Else
+        Me.Caption = "Search for: " & Text1 & " " & UBound(ret) + 1 & " hits"
+    End If
+    
     f = fso.GetFreeFileName(Environ("temp"))
-    fso.WriteFile f, Join(ret, vbCrLf)
+    fso.WriteFile f, Data
     Shell "notepad.exe """ & f & """", vbNormalFocus
-    
-    
-    
     
 End Sub
 
@@ -334,6 +341,18 @@ Private Sub Command1_Click()
     
 End Sub
 
+Public Sub AutoSave()
+    Dim f As String
+    Dim def As String
+    Dim pf As String
+    On Error Resume Next
+    pf = fso.GetParentFolder(curFile)
+    def = fso.GetBaseName(curFile)
+    If Len(def) > 12 Then def = VBA.Left(def, 8)
+    f = pf & "\str_" & def & ".txt"
+    fso.WriteFile f, rtf.Text
+End Sub
+
 Private Sub Command3_Click()
     Dim f As String
     Dim def As String
@@ -349,7 +368,7 @@ Private Sub Command3_Click()
 End Sub
 
 Private Sub Form_Load()
-    Me.Icon = frmMain.Icon
+    Me.Icon = myIcon
     sSearch = -1
     txtMinLen = minStrLen 'global
     pb.max = 100
@@ -369,7 +388,7 @@ Private Sub Form_Unload(Cancel As Integer)
    SaveMySetting "offsests", chkShowOffsets.Value
    SaveMySetting "Filter", chkFilter.Value
    SaveMySetting "Raw", IIf(optRaw.Value, 1, 0)
-   End
+   'End
 End Sub
 
 Private Sub Form_Resize()

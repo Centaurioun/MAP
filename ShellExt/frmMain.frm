@@ -326,7 +326,13 @@ Private Sub Form_Load()
     
     Dim mode As Long
     Dim cmd As String
-       
+    Dim lastCmd As String
+    Dim isLastCmd As Boolean
+    
+    'MsgBox "frmmain.load"
+    
+    Set myIcon = Me.Icon 'this prevents sub forms from accidently recalling frmMain.form_load if it unloads, but they want to use its main icon as their own..
+    
     pict.CurrentY = 100
     pict.Print " CHM Files:" & vbCrLf & _
                "    Decompile" & vbCrLf & _
@@ -342,7 +348,14 @@ Private Sub Form_Load()
                "    Hash Search"
                  
 
-    cmd = Replace(Command, """", "")
+    lastCmd = GetMySetting("lastCMD", "")
+    
+    If IsIde() And Len(lastCmd) > 0 Then
+        cmd = Replace(lastCmd, """", "")
+        isLastCmd = True
+    Else
+        cmd = Replace(Command, """", "")
+    End If
     
     On Error Resume Next
     minStrLen = CLng(GetMySetting("minStrLen", 4))
@@ -373,6 +386,8 @@ Private Sub Form_Load()
                 'but cant hurt to try it anyway right...
             End If
         End If
+        
+        If Not isLastCmd Then SaveMySetting "lastCmd", Command
         
         Select Case mode
             Case 1: frmStrings.ParseFile cmd

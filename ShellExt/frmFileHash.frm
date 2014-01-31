@@ -5,14 +5,30 @@ Begin VB.Form frmFileHash
    ClientHeight    =   1710
    ClientLeft      =   45
    ClientTop       =   615
-   ClientWidth     =   5970
+   ClientWidth     =   6270
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
    ScaleHeight     =   1710
-   ScaleWidth      =   5970
+   ScaleWidth      =   6270
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
+   Begin VB.PictureBox pictIcon 
+      Appearance      =   0  'Flat
+      AutoRedraw      =   -1  'True
+      AutoSize        =   -1  'True
+      BackColor       =   &H00FFFFFF&
+      BorderStyle     =   0  'None
+      ForeColor       =   &H80000008&
+      Height          =   675
+      Left            =   5520
+      ScaleHeight     =   675
+      ScaleWidth      =   675
+      TabIndex        =   5
+      Top             =   90
+      Visible         =   0   'False
+      Width           =   675
+   End
    Begin VB.Frame fraLower 
       BorderStyle     =   0  'None
       Height          =   435
@@ -124,7 +140,19 @@ Dim myMd5 As String
 Dim LoadedFile As String
 Dim isPE As Boolean
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
+Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hInst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
 
+Function ShowIcon(ByVal FileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal X As Long = 0, Optional ByVal Y As Long = 0) As Boolean
+    Dim hIcon As Long
+    hIcon = ExtractIcon(App.hInstance, FileName, iconIndex)
+
+    If hIcon Then
+        DrawIcon hDC, X, Y, hIcon
+        ShowIcon = True
+    End If
+    
+End Function
 
 Sub ShowFileStats(fPath As String)
     
@@ -135,6 +163,8 @@ Sub ShowFileStats(fPath As String)
     Dim fs As Long, sz As Long
     Dim fname As String
     Dim mySHA As String
+    Dim Sections As String
+    Dim pe As New CPEEditor
     
     LoadedFile = fPath
     fs = DisableRedir()
@@ -166,11 +196,17 @@ Sub ShowFileStats(fPath As String)
     push ret(), IIf(istype, rpad("FileType: "), rpad("Compiled:")) & compiled
     
     If isPE Then
+        
+        'If pe.LoadFile(fPath, Sections) Then 'little wasteful to load the pe twice (compile date 1st) but managable..
+        '    If Len(Sections) > 0 Then push ret(), "Sections: " & Sections
+        'End If
+        
         Dim fp As FILEPROPERTIE
-        fp = FileProps.FileInfo(fPath)
+        fp = FileProps.FileInfo(fPath) 'should we include more here? we need a config pane now :(
         If Len(fp.FileVersion) > 0 Then
             push ret(), rpad("Version:") & fp.FileVersion
         End If
+        
     End If
         
     Dim v As SigResults
@@ -183,7 +219,7 @@ Sub ShowFileStats(fPath As String)
             If Len(issuer) > 0 Then push ret(), rpad("Issuer:") & issuer
         End If
     End If
-    
+              
     mnuFileProps.enabled = isPE
     mnuOffsetCalc.enabled = isPE
     
@@ -196,11 +232,17 @@ Sub ShowFileStats(fPath As String)
     Me.Width = Text1.Width + Text1.Left + 400
     fraLower.Top = Me.Height - fraLower.Height - 400
     
+    If ShowIcon(fPath, pictIcon.hDC) Then
+        'Me.Width = Me.Width + pictIcon.Width '+ 50
+        pictIcon.Left = Me.Width - pictIcon.Width
+        pictIcon.Visible = True
+    End If
+    
     Dim minWidth  As Long
     minWidth = fraLower.Width + fraLower.Left + 300
     If Me.Width < minWidth Then Me.Width = minWidth
     
-    Me.Show 1
+    Me.Show '1 why was using a modal show? any reason?? made popup menus on subforms not show up..
         
 End Sub
 
@@ -231,17 +273,19 @@ Private Sub cmdVT_Click()
 End Sub
 
 Private Sub Form_Load()
+    
     mnuPopup.Visible = False 'IsIde()
-
-    Me.Icon = frmMain.Icon
+    pictIcon.BackColor = &H8000000F
+    
+    Me.Icon = myIcon
     
     Dim ext As String
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
     If fso.FileExists(ext) Then
         ext = fso.ReadFile(ext)
         tmp = Split(ext, vbCrLf)
-        For Each x In tmp
-            AddExternal CStr(x)
+        For Each X In tmp
+            AddExternal CStr(X)
         Next
     End If
     

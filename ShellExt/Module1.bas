@@ -22,6 +22,7 @@ Global hash As New CWinHash
 Global dlg As New CCmnDlg 'clsCmnDlg
 Global minStrLen As Long
 Global Const LANG_US = &H409
+Global myIcon As IPictureDisp
 
 Public Const IMAGE_NT_OPTIONAL_HDR32_MAGIC = &H10B
 
@@ -516,7 +517,7 @@ Function occuranceCount(haystack, match) As Long
     On Error Resume Next
     Dim tmp
     tmp = Split(haystack, match, , vbTextCompare)
-    occuranceCount = UBound(tmp)
+    occuranceCount = UBound(tmp) + 1
     If Err.Number <> 0 Then occuranceCount = 0
 End Function
 

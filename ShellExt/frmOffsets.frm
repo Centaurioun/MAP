@@ -5,7 +5,7 @@ Begin VB.Form frmOffsets
    Caption         =   "Form1"
    ClientHeight    =   2775
    ClientLeft      =   45
-   ClientTop       =   330
+   ClientTop       =   615
    ClientWidth     =   6780
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
@@ -163,6 +163,15 @@ Begin VB.Form frmOffsets
       Top             =   2460
       Width           =   735
    End
+   Begin VB.Menu mnuPopup 
+      Caption         =   "mnuPopup"
+      Begin VB.Menu mnuCopyRow 
+         Caption         =   "Copy Row"
+      End
+      Begin VB.Menu mnuCopyTable 
+         Caption         =   "Copy Table"
+      End
+   End
 End
 Attribute VB_Name = "frmOffsets"
 Attribute VB_GlobalNameSpace = False
@@ -177,7 +186,7 @@ Private selIndex As Long
 Private ImageBase As Long
 Private mParent As CPEEditor
 
-Sub Initilize(parent As CPEEditor, Optional modal = True)
+Sub Initilize(parent As CPEEditor) ', Optional modal = True)
     
     selIndex = 1
     FilloutListView lvSect, parent.Sections
@@ -191,9 +200,9 @@ Sub Initilize(parent As CPEEditor, Optional modal = True)
     txtRVA.Text = Hex(parent.EntryPoint)
     cmdCalculate_Click
     
-    If modal Then modal = 1 Else modal = 0
+    'If modal Then modal = 1 Else modal = 0 'this was causing the popupmenu to not show..
     
-    Me.Show modal
+    Me.Show 'modal
     
 End Sub
 
@@ -261,7 +270,8 @@ End Sub
  
 
 Private Sub Form_Load()
-     Me.Icon = frmMain.Icon
+     Me.Icon = myIcon
+     mnuPopup.Visible = False
 End Sub
 
 Private Sub lblDumpFix_Click()
@@ -281,6 +291,32 @@ Private Sub lblDumpFix_Click()
     mParent.LoadFile fout
     MsgBox "Dump Fix saved as: " & fout, vbInformation
     
+End Sub
+
+ 
+
+Private Sub lvSect_MouseUp(Button As Integer, Shift As Integer, x As Single, Y As Single)
+    If Button = 2 Then PopupMenu mnuPopup
+End Sub
+
+Private Function RenameRows(ByVal x)
+    'Virtual Addr    Virtual Size    RawOffset   RawSize Attributes
+    x = Replace(x, "Virtual Addr", "VA")
+    x = Replace(x, "Virtual Size", "VSz")
+    x = Replace(x, "RawOffset", "ROff")
+    x = Replace(x, "RawSize", "RSz")
+    x = Replace(x, "Attributes", "Attr")
+    RenameRows = x
+End Function
+
+Private Sub mnuCopyRow_Click()
+    Clipboard.Clear
+    Clipboard.SetText RenameRows(GetAllElements(lvSect, True))
+End Sub
+
+Private Sub mnuCopyTable_Click()
+    Clipboard.Clear
+    Clipboard.SetText RenameRows(GetAllElements(lvSect))
 End Sub
 
 Private Sub Option1_Click(index As Integer)
@@ -342,7 +378,9 @@ Function GetHextxt(t As TextBox, v As Long) As Boolean
 End Function
 
 Sub Enable(t As TextBox, Optional enabled = True)
+    On Error Resume Next
     t.BackColor = IIf(enabled, vbWhite, &H80000004)
-    't.enabled = enabled
+    't.enabled = enabled 'i hate that lordpe disables the textbox because you cant copy the text..
     t.Text = Empty
+    If enabled Then t.SetFocus
 End Sub
