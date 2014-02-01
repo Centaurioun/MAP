@@ -142,6 +142,12 @@ Begin VB.Form Form1
       Top             =   510
       Width           =   10935
    End
+   Begin VB.Menu mnuOptions 
+      Caption         =   "Options"
+      Begin VB.Menu mnuUsePrivateKey 
+         Caption         =   "Use Private API Key"
+      End
+   End
    Begin VB.Menu mnuPopup 
       Caption         =   "mnuPopup"
       Begin VB.Menu mnuCopyTable 
@@ -360,20 +366,20 @@ Private Sub mnuAddHashs_Click()
     On Error Resume Next
     Dim f As CFile
     
-    X = Clipboard.GetText
-    tmp = Split(X, vbCrLf)
-    For Each X In tmp
-        X = Trim(X)
-        If Len(X) > 0 Then
-            If InStr(X, ",") > 0 Then 'new "hash,path" format
-                Y = Split(X, ",")
+    x = Clipboard.GetText
+    tmp = Split(x, vbCrLf)
+    For Each x In tmp
+        x = Trim(x)
+        If Len(x) > 0 Then
+            If InStr(x, ",") > 0 Then 'new "hash,path" format
+                Y = Split(x, ",")
                 Set f = New CFile
                 f.hash = Y(0)
                 f.path = Y(1)
                 lv.ListItems.Add , , f.hash
                 If fso.FileExists(f.path) Then files.Add f
             Else
-                lv.ListItems.Add , , X
+                lv.ListItems.Add , , x
             End If
         End If
     Next
@@ -398,6 +404,7 @@ Private Sub Form_Load()
     Dim path As String
     Dim hash_mode As Boolean
     
+    mnuUsePrivateKey.Checked = vt.usingPrivateKey
     mnuPopup.Visible = False
     Set vt.owner = Me
     txtCacheDir = GetSetting("vt", "settings", "cachedir", "c:\VT_Cache")
@@ -477,7 +484,7 @@ Private Function PathForHash(hash As String) As String
     Next
 End Function
 
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
@@ -744,6 +751,26 @@ Private Sub mnuSubmitSelected_Click()
             End If
         End If
     Next
+    
+End Sub
+
+Private Sub mnuUsePrivateKey_Click()
+    Dim x As String
+    
+    x = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
+                 "Enter an empty string or hit cancel to clear the private key." & vbCrLf & vbCrLf & "Your key will be stored in the registry.", _
+                 "Enter private api key", _
+                 vt.ReadPrivateApiKey _
+        )
+                 
+    vt.SetPrivateApiKey x
+    mnuUsePrivateKey.Checked = vt.usingPrivateKey
+    
+    If vt.usingPrivateKey Then
+        MsgBox "Private key successfull set", vbInformation
+    Else
+        MsgBox "You are now using the default public key which is rate limited and free for non-commercial use. " & vbCrLf & vbCrLf & "Please see the VirusTotal terms of service.", vbInformation
+    End If
     
 End Sub
 

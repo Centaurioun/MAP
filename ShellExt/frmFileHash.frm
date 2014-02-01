@@ -21,11 +21,11 @@ Begin VB.Form frmFileHash
       BorderStyle     =   0  'None
       ForeColor       =   &H80000008&
       Height          =   675
-      Left            =   5520
+      Left            =   5580
       ScaleHeight     =   675
       ScaleWidth      =   675
       TabIndex        =   5
-      Top             =   90
+      Top             =   0
       Visible         =   0   'False
       Width           =   675
    End
@@ -141,14 +141,14 @@ Dim LoadedFile As String
 Dim isPE As Boolean
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hInst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
-Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
 
-Function ShowIcon(ByVal FileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal X As Long = 0, Optional ByVal Y As Long = 0) As Boolean
+Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal Y As Long = 0) As Boolean
     Dim hIcon As Long
-    hIcon = ExtractIcon(App.hInstance, FileName, iconIndex)
+    hIcon = ExtractIcon(App.hInstance, fileName, iconIndex)
 
     If hIcon Then
-        DrawIcon hDC, X, Y, hIcon
+        DrawIcon hDC, x, Y, hIcon
         ShowIcon = True
     End If
     
@@ -284,8 +284,8 @@ Private Sub Form_Load()
     If fso.FileExists(ext) Then
         ext = fso.ReadFile(ext)
         tmp = Split(ext, vbCrLf)
-        For Each X In tmp
-            AddExternal CStr(X)
+        For Each x In tmp
+            AddExternal CStr(x)
         Next
     End If
     

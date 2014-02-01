@@ -19,7 +19,11 @@ Const URL_FILE_REPORT = "file/report"
 Const URL_SCAN_URL = "url/scan"
 Const URL_URL_REPORT = "url/report"
 Const URL_MAKE_COMMENT = "comments/put"
-Const API_KEY = "a949ea9c64e7145a065b0e562673a66216a132712e958168c8c00ee5f451485b"
+Public API_KEY As String
+
+Const PUBLIC_API_KEY = "a949ea9c64e7145a065b0e562673a66216a132712e958168c8c00ee5f451485b"
+Public usingPrivateKey As Boolean
+
 
 Private List1 As ListBox 'for logging...
 Private WithEvents Timer1 As Timer
@@ -27,7 +31,7 @@ Attribute Timer1.VB_VarHelpID = -1
 
 Private NeedsDelay As Boolean
 Private LastQueryTime As Long
-Public delayInterval As Long
+Private m_delayInterval As Long
 
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function GetTickCount Lib "kernel32" () As Long
@@ -36,6 +40,17 @@ Public report_cache_dir As String 'if this is set it will cache the results here
 Dim repeatOnce As Boolean
 Public owner As Form
 Const LANG_US = &H409
+
+Property Get delayInterval() As Long
+    delayInterval = m_delayInterval
+End Property
+
+Property Let delayInterval(x As Long)
+    If Not usingPrivateKey Then
+        m_delayInterval = x
+    End If
+End Property
+
 
 'this class supports a couple nice things..
 '1) if you set the cache dir, it will save raw json there as optimization in case you lookup the same file
@@ -64,10 +79,12 @@ Function GetReport(hash As String, list As ListBox, tmr As Timer) As CScan
     Dim success As Boolean
     Dim errorMsg As String
     
+    If Len(API_KEY) = 0 Then Class_Initialize
+    
     Set List1 = list
     Set Timer1 = tmr
     Timer1.Enabled = False
-    Timer1.Interval = delayInterval
+    Timer1.Interval = m_delayInterval
 
     Set http = New XMLHTTP
     
@@ -91,7 +108,7 @@ Function GetReport(hash As String, list As ListBox, tmr As Timer) As CScan
     
     DoEvents
     
-    NeedsDelay = True 'need 4 second delay for next
+    NeedsDelay = True 'need 4 second delay for next if using public api key
     
     LastQueryTime = GetTickCount
     success = Get_Web_Report(hash, my_json, sStatus, status)
@@ -133,7 +150,7 @@ Private Function Get_Web_Report(hash, out_response As String, out_status As Stri
     
     Err.Clear
         
-    Dim X As Variant
+    Dim x As Variant
     out_status = Empty
     out_response = Empty
     repeatOnce = True
@@ -151,8 +168,8 @@ On Error GoTo hell
         List1.AddItem "Error in Get_Web_Report http.send failed desc: " & Err.Description & " ReadyState: " & http.readyState & " Status: " & http.status
         If repeatOnce Then
             repeatOnce = False
-            List1.AddItem "Failure Must delay for " & delayInterval & " milliseconds"
-            Timer1.Interval = delayInterval
+            List1.AddItem "Failure Must delay for " & m_delayInterval & " milliseconds"
+            Timer1.Interval = m_delayInterval
             Timer1.Enabled = True
             While Timer1.Enabled
                 DoEvents
@@ -194,10 +211,12 @@ End Sub
 
 Function AddComment(hash, comment, out_response As String, out_status As String, out_statusCode As Long) As Boolean
     
+    If Len(API_KEY) = 0 Then Class_Initialize
+    
     Err.Clear
     On Error GoTo hell
     
-    Dim X As Variant
+    Dim x As Variant
     out_status = Empty
     out_response = Empty
     
@@ -258,10 +277,33 @@ Function writeFile(path, it) As Boolean 'this one should be binary safe...
 hell: writeFile = False
 End Function
 
+Function SetPrivateApiKey(ByVal key As String)
+
+    key = Trim(key)
+    
+    If key <> API_KEY Then
+        SaveSetting "VirusTotal", "config", "private_api_key", key
+    End If
+    
+    If Len(key) > 0 Then
+        API_KEY = key
+        m_delayInterval = 0
+        usingPrivateKey = True
+    Else
+        API_KEY = PUBLIC_API_KEY
+        m_delayInterval = 17000 '4 requests per minute max
+        usingPrivateKey = False
+    End If
+    
+End Function
+
+Function ReadPrivateApiKey() As String
+    ReadPrivateApiKey = GetSetting("VirusTotal", "config", "private_api_key", "")
+End Function
 
 Private Sub Class_Initialize()
     NeedsDelay = False
-    delayInterval = 17000 '4 requests per minute max
+    SetPrivateApiKey ReadPrivateApiKey()
 End Sub
 
 Private Sub Timer1_Timer()
@@ -270,6 +312,8 @@ End Sub
 
 Private Function DelayIfNeeded()
 
+    If usingPrivateKey Then Exit Function
+    
     curtime = GetTickCount
     If LastQueryTime = 0 Then
         LastQueryTime = curtime
@@ -277,8 +321,8 @@ Private Function DelayIfNeeded()
     Else
         If NeedsDelay = True Then
             Interval = curtime - LastQueryTime
-            If Interval < delayInterval Then
-                Interval = delayInterval - Interval
+            If Interval < m_delayInterval Then
+                Interval = m_delayInterval - Interval
                 List1.AddItem "Must delay for " & Interval & " milliseconds"
                 Timer1.Interval = Interval
                 Timer1.Enabled = True
@@ -308,6 +352,8 @@ Function SubmitFile(fpath As String, list As ListBox, tmr As Timer) As CScan
     
     On Error Resume Next
     
+    If Len(API_KEY) = 0 Then Class_Initialize
+    
     Dim scan As New CScan
     scan.LocalFilePath = fpath
     
@@ -321,7 +367,7 @@ Function SubmitFile(fpath As String, list As ListBox, tmr As Timer) As CScan
     Set List1 = list
     Set Timer1 = tmr
     Timer1.Enabled = False
-    Timer1.Interval = delayInterval
+    Timer1.Interval = m_delayInterval
     'List1.Clear
     
     If Not FileExists(fpath) Then
