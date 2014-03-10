@@ -152,6 +152,9 @@ Const deco = "chm.file\shell\Decompile\command"
 Const m5 = "*\shell\Md5 Hash\command"
 Const vt = "*\shell\Virus Total\command"
 Const vtsubmit = "*\shell\Submit to VirusTotal\command"
+Const tlb = "dllfile\shell\Type Library Viewer\command"
+Const tlb2 = "ocxfile\shell\Type Library Viewer\command"
+Const tlb3 = "tlbfile\shell\Type Library Viewer\command"
 
 Function ap() As String
     ap = App.path
@@ -167,6 +170,7 @@ Sub InstallRegKeys()
     Dim cmdline_5 As String
     Dim cmdline_6 As String
     Dim cmdline_7 As String
+    Dim cmdline_8 As String
     
     Dim reg As New clsRegistry2
     
@@ -180,7 +184,8 @@ Sub InstallRegKeys()
     cmdline_5 = """" & ap() & "\virustotal.exe"" ""%1"""
     cmdline_6 = """" & ap() & "\virustotal.exe"" ""%1"" /submit"
     cmdline_7 = """" & ap() & "\shellext.exe"" ""%1"" /hsch"
-        
+    cmdline_8 = """" & ap() & "\tlbViewer.exe"" ""%1"""
+    
     On Error GoTo hell
     
     reg.hive = HKEY_CLASSES_ROOT
@@ -214,6 +219,18 @@ Sub InstallRegKeys()
     
     If reg.CreateKey(hSearch) Then
         reg.SetValue hSearch, "", cmdline_7, REG_SZ
+    End If
+    
+    If reg.CreateKey(tlb) Then
+        reg.SetValue tlb, "", cmdline_8, REG_SZ
+    End If
+    
+    If reg.CreateKey(tlb2) Then
+        reg.SetValue tlb2, "", cmdline_8, REG_SZ
+    End If
+    
+    If reg.CreateKey(tlb3) Then
+        reg.SetValue tlb3, "", cmdline_8, REG_SZ
     End If
     
     MsgBox "Entries Added", vbInformation
@@ -311,6 +328,20 @@ Function RemoveRegKeys()
        c = reg.DeleteKey("chm.file\shell\Decompile")
     End If
     
+    If reg.keyExists(tlb) Then
+       c = reg.DeleteKey(tlb)
+       c = reg.DeleteKey("dllfile\shell\Type Library Viewer\")
+    End If
+    
+    If reg.keyExists(tlb2) Then
+       c = reg.DeleteKey(tlb2)
+       c = reg.DeleteKey("ocxfile\shell\Type Library Viewer\")
+    End If
+    
+    If reg.keyExists(tlb3) Then
+       c = reg.DeleteKey(tlb3)
+       c = reg.DeleteKey("tlbfile\shell\Type Library Viewer\")
+    End If
     
     If a And b And c Then
         MsgBox "Keys deleted        ", vbInformation
@@ -333,22 +364,25 @@ Private Sub Form_Load()
     
     Set myIcon = Me.Icon 'this prevents sub forms from accidently recalling frmMain.form_load if it unloads, but they want to use its main icon as their own..
     
-    pict.CurrentY = 100
-    pict.Print " CHM Files:" & vbCrLf & _
-               "    Decompile" & vbCrLf & _
-               "" & vbCrLf & _
-               " All files: " & vbCrLf & _
+    pict.CurrentY = 10
+    pict.Print " All files: " & vbCrLf & _
                "    Strings" & vbCrLf & _
                "    Md5 Hash" & vbCrLf & _
                "    VirusTotal" & vbCrLf & _
-               "    Submit to Virus Total" & vbCrLf & _
+               "    Submit to VT" & vbCrLf & _
                "" & vbCrLf & _
                " All folders:" & vbCrLf & _
                "    Hash Files" & vbCrLf & _
-               "    Hash Search"
+               "    Hash Search" & vbCrLf & _
+               "" & vbCrLf & _
+               " Dll/OCX/TLB Files: " & vbCrLf & _
+               "    Type Library Viewer" & vbCrLf & _
+               "" & vbCrLf & _
+               " CHM Files: Decompile"
+
                  
 
-    lastCmd = GetMySetting("lastCMD", "")
+    'lastCmd = GetMySetting("lastCMD", "")
     
     If IsIde() And Len(lastCmd) > 0 Then
         cmd = Replace(lastCmd, """", "")

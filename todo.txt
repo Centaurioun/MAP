@@ -1,1 +1,0 @@
-- extract icon from exe and display on hash file form?

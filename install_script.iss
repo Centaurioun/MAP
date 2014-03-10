@@ -15,8 +15,9 @@ Source: ./dependancies\spSubclass2.dll; DestDir: {win}; Flags: regserver
 Source: ./dependancies\MSWINSCK.OCX; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\mscomctl.ocx; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\RICHTX32.OCX; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
+Source: ./dependancies\TLBINF32.DLL; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\hexed.ocx; DestDir: {win}; Flags: regserver
-Source: ./sc_log\bin\sclog.exe; DestDir: {app}
+;Source: ./sc_log\bin\sclog.exe; DestDir: {app}   //carries AV warnings these days...
 Source: gdiprocs.exe; DestDir: {app}
 Source: gdiprocs.exe; DestDir: {win}
 Source: FindDll.exe; DestDir: {app}; Flags: ignoreversion
@@ -35,6 +36,7 @@ Source: IDCDumpFix.exe; DestDir: {app}; Flags: ignoreversion
 Source: mail_pot.exe; DestDir: {app}; Flags: ignoreversion
 Source: sckTool.exe; DestDir: {app}; Flags: ignoreversion
 Source: ShellExt.exe; DestDir: {app}; Flags: ignoreversion
+Source: tlbViewer.exe; DestDir: {app}; Flags: ignoreversion
 Source: map_help.chm; DestDir: {app}
 
 [Dirs]
