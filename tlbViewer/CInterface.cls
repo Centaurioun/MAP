@@ -34,10 +34,10 @@ Attribute VB_Exposed = False
 Public Name As String
 Public GUID As String
 Public hasIDispatch As Boolean  'required because we use IDispatch::Invoke for fuzzing
-Public isPublic As Boolean
 Public mMembers As New Collection ' as CMember
 Public DerivedString As String
 Public isDefault As Boolean
+Public AttributeMask As Integer
 
 Private Ignored As New Collection
 
@@ -63,13 +63,63 @@ Friend Sub LoadMembers(mm As Members, ownerClassGuid As String)
                 dbg vbTab & "Method: " & m.Name
                 Set cm = New CMember
                 cm.LoadMember m, ownerClassGuid
+                If cm.CallType = ftPropGet Or cm.CallType = ftPropLet Or cm.CallType = ftPropSet Then
+                    If duplicateProp(cm) Then GoTo nextOne
+                End If
                 'Debug.Print cm.ProtoString
                 mMembers.Add cm
+nextOne:
             End If
             i = i + 1
         Next
         
 End Sub
+
+'since prop let/get are seperate in odl, this will scan to see if one was already set in members and update prototype with Get/Set if so less noise
+Private Function duplicateProp(cm As CMember) As Boolean
+    Dim m As CMember
+    Dim cur As String, n As String
+    
+    For Each m In mMembers
+        If cm.Name = m.Name Then
+            If m.CallType = ftPropGet Or m.CallType = ftPropLet Or m.CallType = ftPropSet Then
+                cur = sPropType(m.CallType)
+                n = sPropType(cm.CallType)
+                m.ProtoString = Replace(m.ProtoString, cur, cur & "/" & n)
+                duplicateProp = True
+                Exit Function
+            End If
+        End If
+    Next
+    
+End Function
+
+Private Function sPropType(f As FType)
+    tmp = Array("sub", "Function", "Let", "Get", "Set", "Unknown")
+    sPropType = tmp(f)
+End Function
+
+Function isLicensed() As Boolean
+    Dim flags As Long
+    If (AttributeMask And TYPEFLAG_FLICENSED) = TYPEFLAG_FLICENSED Then isLicensed = True
+End Function
+
+Function isCreatable() As Boolean
+    Dim flags As Long
+    If (AttributeMask And TYPEFLAG_FCANCREATE) = TYPEFLAG_FCANCREATE Then isCreatable = True
+End Function
+
+Function isDual() As Boolean
+    Dim flags As Long
+    If (AttributeMask And TYPEFLAG_FDUAL) = TYPEFLAG_FDUAL Then isDual = True
+End Function
+
+Function isPublic() As Boolean
+    Dim flags As Long
+    flags = IMPLTYPEFLAG_FSOURCE Or IMPLTYPEFLAG_FRESTRICTED
+    If (AttributeMask And flags) = flags Then isPublic = True
+End Function
+
 
 
 Private Sub Class_Initialize()

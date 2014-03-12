@@ -59,6 +59,12 @@ Public KillBitSet As Boolean
 Public DefaultInterface As String
 Public ObjectSafetyReport As String
 
+Public isRegisteredOnSystem As Boolean
+Public isControl As Boolean
+Public isInsertable As Boolean
+Public isDesignTime As Boolean
+Public isDotNet As Boolean
+
 'Function CreateInstance() As IUnknown
 '
 '    Dim udtGUID As strucGUID
@@ -82,13 +88,27 @@ Friend Sub LoadInterfaces(ii As Interfaces, defInterface As String)
         reg.hive = HKEY_CLASSES_ROOT
 '        If reg.keyExists(clsid & GUID & "\Programmable") Then Programmable = True
 
-        'If Not GetSavedSafetyReport(GUID, ObjectSafetyReport) Then
-            Const tail = "\Implemented Categories\{7DD95801-9882-11CF-9FA9-00AA006C42C4}"
-            Const tail2 = "\Implemented Categories\{7DD95802-9882-11CF-9FA9-00AA006C42C4}"
+        isRegisteredOnSystem = reg.keyExists("\CLSID\" & GUID)
+        
+        Const tail = "\Implemented Categories\{7DD95801-9882-11CF-9FA9-00AA006C42C4}"
+        Const tail2 = "\Implemented Categories\{7DD95802-9882-11CF-9FA9-00AA006C42C4}"
+        Const tail3 = "\Implemented Categories\{40FC6ED4-2438-11cf-A3DB-080036F12502}"
+        Const tail4 = "\Implemented Categories\{40FC6ED3-2438-11cf-A3DB-080036F12502}"
+        Const tail5 = "\Implemented Categories\{F2BB56D1-DB07-11D1-AA6B-006097DB9539}"
+        Const tail6 = "\Implemented Categories\{62C8FE65-4EBB-45e7-B440-6E39B2CDBF29}"
+        
+        'HKEY_CLASSES_ROOT\Component Categories\{F2BB56D1-DB07-11D1-AA6B-006097DB9539} DesignTimeActivatable
+        'HKEY_CLASSES_ROOT\Component Categories\{62C8FE65-4EBB-45e7-B440-6E39B2CDBF29} .Net Catagory
+        
+        If isRegisteredOnSystem Then
             If reg.keyExists("\CLSID\" & GUID & tail) Then SafeForScripting = True
             If reg.keyExists("\CLSID\" & GUID & tail2) Then SafeForInitilization = True
-        'End If
-              
+            If reg.keyExists("\CLSID\" & GUID & tail3) Then isControl = True
+            If reg.keyExists("\CLSID\" & GUID & tail4) Then isInsertable = True
+            If reg.keyExists("\CLSID\" & GUID & tail5) Then isDesignTime = True
+            If reg.keyExists("\CLSID\" & GUID & tail6) Then isDotNet = True
+        End If
+        
         If KeyExistsInCollection(killbitted, GUID) Then KillBitSet = True
         
         DefaultInterface = defInterface
@@ -106,9 +126,7 @@ Sub AddInterface(iface As InterfaceInfo)
 
         mi.DerivedString = GetDerivedInterfaces(iface, mi)
         dbg "Interface: " & iface.Name & " " & mi.DerivedString & IIf(mi.isPublic, " : Public", " : Private")
-        
-        If Not mi.isPublic Then Exit Sub
-        
+                
         With iface
             mi.GUID = .GUID
             mi.Name = .Name
@@ -119,23 +137,11 @@ Sub AddInterface(iface As InterfaceInfo)
         
 End Sub
 
-
-'Private Function isControl(iface As InterfaceInfo) As Boolean
-'    Dim flags As Long
-'    If (iface.AttributeMask And TYPEFLAG_FCONTROL) = 0 Then isControl = True
-'End Function
-
-Private Function isPublic(iface As InterfaceInfo) As Boolean
-    Dim flags As Long
-    flags = IMPLTYPEFLAG_FSOURCE Or IMPLTYPEFLAG_FRESTRICTED
-    If (iface.AttributeMask And flags) = 0 Then isPublic = True
-End Function
-
 Private Function GetDerivedInterfaces(iface As InterfaceInfo, mi As CInterface) As String
     Dim ii As InterfaceInfo
     Dim tmp As String
     
-    If isPublic(iface) Then mi.isPublic = True
+    mi.AttributeMask = iface.AttributeMask
     
     For Each ii In iface.ImpliedInterfaces
         If ii.Name = "IDispatch" Then mi.hasIDispatch = True

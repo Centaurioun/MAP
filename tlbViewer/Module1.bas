@@ -4,6 +4,19 @@ Global dlg As New clsCmnDlg
 Global reg As New clsRegistry2
 Global killbitted As New Collection
 
+Sub LoadKillBittedControlList()
+    Dim tmp() As String
+    
+    reg.hive = HKEY_LOCAL_MACHINE
+    Const base = "\SOFTWARE\Microsoft\Internet Explorer\ActiveX Compatibility"
+    tmp() = reg.EnumKeys(base)
+    
+    For Each t In tmp
+        v = reg.ReadValue(base & "\" & t, "Compatibility Flags")
+        If v = &H400 Then killbitted.Add t, t
+    Next
+    
+End Sub
 
 Function GetProgID(GUID As String) As String
     Dim tmp As String

@@ -1,8 +1,8 @@
 frmtlbViewer = 110, 110, 818, 644, Z, 44, 44, 516, 549, C
 CArgument = 132, 132, 868, 666, C
 CClass = 44, 44, 907, 396, 
-CInterface = 0, 0, 0, 0, C
-CMember = 22, 22, 730, 556, 
+CInterface = 198, 198, 1171, 774, 
+CMember = 22, 22, 730, 556, C
 CModule = 0, 0, 0, 0, C
 CTlbParse = 132, 132, 840, 666, 
 frmLoadFile = 88, 88, 796, 622, , 66, 66, 774, 600, C

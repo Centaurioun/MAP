@@ -53,12 +53,13 @@ Public Enum FType
 End Enum
 
 Public ClassGUID As String
-Public CallType As Long
+Public CallType As FType
 Public ProtoString As String
 Public mMemberInfo As MemberInfo
 Public ArgCount As Integer
 Public SupportsFuzzing As Boolean 'entire method cant be fuzzed
 Public Args As New Collection 'of CArgument
+Public Name As String
 
 Private Declare Function GetTickCount Lib "kernel32" () As Long
 
@@ -68,6 +69,7 @@ Sub LoadMember(m As MemberInfo, ownerClassGuid As String)
     'If m.Name = "insertBefore" Then Stop
     
     Set mMemberInfo = m
+    Name = m.Name
     ClassGUID = ownerClassGuid
     ArgCount = m.Parameters.Count
     ProtoString = GetProtoString()
@@ -161,7 +163,7 @@ Private Sub ParseStdArg(tmp, pi As ParameterInfo, arg As CArgument)
         If .VarType <> vbVariant Then
               strTypeName = TypeName(.TypedVariant)
               If .VarType And (VT_ARRAY Or VT_VECTOR) Then
-                    glue tmp, "() As " & Left$(strTypeName, Len(strTypeName) - 2)
+                    glue tmp, " As " & Left$(strTypeName, Len(strTypeName) - 2) & "()"
                     If Not pi.Optional Then SupportsFuzzing = False
                     arg.ManSetType atarray, False, .VarType
               Else
@@ -219,11 +221,6 @@ Private Sub ParseObjArg(tmp, pi As ParameterInfo, arg As CArgument, TIResolved A
             
             glue tmp, vbTab & IIf(arg.isOptional, "[ ", "") & IIf(arg.isByVal, "ByVal ", "ByRef ") & pi.Name
             
-            If .VarType And (VT_ARRAY Or VT_VECTOR) Then
-                glue tmp, "()"
-                arg.ManSetType atarray, False
-            End If
-            
             If TIType Is Nothing Then 'Error
                   glue tmp, "As ?"
             Else
@@ -234,6 +231,11 @@ Private Sub ParseObjArg(tmp, pi As ParameterInfo, arg As CArgument, TIResolved A
                           glue tmp, "As " & TIType.Name
                           arg.ObjectType = TIType.Name
                   End If
+            End If
+            
+            If .VarType And (VT_ARRAY Or VT_VECTOR) Then
+                glue tmp, "()"
+                arg.ManSetType atarray, False
             End If
 
     End With
@@ -340,7 +342,7 @@ Private Function GetReturnType(tmp, fIsConstant As Boolean)
                                If mMemberInfo.InvokeKind = INVOKE_PROPERTYPUT Then
                                     SupportsFuzzing = False
                                End If
-                               glue tmp, "() As " & Left$(strTypeName, Len(strTypeName) - 2)
+                               glue tmp, " As " & Left$(strTypeName, Len(strTypeName) - 2) & "()"
                            Else
                                glue tmp, " As " & strTypeName
                                
@@ -410,200 +412,3 @@ Dim TKind As TypeKinds
     End If
 End Function
 
-
-'Function BuildFuzzConfigFiles(log() As String, ByVal pFolder As String) As String()   'returns filepaths to config files
-'    Dim fz As fzConfig
-'    Dim fPaths() As String
-'    Dim i As Long
-'    Dim default
-'
-'    With fz
-'        .argCnt = ArgCount
-'        .objGuid = ClassGUID
-'        .InvokeKind = mMemberInfo.InvokeKind
-'        .methodID = mMemberInfo.MemberId
-'        .methodName = mMemberInfo.Name
-'        .protoType = ProtoString
-'    End With
-'
-'    pFolder = pFolder & "\" & mMemberInfo.Name
-'    If fso.FolderExists(pFolder) Then fso.DeleteFolder (pFolder) 'clean out old member scripts
-'    If Not fso.FolderExists(pFolder) Then fso.buildPath pFolder
-'
-'    Dim arg As CArgument
-'    Dim ary()
-'
-'    ReDim ary(1 To ArgCount)
-'
-'    'first let fill out default args for not fuzzable friends
-'    For i = 1 To Args.Count
-'        Set arg = Args(i)
-'
-'        If arg.isOptional Then
-'            ary(i) = Empty
-'        ElseIf Not arg.isWorthFuzzing Then
-'            Select Case arg.DataType 'the ones we dont bother to fuzz
-'                Case atByte:    ary(i) = 1
-'                Case atDate:    ary(i) = """Now"""
-'                Case atBool:    ary(i) = "True"
-'                Case atempty:   ary(i) = """"""
-'                Case atSingle:  ary(i) = 1
-'                Case atUnknown: ary(i) = """"""
-'                Case atObject:  ary(i) = """"""
-'            End Select
-'        Else
-'            Select Case arg.DataType 'defaults for those we do fuzz
-'                Case atLong, atInteger, atdouble:    ary(i) = 1
-'                Case atVariant, atstring:            ary(i) = """defaultV"""
-'            End Select
-'        End If
-'    Next
-'
-'    'now that defaults are taken care of and base ary filled out..now permutate fuzzables
-'    For i = 1 To Args.Count
-'        Set arg = Args(i)
-'
-'        If Not arg.isOptional And arg.isWorthFuzzing Then
-'
-'            default = ary(i) 'save default val for next loop
-'
-'            If arg.DataType = atLong Or arg.DataType = atInteger Or arg.DataType = atdouble Then
-'
-'                '3 variations for numeric type data
-'                ' - max positive value
-'                ' - min negative value
-'                ' - max negative value
-'
-'                Select Case arg.DataType
-'                    Case atLong:    ary(i) = 2147483647
-'                    Case atInteger: ary(i) = 32767
-'                    Case atdouble:  ary(i) = 1.79769313486231E+308
-'                End Select
-'
-'                WSFFile pFolder, fz, ary, fPaths, "MaxPosArg" & i
-'
-'                ary(i) = -1
-'                WSFFile pFolder, fz, ary, fPaths, "Neg1Arg" & i
-'
-'                Select Case arg.DataType
-'                    Case atLong:    ary(i) = -2147483647
-'                    Case atInteger: ary(i) = -32768
-'                    Case atdouble:  ary(i) = 3.39519326559384E-313
-'                End Select
-'
-'                WSFFile pFolder, fz, ary, fPaths, "MaxNegArg" & i
-'
-'            ElseIf arg.DataType = atstring Or arg.DataType = atVariant Then
-'
-'                    '5 variations for string type data
-'                    ' - medium long string
-'                    ' - long long string
-'                    ' - long long long string
-'                    ' - format string test
-'                    ' - try to trigger possible parsing bug
-'
-'                    ary(i) = "String(1050, ""A"")"
-'                    WSFFile pFolder, fz, ary, fPaths, "Str1050Arg" & i
-'
-'                    ary(i) = "String(5001, ""A"")"
-'                    WSFFile pFolder, fz, ary, fPaths, "Str5001Arg" & i
-'
-'                    ary(i) = "String(15000, ""A"")"
-'                    WSFFile pFolder, fz, ary, fPaths, "Str15kArg" & i
-'
-'                    ary(i) = """%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n"""
-'                    WSFFile pFolder, fz, ary, fPaths, "FormatStrArg" & i
-'
-'                    ary(i) = """\\:#$%test\test\test\te?s\test\test\tes\\:#$%\ttest\test\te@st\tes\test\test\tes.\ttest\test\test\tes\test\test\te.s\ttest\test\test\tes\test\test\tes\t\\\\\\\\\:#$%test\test\test\te?s\test\test\tes\\:#$%\ttest\test\te@st\tes\test\test\tes.\ttest\test\test\tes\test\test\te.s\ttest\test\test\tes\test\test\tes\t\\\\\\\\\:#$%test\test\test\te?s\test\test\tes\\:#$%\ttest\test\te@st\tes\test\test\tes.\ttest\test\test\tes\test\test\te.s\ttest\test\test\tes\test\test\tes\t\\\\\\\\\:#$%test\test\test\te?s\test\test\tes\\:#$%\ttest\test\te@st\tes\test\test\tes.\ttest\test\test\tes\test\test\te.s\ttest\test\test\tes\test\test\tes\t\\\\\\\"""
-'                    WSFFile pFolder, fz, ary, fPaths, "JunkParseArg" & i
-'
-'            End If
-'
-'            ary(i) = default 'back to default so we can move to next
-'
-'        End If
-'    Next
-'
-'    BuildFuzzConfigFiles = fPaths 'return filepaths
-'
-'End Function
-
-'Private Function HtmlPage(ByVal pfolder As String, fz As fzConfig, ary(), fpath() As String)
-'
-'    Dim f As String
-'    Dim tmp() As String
-'    Dim argStr As String
-'    Dim ik As InvokeKinds
-'    Dim i As Long
-'
-'    If Right(pfolder, 1) <> "\" Then pfolder = pfolder & "\"
-'    f = fso.GetFreeFileName(pfolder, ".html")
-'
-'    push tmp(), "<object classid='clsid:" & Mid(fz.objGuid, 2, Len(fz.objGuid) - 2) & "' id=target></object>"
-'    push tmp(), "<script language=vbs>"
-'
-'    For i = 1 To UBound(ary)
-'        argStr = argStr & "arg" & i & " ,"
-'        If TypeName(ary(i)) = "String" Or TypeName(ary(i)) = "Variant" Then
-'            push tmp(), "arg" & i & "=""" & Replace(ary(i), """", """""") & """"
-'        Else
-'            push tmp(), "arg" & i & "=" & ary(i)
-'        End If
-'    Next
-'
-'    ik = fz.InvokeKind
-'
-'    If ik = INVOKE_PROPERTYPUT Then
-'        If UBound(ary) > 1 Then MsgBox "Property put with " & UBound(ary) & " args?"
-'        push tmp(), "target." & fz.methodName & " = arg1"
-'    Else
-'        push tmp(), "target." & fz.methodName & " " & VBA.Left(argStr, Len(argStr) - 1)
-'    End If
-'
-'    push tmp(), "</script>"
-'
-'    fso.WriteFile f, Join(tmp, vbCrLf)
-'
-'    push fpath(), f
-'
-'End Function
-
-'Sub Invoke(liveInst As Object, mArgs() As Variant)
-'
-'    Dim vArgs() As Variant
-'    Dim i As Integer, n As Integer
-'    Dim VT_Flags As Integer
-'    Dim a As CArgument
-'
-'    If UBound(mArgs) <> (Args.Count - 1) Then
-'        MsgBox "Args Passed in does not match internal count!"
-'        Exit Sub
-'    End If
-'
-'    ReDim vArgs(UBound(mArgs))
-'
-'    For i = UBound(mArgs) To 0
-'
-'        'Select Case TypeName(mArgs(i))
-'        '    Case "String":  VT_Flags = VT_BSTR
-'        '    Case "Integer": VT_Flags = VT_BYREF Or VT_I2
-'        'End Select
-'
-'        Set a = Args(i + 1)
-'        VT_Flags = a.VT_Flags
-'
-'        vArgs(n) = mArgs(i)              'we have to reverse order args for call
-'        CopyMemory vArgs(n), VT_Flags, 2 'modify VT struc to set our datatype
-'        n = n + 1
-'
-'    Next
-'
-'    With mMemberInfo
-'        tli.InvokeHookArraySub liveInst, .MemberId, .InvokeKind, vArgs
-'
-'
-'    End With
-'
-'End Sub
- 
- 

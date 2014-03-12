@@ -49,7 +49,7 @@ Begin VB.Form frmtlbViewer
       MaskColor       =   16711935
       _Version        =   393216
       BeginProperty Images {2C247F25-8591-11D1-B16A-00C0F0283628} 
-         NumListImages   =   9
+         NumListImages   =   10
          BeginProperty ListImage1 {2C247F27-8591-11D1-B16A-00C0F0283628} 
             Picture         =   "frmTlbViewer.frx":0000
             Key             =   "const"
@@ -85,6 +85,10 @@ Begin VB.Form frmtlbViewer
          BeginProperty ListImage9 {2C247F27-8591-11D1-B16A-00C0F0283628} 
             Picture         =   "frmTlbViewer.frx":0890
             Key             =   "prop"
+         EndProperty
+         BeginProperty ListImage10 {2C247F27-8591-11D1-B16A-00C0F0283628} 
+            Picture         =   "frmTlbViewer.frx":09A2
+            Key             =   "control"
          EndProperty
       EndProperty
    End
@@ -228,7 +232,7 @@ Function LoadFile(fPath As String, Optional onlyShowGuid As String) As Boolean
                 End If
             End If
             
-            Set n1 = tv.Nodes.Add(n0, tvwChild, , c.Name, "class")
+            Set n1 = tv.Nodes.Add(n0, tvwChild, , c.Name, IIf(c.isControl, "control", "class"))
             Set n1.Tag = c
             mInterfaces = 0
             mMembers = 0
@@ -284,6 +288,7 @@ End Function
 
 Private Sub Form_Load()
     mnuPopup.Visible = False
+    LoadKillBittedControlList
 End Sub
 
 Private Sub Form_Resize()
@@ -362,6 +367,10 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
         Set i = Node.Tag
         push tmp, "Interface " & i.Name & i.DerivedString
         push tmp, "Default Interface: " & i.isDefault
+        'push tmp, "Public: " & i.isPublic()
+        'push tmp, "Dual: " & i.isDual()
+        'push tmp, "Creatable: " & i.isCreatable()
+        'push tmp, "Licensed: " & i.isLicensed()
         push tmp, "Members : " & i.mMembers.Count
         
         For Each c In i.mMembers
@@ -376,15 +385,20 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
         push tmp, "GUID: " & cc.GUID
         push tmp, "Number of Interfaces: " & cc.mInterfaces.Count
         push tmp, "Default Interface: " & cc.DefaultInterface
-                
-        If Len(cc.ObjectSafetyReport) > 0 Then
-            push tmp, cc.ObjectSafetyReport
+        push tmp, "KillBitSet: " & cc.KillBitSet
+        push tmp, vbCrLf
+        
+        If Not cc.isRegisteredOnSystem Then
+            push tmp, "Control not registered on system"
         Else
             push tmp, "RegKey Safe for Script: " & cc.SafeForScripting
             push tmp, "RegkeySafe for Init: " & cc.SafeForInitilization
+            If cc.isDesignTime Then push tmp, "Design Time Editable"
+            If cc.isDotNet Then push tmp, "Created in .NET"
+            If cc.isInsertable Then push tmp, "Insertable"
+            If cc.isControl Then push tmp, "Control"
         End If
                 
-        push tmp, "KillBitSet: " & cc.KillBitSet
         Text2 = Join(tmp, vbCrLf)
     End If
     
