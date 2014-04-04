@@ -13,3 +13,4 @@ mWinVerify = 220, 220, 1401, 884, C
 mCryptQuery = 220, 220, 1420, 884, C
 frmCompareHashSets = 66, 66, 1088, 738, , 95, 157, 1296, 829, C
 frmMD5FileSearch = 95, 43, 1288, 911, , 176, 176, 1179, 848, C
+mPEiDPlugin = 31, 90, 1013, 857, Z

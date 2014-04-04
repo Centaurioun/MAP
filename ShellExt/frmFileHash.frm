@@ -114,6 +114,9 @@ Begin VB.Form frmFileHash
       End
       Begin VB.Menu mnuExternal 
          Caption         =   "External"
+         Begin VB.Menu mnuKryptoAnalyzer 
+            Caption         =   "Krypto Analyzer"
+         End
          Begin VB.Menu mnuSearchFileName 
             Caption         =   "Google File Name"
          End
@@ -139,7 +142,7 @@ Attribute VB_Exposed = False
 Dim myMd5 As String
 Dim LoadedFile As String
 Dim isPE As Boolean
-Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
+Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hInst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
 Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
 
@@ -327,6 +330,10 @@ Private Sub mnuFileProps_Click()
     Shell "notepad.exe """ & f & """", vbNormalFocus
 End Sub
 
+Private Sub mnuKryptoAnalyzer_Click()
+    LaunchPeidPlugin "kanal.dll", LoadedFile
+End Sub
+
 Private Sub mnuNameMD5_Click()
     On Error Resume Next
     Dim fNew As String
@@ -355,11 +362,11 @@ End Sub
 Private Sub mnuSearchFileName_Click()
     Dim f As String
     f = fso.FileNameFromPath(LoadedFile)
-    Google f, Me.hwnd
+    Google f, Me.hWnd
 End Sub
 
 Private Sub mnuSearchHash_Click()
-    Google myMd5, Me.hwnd
+    Google myMd5, Me.hWnd
 End Sub
 
 Private Sub mnuStrings_Click()

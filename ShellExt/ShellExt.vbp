@@ -20,6 +20,7 @@ Module=mWinVerify; mWinVerify.bas
 Module=mCryptQuery; mCryptQuery.bas
 Form=frmCompareHashSets.frm
 Form=frmMD5Search.frm
+Module=mPEiDPlugin; mPEiDPlugin.bas
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""

@@ -38,6 +38,7 @@ Source: sckTool.exe; DestDir: {app}; Flags: ignoreversion
 Source: ShellExt.exe; DestDir: {app}; Flags: ignoreversion
 Source: tlbViewer.exe; DestDir: {app}; Flags: ignoreversion
 Source: map_help.chm; DestDir: {app}
+Source: KANAL.dll; DestDir: {app}
 
 [Dirs]
 

@@ -8,13 +8,22 @@ Begin VB.Form Form1
    LinkTopic       =   "Form1"
    ScaleHeight     =   6150
    ScaleWidth      =   8880
-   StartUpPosition =   3  'Windows Default
+   StartUpPosition =   1  'CenterOwner
+   Begin VB.CheckBox chkUniqueOnly 
+      Caption         =   "Unique Only (disable for delphi apps)"
+      Height          =   330
+      Left            =   2160
+      TabIndex        =   8
+      Top             =   585
+      Value           =   1  'Checked
+      Width           =   2940
+   End
    Begin VB.CheckBox Check1 
       Caption         =   "Make Unk"
       Height          =   255
-      Left            =   3840
+      Left            =   540
       TabIndex        =   7
-      Top             =   180
+      Top             =   630
       Width           =   1335
    End
    Begin VB.CommandButton cmdHelp 
@@ -67,13 +76,13 @@ Begin VB.Form Form1
       Width           =   1095
    End
    Begin VB.TextBox Text2 
-      Height          =   5595
+      Height          =   5010
       Left            =   0
       MultiLine       =   -1  'True
       OLEDropMode     =   1  'Manual
       ScrollBars      =   2  'Vertical
       TabIndex        =   1
-      Top             =   480
+      Top             =   1065
       Width           =   8775
    End
    Begin VB.CommandButton Command1 
@@ -153,6 +162,7 @@ End Sub
 
 Private Sub Command1_Click()
     On Error Resume Next
+    hits = 0
     
     header = "#define UNLOADED_FILE   1" & vbCrLf & _
              "#include <idc.idc>" & vbCrLf & vbCrLf & _
@@ -182,21 +192,40 @@ Private Sub Command1_Click()
 
         If Len(import) = 0 Or Len(addr) = 0 Then GoTo nextone
 
+        import = import & "_"
+        
         Err.Clear
         unique.Add "0x" & addr, CStr(import)
+        
+        If Err.Number <> 0 And chkUniqueOnly.Value = 0 Then
+            base = import
+            For j = 1 To 30
+                Err.Clear
+                unique.Add "0x" & addr, base & "_" & j
+                If Err.Number = 0 Then
+                    import = base & "_" & j
+                    Exit For
+                End If
+            Next
+        End If
+        
         If Err.Number = 0 Then
             import = Replace(import, "-", "_") 'some chars are reserved for IDA names
-            If Check1.Value Then tmp = tmp & vbTab & "MakeUnkn(0X" & addr & ",1);" & vbCrLf 'MakeName(0X4010E8,  "THISISMYSUB_2");
-            tmp = tmp & vbTab & "MakeName(0X" & addr & ",""" & import & "_"");" & vbCrLf
+            If Check1.Value Then tmp = tmp & vbTab & "MakeUnkn(0x" & addr & ",1);" & vbCrLf 'MakeName(0X4010E8,  "THISISMYSUB_2");
+            tmp = tmp & vbTab & "MakeName(0x" & addr & ",""" & import & """);" & vbCrLf
+            hits = hits + 1
         End If
         
         
 nextone:
     Next
     
-    Text2 = header & tmp & "}"
+    note = vbCrLf & "//" & hits & "/" & (UBound(f) + 1) & " added" & vbCrLf & vbCrLf
+    Text2 = note & header & tmp & "}"
     
 End Sub
+
+
 
 Sub PointerTable(fileLine, addrVar, importNameVar)
     '43434394 >7C91137A  ntdll.RtlDeleteCriticalSection

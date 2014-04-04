@@ -64,6 +64,7 @@ Public isControl As Boolean
 Public isInsertable As Boolean
 Public isDesignTime As Boolean
 Public isDotNet As Boolean
+Public isProgrammable As Boolean
 
 'Function CreateInstance() As IUnknown
 '
@@ -92,10 +93,13 @@ Friend Sub LoadInterfaces(ii As Interfaces, defInterface As String)
         
         Const tail = "\Implemented Categories\{7DD95801-9882-11CF-9FA9-00AA006C42C4}"
         Const tail2 = "\Implemented Categories\{7DD95802-9882-11CF-9FA9-00AA006C42C4}"
+        Const tail7 = "\Implemented Categories\{40FC6ED5-2438-11CF-A3DB-080036F12502}" ' CATID_Programmable /Embedable
         Const tail3 = "\Implemented Categories\{40FC6ED4-2438-11cf-A3DB-080036F12502}"
         Const tail4 = "\Implemented Categories\{40FC6ED3-2438-11cf-A3DB-080036F12502}"
         Const tail5 = "\Implemented Categories\{F2BB56D1-DB07-11D1-AA6B-006097DB9539}"
         Const tail6 = "\Implemented Categories\{62C8FE65-4EBB-45e7-B440-6E39B2CDBF29}"
+       
+        
         
         'HKEY_CLASSES_ROOT\Component Categories\{F2BB56D1-DB07-11D1-AA6B-006097DB9539} DesignTimeActivatable
         'HKEY_CLASSES_ROOT\Component Categories\{62C8FE65-4EBB-45e7-B440-6E39B2CDBF29} .Net Catagory
@@ -107,6 +111,7 @@ Friend Sub LoadInterfaces(ii As Interfaces, defInterface As String)
             If reg.keyExists("\CLSID\" & GUID & tail4) Then isInsertable = True
             If reg.keyExists("\CLSID\" & GUID & tail5) Then isDesignTime = True
             If reg.keyExists("\CLSID\" & GUID & tail6) Then isDotNet = True
+            If reg.keyExists("\CLSID\" & GUID & tail7) Then isProgrammable = True
         End If
         
         If KeyExistsInCollection(killbitted, GUID) Then KillBitSet = True
