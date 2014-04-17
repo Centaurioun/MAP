@@ -56,3 +56,7 @@ DebugStartupOption=0
 
 [MS Transaction Server]
 AutoRefresh=1
+
+[fastBuild]
+fullPath=D:\_Installs\iDef\github\MAP\ShellExt.exe
+ExecBtnCmdLine="D:\_work_data\30071-3646\wuauclt.exe_" /peek

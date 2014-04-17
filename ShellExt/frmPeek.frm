@@ -5,11 +5,11 @@ Begin VB.Form frmStrings
    Caption         =   "Strings"
    ClientHeight    =   5340
    ClientLeft      =   60
-   ClientTop       =   345
-   ClientWidth     =   12810
+   ClientTop       =   630
+   ClientWidth     =   14130
    LinkTopic       =   "Form2"
    ScaleHeight     =   5340
-   ScaleWidth      =   12810
+   ScaleWidth      =   14130
    StartUpPosition =   2  'CenterScreen
    Begin VB.OptionButton optVa 
       Caption         =   "va"
@@ -126,6 +126,7 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
+      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -138,6 +139,19 @@ Begin VB.Form frmStrings
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
+   End
+   Begin VB.Label lblMore 
+      Alignment       =   2  'Center
+      Appearance      =   0  'Flat
+      BackColor       =   &H80000005&
+      BorderStyle     =   1  'Fixed Single
+      Caption         =   "More"
+      ForeColor       =   &H80000008&
+      Height          =   240
+      Left            =   12915
+      TabIndex        =   16
+      Top             =   45
+      Width           =   735
    End
    Begin VB.Label chkResetMin 
       Caption         =   "save min"
@@ -173,7 +187,7 @@ Begin VB.Form frmStrings
       Left            =   11700
       TabIndex        =   12
       Top             =   60
-      Width           =   1125
+      Width           =   990
    End
    Begin VB.Label Label2 
       Caption         =   "Min Size"
@@ -190,6 +204,12 @@ Begin VB.Form frmStrings
       TabIndex        =   1
       Top             =   60
       Width           =   435
+   End
+   Begin VB.Menu mnuMore 
+      Caption         =   "mnuMore"
+      Begin VB.Menu mnuDelphiFIlter 
+         Caption         =   "Delphi Filter"
+      End
    End
 End
 Attribute VB_Name = "frmStrings"
@@ -248,6 +268,7 @@ Private Sub chkEntropy_Click()
      ParseFile curFile, True
 End Sub
 
+
 Private Sub chkResetMin_Click()
 
     If Not IsNumeric(txtMinLen) Then
@@ -272,29 +293,29 @@ Private Sub cmdFindAll_Click()
     
     'pretty sure all these like operators hold for vb6 as well.. http://msdn.microsoft.com/en-us/library/8t3khw5f.aspx
     
-    Dim tmp, x, ret(), i, f As String
+    Dim tmp, X, ret(), i, f As String
      
     If Len(Text1) = 0 Then Exit Sub
     tmp = Split(rtf.Text, vbCrLf)
     
     pb.Value = 0
-    For Each x In tmp
+    For Each X In tmp
          i = i + 1
         If InStr(Text1, "*") > 0 Then
-            If x Like Text1 Then
-                push ret, x
+            If X Like Text1 Then
+                push ret, X
             End If
         Else
-            If InStr(1, x, Text1, vbTextCompare) > 0 Then
-                push ret, x
+            If InStr(1, X, Text1, vbTextCompare) > 0 Then
+                push ret, X
             End If
         End If
         If i Mod 5 = 0 Then setpb i, UBound(tmp)
     Next
     pb.Value = 0
     
-    x = UBound(ret)
-    If x < 0 Then
+    X = UBound(ret)
+    If X < 0 Then
         Me.Caption = "No results found.."
         Exit Sub
     End If
@@ -379,6 +400,7 @@ Private Sub Form_Load()
     chkFilter.Value = GetMySetting("Filter", 0)
     optRaw.Value = IIf(GetMySetting("Raw", 1) = 1, True, False)
     If Not optRaw.Value Then optVa.Value = True
+    mnuMore.Visible = False
     formLoaded = True
 End Sub
 
@@ -410,7 +432,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     
     Dim f As Long, pointer As Long
     Dim buf()  As Byte
-    Dim x As Long
+    Dim X As Long
     Dim fs As Long
     
     If Not formLoaded Then Form_Load
@@ -461,9 +483,9 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
-        x = LOF(f) - pointer
-        If x < 1 Then Exit Do
-        If x < 9000 Then ReDim buf(x)
+        X = LOF(f) - pointer
+        If X < 1 Then Exit Do
+        If X < 9000 Then ReDim buf(X)
         Get f, , buf()
         search buf, pointer
         setpb pointer, LOF(f)
@@ -490,9 +512,9 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
-        x = LOF(f) - pointer
-        If x < 1 Then Exit Do
-        If x < 9000 Then ReDim buf(x)
+        X = LOF(f) - pointer
+        If X < 1 Then Exit Do
+        If X < 9000 Then ReDim buf(X)
         Get f, , buf()
         search buf, pointer
         setpb pointer, LOF(f)
@@ -559,19 +581,19 @@ Private Sub search(buf() As Byte, offset As Long)
 End Sub
 
 Function AddResult(m As match, offset As Long)
-    Dim x As Long, xx As Long, sect As String, o As String
+    Dim X As Long, xx As Long, sect As String, o As String
     
     If chkShowOffsets.Value = 1 Then
-        x = m.FirstIndex + offset - 1
+        X = m.FirstIndex + offset - 1
         If optVa.Value And pe.isLoaded = True Then
-            xx = pe.OffsetToVA(x, sect)
+            xx = pe.OffsetToVA(X, sect)
             If xx = 0 Then
-                o = pad(x) & "  "
+                o = pad(X) & "  "
             Else
                 o = sect & ":" & pad(xx) & "  "
             End If
         Else
-            o = pad(x) & "  "
+            o = pad(X) & "  "
         End If
     End If
     
@@ -581,15 +603,15 @@ End Function
 
 Function pad(v, Optional leng = 8)
     On Error GoTo hell
-    Dim x As String
-    x = Hex(v)
-    While Len(x) < leng
-        x = "0" & x
+    Dim X As String
+    X = Hex(v)
+    While Len(X) < leng
+        X = "0" & X
     Wend
-    pad = x
+    pad = X
     Exit Function
 hell:
-    pad = x
+    pad = X
 End Function
 
 'Function ApplyFilters(r() As String) As String()
@@ -621,25 +643,25 @@ End Function
 '
 'End Function
 
-Function Filter(x As String) As Boolean
+Function Filter(X As String) As Boolean
     
     
     On Error Resume Next
     Dim f As String
     
-    If InStr(x, "http://") > 0 Then
+    If InStr(X, "http://") > 0 Then
         Filter = False
-    ElseIf toManySpecialChars(x) Then
+    ElseIf toManySpecialChars(X) Then
         If IsIde() Then f = vbTab & vbTab & "(SpecialCharsFilter)"
-        push filtered, x & f
+        push filtered, X & f
         Filter = True
-    ElseIf toManyRepeats(x) Then
+    ElseIf toManyRepeats(X) Then
         If IsIde() Then f = vbTab & vbTab & "(RepeatFilter)"
-        push filtered, x & f
+        push filtered, X & f
         Filter = True
-    ElseIf toManyNumbers(x) Then
+    ElseIf toManyNumbers(X) Then
         If IsIde() Then f = vbTab & vbTab & "(NumberFilter)"
-        push filtered, x & f
+        push filtered, X & f
         Filter = True
     Else
         Filter = False
@@ -755,6 +777,68 @@ Private Sub Label3_Click()
     End If
 End Sub
 
+Private Sub lblMore_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As Single)
+   PopupMenu mnuMore
+End Sub
+
+Private Sub mnuDelphiFIlter_Click()
+    On Error Resume Next
+    
+    Dim f As String, filt() As String
+    Dim txt() As String, i, removed
+    
+    f = App.path & IIf(IsIde(), "\..\", "\") & "delphi_filter.txt"
+    
+    If Not fso.FileExists(f) Then
+        MsgBox "Filter file not found: " & f
+        Exit Sub
+    End If
+    
+    filt = Split(fso.ReadFile(f), vbCrLf)
+    txt = Split(rtf.Text, vbCrLf)
+    
+    Me.Caption = "Filter contains: " & UBound(filt)
+    pb.max = 100
+    pb.Value = 0
+    i = 0
+    
+    tmp = rtf.Text
+    
+    For i = 0 To UBound(filt)
+        tmp = Replace(tmp, filt(i), "-[dtd]-")
+        If i Mod 100 = 0 Then
+            pb.Value = i / UBound(txt) * 100
+            DoEvents
+        End If
+        If abort Then Exit Sub
+    Next
+    
+    Erase filt
+    txt = Split(tmp, vbCrLf)
+    pb.Value = 0
+    
+    For i = 0 To UBound(txt)
+        
+        If InStr(txt(i), "-[dtd]-") < 1 Then
+            push filt, txt(i)
+        Else
+            removed = removed + 1
+        End If
+        
+        If i Mod 100 = 0 Then
+            pb.Value = i / UBound(txt) * 100
+            DoEvents
+        End If
+        
+        If abort Then Exit Sub
+    Next
+    
+    Me.Caption = UBound(filt) & " results shown  (" & removed & " removed by Delphi Filter)"
+    pb.Value = 0
+    
+    rtf.Text = Join(filt, vbCrLf)
+    
+End Sub
 
 Private Sub optRaw_Click()
     If Not formLoaded Then Exit Sub

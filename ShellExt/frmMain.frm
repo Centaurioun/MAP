@@ -431,7 +431,7 @@ Private Sub Form_Load()
             Case 5: InstallRegKeys
             Case 6: RemoveRegKeys
             Case 7: frmMD5FileSearch.Launch cmd
-            Case Else: MsgBox "Unknown Option", vbExclamation
+            Case Else: MsgBox "Unknown Option: " & Command & vbCrLf & "Last5 = " & Right(cmd, 5), vbExclamation
         End Select
         
         Unload Me
