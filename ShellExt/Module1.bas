@@ -602,8 +602,13 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
         If cli <> 0 Then
             GetCompileDateOrType = GetCompileDateOrType & " .NET"
         End If
-
-        GetCompileDateOrType = GetCompileDateOrType & isExe_orDll(NTHEADER.FileHeader.Characteristics)
+        
+        If NTHEADER.OptionalHeader.Subsystem = 1 Then
+            GetCompileDateOrType = GetCompileDateOrType & " Native"
+        Else
+            GetCompileDateOrType = GetCompileDateOrType & isExe_orDll(NTHEADER.FileHeader.Characteristics)
+        End If
+        
 Exit Function
 hell:
     
