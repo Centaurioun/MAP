@@ -187,6 +187,11 @@ Private Sub Command1_Click()
             ImportStyleJmp l, addr, import
         ElseIf InStr(l, ".") > 0 Then
             PointerTable l, addr, import
+        ElseIf InStr(l, "!") > 0 Then ' windbg format
+            PointerTable l, addr, import
+        Else
+            ' This is to prevent lines that are invalid from producing duplicates later.
+            import = ""
         End If
 
 
@@ -228,12 +233,22 @@ End Sub
 
 
 Sub PointerTable(fileLine, addrVar, importNameVar)
+    ' ollydbg format
     '43434394 >7C91137A  ntdll.RtlDeleteCriticalSection
+    ' windbg format
+    '000b41bc  7c81473b kernel32!MoveFileExW
     l = Split(fileLine, " ")
     addrVar = l(0)
     importNameVar = l(UBound(l))
     
+    ' ollystyle
     a = InStr(importNameVar, ".")
+    If a > 0 Then
+        importNameVar = Mid(importNameVar, a + 1)
+    End If
+    
+    ' windbg sytle
+    a = InStr(importNameVar, "!")
     If a > 0 Then
         importNameVar = Mid(importNameVar, a + 1)
     End If
