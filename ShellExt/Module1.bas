@@ -595,14 +595,15 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
             GetCompileDateOrType = GetCompileDateOrType & " - 64 Bit"
         ElseIf is32Bit(NTHEADER.FileHeader.Machine) Then
             GetCompileDateOrType = GetCompileDateOrType & " - 32 Bit"
+            
+            Dim cli As Long 'Partition II, 24.2.3.3, CLI Header (rva) I get false positive on x64 dlls?
+            cli = NTHEADER.OptionalHeader.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
+            If cli <> 0 Then
+                GetCompileDateOrType = GetCompileDateOrType & " .NET"
+            End If
+            
         End If
-        
-        Dim cli As Long 'Partition II, 24.2.3.3, CLI Header (rva)
-        cli = NTHEADER.OptionalHeader.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
-        If cli <> 0 Then
-            GetCompileDateOrType = GetCompileDateOrType & " .NET"
-        End If
-        
+
         If NTHEADER.OptionalHeader.Subsystem = 1 Then
             GetCompileDateOrType = GetCompileDateOrType & " Native"
         Else
