@@ -62,10 +62,12 @@ void main(int argc, char* argv[]){
 	
 	printf("Loading primary dll: %s\n", primaryDll);
 
+
 	if(useCC){
 		printf("Triggering breakpoint to attach debugger...\n");
-		_asm int 3;
+		DebugBreak();
 	}
+
 
 	h = (int)LoadLibrary(primaryDll);
 
