@@ -5,10 +5,36 @@ Begin VB.Form Form1
    ClientLeft      =   60
    ClientTop       =   345
    ClientWidth     =   8880
+   HelpContextID   =   8
    LinkTopic       =   "Form1"
    ScaleHeight     =   6150
    ScaleWidth      =   8880
    StartUpPosition =   1  'CenterOwner
+   Begin VB.CommandButton cmdOpen 
+      Caption         =   "1"
+      BeginProperty Font 
+         Name            =   "Wingdings"
+         Size            =   9.75
+         Charset         =   2
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Height          =   360
+      Left            =   4410
+      TabIndex        =   10
+      Top             =   135
+      Width           =   480
+   End
+   Begin VB.CheckBox chkshowfails 
+      Caption         =   "Show failed lines"
+      Height          =   375
+      Left            =   5310
+      TabIndex        =   9
+      Top             =   585
+      Width           =   1635
+   End
    Begin VB.CheckBox chkUniqueOnly 
       Caption         =   "Unique Only (disable for delphi apps)"
       Height          =   330
@@ -29,6 +55,7 @@ Begin VB.Form Form1
    Begin VB.CommandButton cmdHelp 
       Caption         =   "?"
       Height          =   375
+      HelpContextID   =   8
       Left            =   3300
       TabIndex        =   6
       Top             =   120
@@ -76,12 +103,22 @@ Begin VB.Form Form1
       Width           =   1095
    End
    Begin VB.TextBox Text2 
+      BeginProperty Font 
+         Name            =   "Courier"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   700
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
       Height          =   5010
       Left            =   0
       MultiLine       =   -1  'True
       OLEDropMode     =   1  'Manual
-      ScrollBars      =   2  'Vertical
+      ScrollBars      =   3  'Both
       TabIndex        =   1
+      Text            =   "Form1.frx":0000
       Top             =   1065
       Width           =   8775
    End
@@ -131,21 +168,14 @@ Dim dlg As New clsCmnDlg
 Dim fso As New CFileSystem2
 
 Private Sub cmdHelp_Click()
- 
-    Dim helpme As String
-    On Error Resume Next
-    
-    helpme = App.Path & "\DumpFix_Readme.txt"
-    
-    If Not fso.FileExists(helpme) Then
-        MsgBox "Could not locate helpfile: " & vbCrLf & vbCrLf & vbTab & helpme, vbExclamation
-        Exit Sub
-    End If
-    
-    Text2 = fso.ReadFile(helpme)
-    
-        
-            
+    SendKeys "{F1}"
+End Sub
+
+Private Sub cmdOpen_Click()
+    Dim f As String
+    f = dlg.OpenDialog(AllFiles)
+    If Len(f) = 0 Then Exit Sub
+    Text2 = fso.ReadFile(f)
 End Sub
 
 Private Sub cmdSave_Click()
@@ -175,10 +205,16 @@ Private Sub Command1_Click()
     
     Dim addr As String
     Dim import As String
+    Dim fails As String
     
     For i = 0 To UBound(f)
-
+    
+        addr = Empty
+        import = Empty
         l = f(i)
+        
+        If Len(Trim(l)) = 0 Then GoTo nextone
+        
         If InStr(l, "CALL") > 0 And InStr(l, "PTR") > 0 Then 'style 2
             ImportStyleCallPtr l, addr, import
         ElseIf InStr(l, "CALL") > 0 Then
@@ -189,14 +225,20 @@ Private Sub Command1_Click()
             PointerTable l, addr, import
         ElseIf InStr(l, "!") > 0 Then ' windbg format
             PointerTable l, addr, import
+        ElseIf isIDAImport(l) Then
+            IDAImport l, addr, import
         Else
             ' This is to prevent lines that are invalid from producing duplicates later.
             import = ""
         End If
 
+        If Len(import) = 0 Or Len(addr) = 0 Then
+            fails = fails & "line:" & i & " = " & l & vbCrLf
+            GoTo nextone
+        End If
 
-        If Len(import) = 0 Or Len(addr) = 0 Then GoTo nextone
-
+        addr = Replace(addr, "`", Empty) 'windbg x64 splitter
+        lZeroTrim addr
         import = import & "_"
         
         Err.Clear
@@ -225,12 +267,50 @@ Private Sub Command1_Click()
 nextone:
     Next
     
-    note = vbCrLf & "//" & hits & "/" & (UBound(f) + 1) & " added" & vbCrLf & vbCrLf
+    note = vbCrLf & "// " & hits & " of " & (UBound(f) + 1) & " lines added" & vbCrLf & vbCrLf
+    If chkshowfails.Value = 1 Then note = note & "/* failed lines:" & vbCrLf & fails & "*/" & vbCrLf & vbCrLf
     Text2 = note & header & tmp & "}"
     
 End Sub
 
+Sub lZeroTrim(l)
+    On Error GoTo hell
+    While Left(l, 1) = "0"
+        l = Mid(l, 2)
+    Wend
+hell:
+End Sub
 
+Function IDAImport(fileLine, addrVar, importNameVar)
+   '000000018000F000  000007FEFDF3B5A0  ADVAPI32:advapi32_SetSecurityDescriptorDacl
+   a = InStr(fileLine, " ")
+   If a < 2 Then Exit Function
+   addrVar = Mid(fileLine, 1, a)
+   
+   a = InStrRev(fileLine, "_")
+   If a < 1 Then Exit Function
+   importNameVar = Mid(fileLine, a + 1)
+   
+End Function
+
+Function isIDAImport(l) As Boolean
+    '000000018000F000  000007FEFDF3B5A0  ADVAPI32:advapi32_SetSecurityDescriptorDacl
+    
+    l = Trim(l)
+    If CountOccurances(l, " ") <> 4 Then Exit Function
+    If InStr(l, ":") < 1 Then Exit Function
+    If InStr(l, "_") < 1 Then Exit Function
+    
+    isIDAImport = True
+    
+End Function
+
+Function CountOccurances(it, find) As Integer
+    Dim tmp() As String
+    If InStr(1, it, find, vbTextCompare) < 1 Then CountOccurances = 0: Exit Function
+    tmp = Split(it, find, , vbTextCompare)
+    CountOccurances = UBound(tmp)
+End Function
 
 Sub PointerTable(fileLine, addrVar, importNameVar)
     ' ollydbg format

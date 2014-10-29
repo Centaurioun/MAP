@@ -1,1 +1,9 @@
-Text2
+ÿÿdrag and drop data file here, or double click to paste clipboard
+example data input formats:
+
+00401000   CALL DWORD PTR DS:[405100]                KERNEL32.FreeConsole
+00402330   CALL 13_5k.00403F66                       urlmon.URLDownloadToFileA
+00402A98  FF25 7CF14100  JMP DWORD PTR DS:[41F17C] ; ADVAPI32.AdjustTokenPrivileges
+43434394 >7C91137A  ntdll.RtlDeleteCriticalSection
+000b41bc  7c81473b kernel32!MoveFileExW
+000000018000F000  000007FEFDF3B5A0  ADVAPI32:advapi32_SetSecurityDescriptorDacl
