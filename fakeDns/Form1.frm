@@ -2,14 +2,46 @@ VERSION 5.00
 Object = "{248DD890-BB45-11CF-9ABC-0080C7E7B78D}#1.0#0"; "MSWINSCK.OCX"
 Begin VB.Form Form1 
    Caption         =   "Fake DNS"
-   ClientHeight    =   4785
+   ClientHeight    =   5190
    ClientLeft      =   60
    ClientTop       =   345
    ClientWidth     =   9870
    LinkTopic       =   "Form1"
-   ScaleHeight     =   4785
+   ScaleHeight     =   5190
    ScaleWidth      =   9870
    StartUpPosition =   3  'Windows Default
+   Begin VB.Frame Frame1 
+      BorderStyle     =   0  'None
+      Height          =   375
+      Left            =   405
+      TabIndex        =   9
+      Top             =   4770
+      Width           =   3705
+      Begin VB.TextBox txtOnly 
+         Height          =   330
+         Left            =   1665
+         TabIndex        =   12
+         Top             =   45
+         Width           =   1635
+      End
+      Begin VB.OptionButton optOnly 
+         Caption         =   "only"
+         Height          =   240
+         Left            =   855
+         TabIndex        =   11
+         Top             =   135
+         Width           =   870
+      End
+      Begin VB.OptionButton optAll 
+         Caption         =   "all"
+         Height          =   285
+         Left            =   90
+         TabIndex        =   10
+         Top             =   90
+         Value           =   -1  'True
+         Width           =   780
+      End
+   End
    Begin VB.CommandButton cmdClear 
       Caption         =   "Clear"
       Height          =   315
@@ -96,7 +128,7 @@ Begin VB.Form Form1
       Width           =   855
    End
    Begin VB.Label Label2 
-      Caption         =   "Redirect all DNS Queries to IP:"
+      Caption         =   "Redirect DNS Queries to IP:"
       Height          =   195
       Left            =   0
       TabIndex        =   0
@@ -179,6 +211,7 @@ Option Explicit
 '                                                 \           /
 Const reply = "C0 0C 00 01 00 01 00 00 51 81 00 04 7F 00 00 01"
 Dim answer() As Byte
+Dim no_reply() As Byte
 
 Private busy As Boolean
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
@@ -209,6 +242,12 @@ Function BuildAnswer() As Boolean
     Next
 
     BuildAnswer = True
+    
+    'no reply is 0.0.0.0
+    no_reply = answer
+    For i = 12 To 15
+        no_reply(i) = 0
+    Next
     
 failed:
 
@@ -313,6 +352,7 @@ Private Sub ws_DataArrival(index As Integer, ByVal bytesTotal As Long)
     Dim tmp
     Dim dmp
     Dim orgLen As Long
+    Dim rep() As Byte
     
     While busy
         Sleep 10
@@ -323,11 +363,25 @@ Private Sub ws_DataArrival(index As Integer, ByVal bytesTotal As Long)
     ws(1).GetData b()
     Log b(), "Request:  ( " & Now & " )"
     
+    rep = answer
+    
+    If optOnly.value Then
+        tmp = StrConv(b, vbUnicode)
+        If InStr(1, tmp, txtOnly, vbTextCompare) < 1 Then
+            'really we should get the real response here and proxy it back...
+            'or work by sniffing dns and injecting fake replies for intercepts only..
+            txtLog.SelText = vbCrLf & vbCrLf & "Does not match filter exiting.."
+            txtLog.SelStart = Len(txtLog.Text)
+            Exit Sub
+            'rep = no_reply
+        End If
+    End If
+    
     'todo: check what kind of query it is support mx and a
     'but for now just blindly reply as if it was a an A record request
     orgLen = UBound(b) + 1
     ReDim Preserve b(UBound(b) + 16)    'space to add our answer field
-    CopyMemory b(orgLen), answer(0), 16 'copy our answer to buffer
+    CopyMemory b(orgLen), rep(0), 16 'copy our answer to buffer
     
     b(2) = &H81 '\_flags 0x8180 standard query response no error
     b(3) = &H80 '/

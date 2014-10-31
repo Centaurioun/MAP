@@ -21,13 +21,16 @@ Module=mCryptQuery; mCryptQuery.bas
 Form=frmCompareHashSets.frm
 Form=frmMD5Search.frm
 Module=mPEiDPlugin; mPEiDPlugin.bas
+Object={9A143468-B450-48DD-930D-925078198E4D}#1.1#0; hexed.ocx
+Form=frmHexView.frm
+RelatedDoc=ShellExt.vbc
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""
 Title="ShellExt"
 ExeName32="ShellExt.exe"
 Path32=".."
-Command32=""
+Command32="c:\out.txt /base=40100011223344 /hexv"
 Name="ShellExt"
 HelpContextID="0"
 CompatibleMode="0"

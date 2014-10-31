@@ -15,6 +15,12 @@ Begin VB.Form frmMain
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
    Visible         =   0   'False
+   Begin VB.Timer tmrCloseWithHexEditor 
+      Enabled         =   0   'False
+      Interval        =   1000
+      Left            =   2520
+      Top             =   3690
+   End
    Begin VB.PictureBox pict 
       AutoRedraw      =   -1  'True
       BeginProperty Font 
@@ -144,6 +150,10 @@ Option Explicit
 '         You should have received a copy of the GNU General Public License along with
 '         this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 '         Place, Suite 330, Boston, MA 02111-1307 USA
+
+Private Declare Function IsWindow Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare Function IsWindowVisible Lib "user32" (ByVal hwnd As Long) As Long
+
 
 Const peek = "*\shell\Strings\command"
 Const hash = "Folder\shell\Hash Files\command"
@@ -408,11 +418,12 @@ Private Sub Form_Load()
         If VBA.Right(cmd, 5) = "/deco" Then mode = 3
         If VBA.Right(cmd, 5) = "/md5f" Then mode = 4
         If VBA.Right(cmd, 5) = "/hsch" Then mode = 7
+        If VBA.Right(cmd, 5) = "/hexv" Then mode = 8 'if /base is supplied it must be before /hexv
         
         If VBA.Right(cmd, 8) = "/install" Then mode = 5 'required for Vista run elevated mode
         If VBA.Right(cmd, 7) = "/remove" Then mode = 6
         
-        cmd = Trim(Mid(cmd, 1, Len(cmd) - 5))
+        cmd = Trim(Mid(cmd, 1, Len(cmd) - 5)) '<-- ** this is why those with path args are 5 chars long **
         
         If mode = 5 Or mode = 6 Then
             If IsVistaPlus() And Not IsProcessElevated() Then
@@ -431,10 +442,11 @@ Private Sub Form_Load()
             Case 5: InstallRegKeys
             Case 6: RemoveRegKeys
             Case 7: frmMD5FileSearch.Launch cmd
+            Case 8: frmHexView.HexView cmd
             Case Else: MsgBox "Unknown Option: " & Command & vbCrLf & "Last5 = " & Right(cmd, 5), vbExclamation
         End Select
         
-        Unload Me
+       Unload Me
         
     Else
         Me.Visible = True
@@ -442,6 +454,8 @@ Private Sub Form_Load()
     
     
 End Sub
+
+
 
 Sub DecompileChm(pth As String)
     On Error GoTo hell
@@ -498,3 +512,4 @@ Sub DecompileChm(pth As String)
 hell: MsgBox "Error Decompiling CHM: " & Err.Description
 End Sub
 
+ 
