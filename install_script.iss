@@ -25,8 +25,8 @@ Source: FindDll.exe; DestDir: {win}; Flags: ignoreversion
 Source: virustotal.exe; DestDir: {app}; Flags: ignoreversion
 Source: loadlib.exe; DestDir: {app}; Flags: ignoreversion
 Source: loadlib.exe; DestDir: {win}; Flags: ignoreversion
-Source: loadlib_x64.exe; DestDir: {app}; Flags: ignoreversion
-Source: loadlib_x64.exe; DestDir: {win}; Flags: ignoreversion
+Source: loadlib64.exe; DestDir: {app}; Flags: ignoreversion
+Source: loadlib64.exe; DestDir: {win}; Flags: ignoreversion
 Source: proc_watch.exe; DestDir: {app}; Flags: ignoreversion
 Source: dirwatch_ui.exe; DestDir: {app}; Flags: ignoreversion
 Source: dir_watch.dll; DestDir: {app}; Flags: ignoreversion
