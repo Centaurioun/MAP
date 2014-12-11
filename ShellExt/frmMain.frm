@@ -392,7 +392,7 @@ Private Sub Form_Load()
 
                  
 
-    'lastCmd = GetMySetting("lastCMD", "")
+    lastCmd = GetMySetting("lastCMD", "")
     
     If IsIde() And Len(lastCmd) > 0 Then
         cmd = Replace(lastCmd, """", "")

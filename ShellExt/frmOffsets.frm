@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmOffsets 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "Form1"
@@ -282,6 +282,11 @@ Private Sub lblDumpFix_Click()
     fout = mParent.LoadedFile & ".fix"
     If Not fso.FileExists(mParent.LoadedFile) Then Exit Sub
     FileCopy mParent.LoadedFile, fout
+    
+    If Not fso.FileExists(fout) Then
+        MsgBox "failed to create temp file err: " & Err.Description
+        Exit Sub
+    End If
     
     If Not qdf.QuickDumpFix(fout) Then
         fso.DeleteFile fout
