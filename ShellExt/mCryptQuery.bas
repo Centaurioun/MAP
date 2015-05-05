@@ -40,7 +40,7 @@ Private Declare Function CertFindCertificateInStore2 Lib "Crypt32.dll" _
                                 ByVal pPrevCertContext As Long _
 ) As Long
 
-Private Declare Sub CopyMemory Lib "kernel32.dll" Alias "RtlMoveMemory" (ByRef Destination As Any, ByRef Source As Any, ByVal Length As Long)
+Private Declare Sub CopyMemory Lib "kernel32.dll" Alias "RtlMoveMemory" (ByRef Destination As Any, ByRef Source As Any, ByVal length As Long)
 Private Declare Function CryptMsgGetParam Lib "Crypt32.dll" (ByRef hCryptMsg As Long, ByVal dwParamType As Long, ByVal dwIndex As Long, pvData As Any, ByRef pcbData As Long) As Long
 Private Declare Function CertFreeCertificateContext Lib "Crypt32.dll" (ByVal pCertContext As Long) As Long
 Private Declare Function CertCloseStore Lib "Crypt32.dll" (ByVal hCertStore As Long, ByVal flags As Long) As Long
@@ -85,7 +85,7 @@ End Type
 Private Type CERT_EXTENSION
     pszObjId As String
     fCritical As Boolean
-    Value As CRYPT_OBJID_BLOB
+    value As CRYPT_OBJID_BLOB
 End Type
 
 Private Type CRYPT_ALGORITHM_IDENTIFIER
@@ -184,7 +184,10 @@ Public Function GetSigner(fPath As String, ByRef out_Issuer As String, ByRef out
     ReDim b(bufSz)
     
     fResult = CryptMsgGetParam(ByVal hMsg, CMSG_SIGNER_INFO_PARAM, 0&, b(0), bufSz)
-    CopyMemory signerInfo, b(0), LenB(signerInfo)
+    
+    CopyMemory signerInfo, b(0), LenB(signerInfo) 'bug: can crash here with call stack unicode convert sometimes?
+                                                  '     problem starts with __vbaRecAnsiToUni
+    
     ci.issuer = signerInfo.issuer
     ci.SerialNumber = signerInfo.SerialNumber
     

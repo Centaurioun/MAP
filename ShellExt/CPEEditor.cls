@@ -15,18 +15,34 @@ Option Explicit
 'dzzie@yahoo.com
 'http://sandsprite.com
 
+'5.4.15
+'       fixed bug for section offsets for pe32+
+'       now loads .net attributes (version, anycpu, isDotNet)
+
 Public sections As Collection
 Public errMessage As String
+
 Public ImageBase As Long
+Public ImageBase64 As Double
+
 Public isLoaded As Boolean
 Public MachineType As String
 Public is64Bit As Boolean
 Public is32Bit As Boolean
+Public isDotNet As Boolean
+Public isDotNetAnyCpu As Boolean
+Public dotNetVersion As String
+
 Public EntryPoint As Long
+Public EntryPoint64 As Double
+
 Public LoadedFile As String
 
 Private DOSHEADER As IMAGEDOSHEADER
 Private NTHEADER As IMAGE_NT_HEADERS
+Private opt64 As IMAGE_OPTIONAL_HEADER_64
+Private opt As IMAGE_OPTIONAL_HEADER
+
 Private myFile As String
 
 Private Const IMAGE_NUMBEROF_DIRECTORY_ENTRIES = 16
@@ -142,10 +158,45 @@ Private Type IMAGE_OPTIONAL_HEADER
     DataDirectory(0 To 15) As IMAGE_DATA_DIRECTORY
 End Type
 
+Private Type IMAGE_OPTIONAL_HEADER_64
+    Magic As Integer
+    MajorLinkerVersion As Byte
+    MinorLinkerVersion As Byte
+    SizeOfCode As Long
+    SizeOfInitializedData As Long
+    SizeOfUninitializedData As Long
+    AddressOfEntryPoint As Long
+    BaseOfCode As Long
+    'BaseOfData As Long                        'this was removed for pe32+
+    ImageBase As Double                        'changed
+    SectionAlignment As Long
+    FileAlignment As Long
+    MajorOperatingSystemVersion As Integer
+    MinorOperatingSystemVersion As Integer
+    MajorImageVersion As Integer
+    MinorImageVersion As Integer
+    MajorSubsystemVersion As Integer
+    MinorSubsystemVersion As Integer
+    Win32VersionValue As Long
+    SizeOfImage As Long
+    SizeOfHeaders As Long
+    CheckSum As Long
+    Subsystem As Integer
+    DllCharacteristics As Integer
+    SizeOfStackReserve As Double                        'changed
+    SizeOfStackCommit As Double                        'changed
+    SizeOfHeapReserve As Double                        'changed
+    SizeOfHeapCommit As Double                        'changed
+    LoaderFlags As Long
+    NumberOfRvaAndSizes As Long
+    DataDirectory(0 To 15) As IMAGE_DATA_DIRECTORY
+End Type
+
+
 Private Type IMAGE_NT_HEADERS
     Signature As String * 4
     FileHeader As IMAGE_FILE_HEADER
-    OptionalHeader As IMAGE_OPTIONAL_HEADER
+    'OptionalHeader As IMAGE_OPTIONAL_HEADER
     
     'OptionalHeader_0 As String * 28 '224 total, we cheat here...
     'ImageBase As Long
@@ -159,12 +210,15 @@ Function LoadFile(fPath As String, Optional sections_csv As String) As Boolean
         Dim i As Long
         Dim f As Long
         Dim udtSH As IMAGE_SECTION_HEADER
+        Dim cli As Long
         
         LoadedFile = fPath
         isLoaded = False
         errMessage = Empty
         is64Bit = False
         is32Bit = False
+        isDotNet = False
+        isDotNetAnyCpu = False
         MachineType = ""
         
         If Not FileExists(fPath) Then Err.Raise 1
@@ -179,16 +233,28 @@ Function LoadFile(fPath As String, Optional sections_csv As String) As Boolean
         
         If NTHEADER.Signature <> "PE" & Chr(0) & Chr(0) Then Err.Raise 2
         
-        Me.ImageBase = NTHEADER.OptionalHeader.ImageBase
-        LoadSections f, NTHEADER, sections_csv
+        MachineType = getMachineType(NTHEADER.FileHeader.Machine) 'sets is64Bit/is32Bit
+        
+        If is64Bit Then
+            Get f, , opt64
+            ImageBase64 = opt64.ImageBase
+            EntryPoint64 = opt64.AddressOfEntryPoint
+            cli = opt64.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
+        Else
+            Get f, , opt
+            ImageBase = opt.ImageBase
+            EntryPoint = opt.AddressOfEntryPoint
+            cli = opt.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
+        End If
+        
+        LoadSections f, NTHEADER.FileHeader.NumberOfSections, sections_csv
         
         Close f
         LoadFile = True
         myFile = fPath
         isLoaded = True
-        MachineType = getMachineType(NTHEADER.FileHeader.Machine)
-        EntryPoint = NTHEADER.OptionalHeader.AddressOfEntryPoint
         
+        GetDotNetAttributes cli
         sections_csv = Trim(sections_csv)
         If Len(sections_csv) > 0 Then sections_csv = Mid(sections_csv, 1, Len(sections_csv) - 1) 'remove trailing comma
         
@@ -205,7 +271,50 @@ hell:
     
 End Function
 
-Private Sub LoadSections(fhand As Long, nth As IMAGE_NT_HEADERS, Optional sections_csv As String)
+Private Function GetDotNetAttributes(cli As Long)
+    
+    'ok we are going to need to load it more fully...
+    Dim tmp As String
+    Dim foff_cli As Long
+    Dim major As Integer '2 bytes
+    Dim minor As Integer '2 bytes
+    Dim flags As Long    '4 bytes
+    Dim fs As Long, f As Long
+    
+    Const COMIMAGE_FLAGS_32BITREQUIRED = 2
+    
+    If cli = 0 Then Exit Function
+
+    foff_cli = RvaToOffset(cli) + 1
+    
+    If foff_cli > 1 And foff_cli < FileLen(LoadedFile) Then
+        
+        isDotNet = True
+        f = FreeFile
+        Open LoadedFile For Binary As f
+        
+        Get f, foff_cli + 4, major
+        Get f, foff_cli + 6, minor
+        dotNetVersion = major & "." & minor
+        
+        If is32Bit Then 'is it really 32bit or is it AnyCpu?
+            Get f, foff_cli + 16, flags
+            If (flags And COMIMAGE_FLAGS_32BITREQUIRED) = COMIMAGE_FLAGS_32BITREQUIRED Then
+                'its 32bit only so no its not anycpu..
+            Else
+                isDotNetAnyCpu = True
+            End If
+        End If
+        
+        Close f
+        
+    End If
+        
+    
+
+End Function
+
+Private Sub LoadSections(fhand As Long, numSections As Integer, Optional sections_csv As String)
     
     Dim i As Long
     Dim udtSH As IMAGE_SECTION_HEADER
@@ -213,7 +322,7 @@ Private Sub LoadSections(fhand As Long, nth As IMAGE_NT_HEADERS, Optional sectio
     
     Set sections = New Collection
     
-    For i = 1 To nth.FileHeader.NumberOfSections
+    For i = 1 To numSections
         Get fhand, , udtSH
         Set CSect = New CSection
         With udtSH
@@ -238,13 +347,17 @@ End Sub
 
 
 
-Function OffsetToVA(ByVal foffset As Long, Optional sectName As String) As Long
+Function OffsetToVA(ByVal foffset As Long, Optional sectName As String) As Double
     Dim rva As Long
     
     rva = OffsetToRVA(foffset, sectName)
     
     If rva <> 0 Then
-        OffsetToVA = rva + NTHEADER.OptionalHeader.ImageBase
+        If is64Bit Then
+            OffsetToVA = rva + opt64.ImageBase
+        Else
+            OffsetToVA = rva + opt.ImageBase
+        End If
     End If
     
 End Function

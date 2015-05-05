@@ -45,12 +45,27 @@ Property Get delayInterval() As Long
     delayInterval = m_delayInterval
 End Property
 
-Property Let delayInterval(x As Long)
+Property Let delayInterval(X As Long)
     If Not usingPrivateKey Then
-        m_delayInterval = x
+        m_delayInterval = X
     End If
 End Property
 
+
+'Public Function DownloadFile(hash As String, toDir As String) As Boolean
+'
+'    If Len(API_KEY) = 0 Then Class_Initialize
+'    If Not usingPrivateKey Then Exit Function
+'
+'    MsgBox "Todo!", vbExclamation
+'
+''private api: GET /vtapi/v2/file/download
+''  apikey
+''  hash    The md5/sha1/sha256 hash of the file you want to download.
+'
+'
+'
+'End Function
 
 'this class supports a couple nice things..
 '1) if you set the cache dir, it will save raw json there as optimization in case you lookup the same file
@@ -150,7 +165,7 @@ Private Function Get_Web_Report(hash, out_response As String, out_status As Stri
     
     Err.Clear
         
-    Dim x As Variant
+    Dim X As Variant
     out_status = Empty
     out_response = Empty
     repeatOnce = True
@@ -216,7 +231,7 @@ Function AddComment(hash, comment, out_response As String, out_status As String,
     Err.Clear
     On Error GoTo hell
     
-    Dim x As Variant
+    Dim X As Variant
     out_status = Empty
     out_response = Empty
     

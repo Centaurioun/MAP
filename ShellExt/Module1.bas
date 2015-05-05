@@ -97,10 +97,44 @@ Public Type IMAGE_OPTIONAL_HEADER
     DataDirectory(0 To 15) As IMAGE_DATA_DIRECTORY
 End Type
 
+Public Type IMAGE_OPTIONAL_HEADER_64
+    Magic As Integer
+    MajorLinkerVersion As Byte
+    MinorLinkerVersion As Byte
+    SizeOfCode As Long
+    SizeOfInitializedData As Long
+    SizeOfUninitializedData As Long
+    AddressOfEntryPoint As Long
+    BaseOfCode As Long
+    'BaseOfData As Long                        'this was removed for pe32+
+    ImageBase As Double                        'changed
+    SectionAlignment As Long
+    FileAlignment As Long
+    MajorOperatingSystemVersion As Integer
+    MinorOperatingSystemVersion As Integer
+    MajorImageVersion As Integer
+    MinorImageVersion As Integer
+    MajorSubsystemVersion As Integer
+    MinorSubsystemVersion As Integer
+    Win32VersionValue As Long
+    SizeOfImage As Long
+    SizeOfHeaders As Long
+    CheckSum As Long
+    Subsystem As Integer
+    DllCharacteristics As Integer
+    SizeOfStackReserve As Double                        'changed
+    SizeOfStackCommit As Double                        'changed
+    SizeOfHeapReserve As Double                        'changed
+    SizeOfHeapCommit As Double                        'changed
+    LoaderFlags As Long
+    NumberOfRvaAndSizes As Long
+    DataDirectory(0 To 15) As IMAGE_DATA_DIRECTORY
+End Type
+
 Public Type IMAGE_NT_HEADERS
     Signature As String * 4
     FileHeader As IMAGE_FILE_HEADER
-    OptionalHeader As IMAGE_OPTIONAL_HEADER
+    'OptionalHeader As IMAGE_OPTIONAL_HEADER
 End Type
 
 Enum eDATA_DIRECTORY
@@ -469,18 +503,18 @@ Function Google(hash As String, Optional hwnd As Long = 0)
     ShellExecute hwnd, "Open", u & hash, "", "C:\", 1
 End Function
 
-Sub push(ary, Value) 'this modifies parent ary object
+Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
     Dim x As Long
     x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = Value
+    ary(UBound(ary)) = value
     Exit Sub
-init:     ReDim ary(0): ary(0) = Value
+init:     ReDim ary(0): ary(0) = value
 End Sub
 
-Sub SaveMySetting(key, Value)
-    SaveSetting "iDefense", "ShellExt", key, Value
+Sub SaveMySetting(key, value)
+    SaveSetting "iDefense", "ShellExt", key, value
 End Sub
 
 Function GetMySetting(key, def)
@@ -553,7 +587,11 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
         
         Dim DOSHEADER As IMAGEDOSHEADER
         Dim NTHEADER As IMAGE_NT_HEADERS
-        
+        Dim opt As IMAGE_OPTIONAL_HEADER
+        Dim opt64 As IMAGE_OPTIONAL_HEADER_64
+        Dim isNative As Boolean
+        Dim cli As Long
+  
         out_isType = False
         
         fs = DisableRedir()
@@ -586,25 +624,27 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
             Exit Function
         End If
         
-        Close f
-        GetCompileDateOrType = CompiledDate(CDbl(NTHEADER.FileHeader.TimeDateStamp))
         out_isPE = True
-        RevertRedir fs
+        GetCompileDateOrType = CompiledDate(CDbl(NTHEADER.FileHeader.TimeDateStamp))
         
         If is64Bit(NTHEADER.FileHeader.Machine) Then
+            Get f, , opt64
+            cli = opt64.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
+            If opt64.Subsystem = 1 Then isNative = True
             GetCompileDateOrType = GetCompileDateOrType & " - 64 Bit"
-        ElseIf is32Bit(NTHEADER.FileHeader.Machine) Then
-            GetCompileDateOrType = GetCompileDateOrType & " - 32 Bit"
-            
-            Dim cli As Long 'Partition II, 24.2.3.3, CLI Header (rva) I get false positive on x64 dlls?
-            cli = NTHEADER.OptionalHeader.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
-            If cli <> 0 Then
-                GetCompileDateOrType = GetCompileDateOrType & " .NET"
-            End If
-            
+        Else
+            Get f, , opt
+            cli = opt.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
+            If opt.Subsystem = 1 Then isNative = True
+            If is32Bit(NTHEADER.FileHeader.Machine) Then GetCompileDateOrType = GetCompileDateOrType & " - 32 Bit"
         End If
+        
+        Close f
+        RevertRedir fs
 
-        If NTHEADER.OptionalHeader.Subsystem = 1 Then
+        GetCompileDateOrType = GetCompileDateOrType & GetDotNetAttributes(fPath, cli)
+
+        If isNative Then
             GetCompileDateOrType = GetCompileDateOrType & " Native"
         Else
             GetCompileDateOrType = GetCompileDateOrType & isExe_orDll(NTHEADER.FileHeader.Characteristics)
@@ -617,6 +657,28 @@ hell:
     out_isType = True
     GetCompileDateOrType = Err.Description
     RevertRedir fs
+End Function
+
+Private Function GetDotNetAttributes(fPath As String, cli As Long) As String
+    
+    'ok we are going to need to load it more fully...
+    Dim pe As New CPEEditor
+    Dim tmp As String
+    Dim fs As Long
+    
+    If cli = 0 Then Exit Function
+    
+    tmp = " .NET"
+    
+    fs = DisableRedir()
+    If pe.LoadFile(fPath) Then
+        tmp = tmp & " v" & pe.dotNetVersion
+        If pe.isDotNetAnyCpu Then tmp = tmp & " AnyCPU "
+    End If
+    RevertRedir fs
+    
+    GetDotNetAttributes = tmp
+
 End Function
 
 Private Function isExe_orDll(chart As Integer) As String
