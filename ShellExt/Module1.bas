@@ -567,11 +567,11 @@ End Function
 Private Function CompiledDate(stamp As Double) As String
 
     On Error Resume Next
-    Dim Base As Date
+    Dim base As Date
     Dim compiled As Date
     
-    Base = DateSerial(1970, 1, 1)
-    compiled = DateAdd("s", stamp, Base)
+    base = DateSerial(1970, 1, 1)
+    compiled = DateAdd("s", stamp, base)
     CompiledDate = Format(compiled, "ddd, mmm d yyyy, h:nn:ss ")
 
 End Function
@@ -672,7 +672,7 @@ Private Function GetDotNetAttributes(fPath As String, cli As Long) As String
     
     fs = DisableRedir()
     If pe.LoadFile(fPath) Then
-        tmp = tmp & " v" & pe.dotNetVersion
+        tmp = tmp & " " & pe.dotNetVersion
         If pe.isDotNetAnyCpu Then tmp = tmp & " AnyCPU "
     End If
     RevertRedir fs

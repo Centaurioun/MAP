@@ -19,7 +19,7 @@ Option Explicit
 '       fixed bug for section offsets for pe32+
 '       now loads .net attributes (version, anycpu, isDotNet)
 
-Public sections As Collection
+Public Sections As Collection
 Public errMessage As String
 
 Public ImageBase As Long
@@ -204,6 +204,38 @@ Private Type IMAGE_NT_HEADERS
     
 End Type
 
+Private Type MungeCurr
+    value As Double
+End Type
+
+Private Type Munge2Long
+    LoValue As Long
+    HiValue As Long
+End Type
+
+Private Declare Function LoadLibrary Lib "kernel32" Alias "LoadLibraryA" (ByVal lpLibFileName As String) As Long
+Private Declare Function GetProcAddress Lib "kernel32" (ByVal hModule As Long, ByVal lpProcName As String) As Long
+Private Declare Function FreeLibrary Lib "kernel32" (ByVal hLibModule As Long) As Long
+
+Private Declare Function GetFileVersion Lib "mscoree.dll" ( _
+    ByVal path As Long, _
+    ByVal buf As String, _
+    bufLen As Long, _
+    ByRef cb As Long _
+) As Long
+
+Function x64ToHex(v As Double) As String
+    Dim c As MungeCurr
+    Dim l As Munge2Long
+    c.value = v
+    LSet l = c
+    If l.HiValue = 0 Then
+        x64ToHex = Hex(l.LoValue)
+    Else
+        x64ToHex = Hex(l.HiValue) & Right("00000000" & Hex(l.LoValue), 8)
+    End If
+End Function
+
 Function LoadFile(fPath As String, Optional sections_csv As String) As Boolean
     On Error GoTo hell
         
@@ -223,7 +255,7 @@ Function LoadFile(fPath As String, Optional sections_csv As String) As Boolean
         
         If Not FileExists(fPath) Then Err.Raise 1
             
-        Set sections = New Collection
+        Set Sections = New Collection
 
         f = FreeFile
         
@@ -271,6 +303,27 @@ hell:
     
 End Function
 
+Private Function GetDotNetVersion() As String
+    
+    Dim exe As String
+    Dim buf As String
+    Dim cb As Long
+    Dim ret As Long
+    
+    buf = String(255, 0)
+    exe = LoadedFile & Chr(0)
+    ret = GetFileVersion(StrPtr(exe), buf, Len(buf), cb)
+    
+    If cb > 0 And ret = 0 Then
+        buf = Mid(buf, 1, (cb * 2))
+        buf = StrConv(buf, vbFromUnicode, &H409)
+        GetDotNetVersion = Replace(buf, " ", 0)
+    End If
+    
+    'Debug.Print "ret=" & Hex(ret) & " cb=" & cb & " buf=" & Replace(buf, " ", 0)
+
+End Function
+
 Private Function GetDotNetAttributes(cli As Long)
     
     'ok we are going to need to load it more fully...
@@ -285,6 +338,16 @@ Private Function GetDotNetAttributes(cli As Long)
     
     If cli = 0 Then Exit Function
 
+    Dim hLib As Long
+    
+    hLib = LoadLibrary("mscoree.dll")
+    If hLib <> 0 Then
+        If GetProcAddress(hLib, "GetFileVersion") <> 0 Then
+            dotNetVersion = GetDotNetVersion()
+        End If
+        FreeLibrary hLib
+    End If
+            
     foff_cli = RvaToOffset(cli) + 1
     
     If foff_cli > 1 And foff_cli < FileLen(LoadedFile) Then
@@ -293,9 +356,9 @@ Private Function GetDotNetAttributes(cli As Long)
         f = FreeFile
         Open LoadedFile For Binary As f
         
-        Get f, foff_cli + 4, major
-        Get f, foff_cli + 6, minor
-        dotNetVersion = major & "." & minor
+        'Get f, foff_cli + 4, major   'these must be the .net file format version num?
+        'Get f, foff_cli + 6, minor
+        'dotNetVersion = major & "." & minor
         
         If is32Bit Then 'is it really 32bit or is it AnyCpu?
             Get f, foff_cli + 16, flags
@@ -320,7 +383,7 @@ Private Sub LoadSections(fhand As Long, numSections As Integer, Optional section
     Dim udtSH As IMAGE_SECTION_HEADER
     Dim CSect As CSection
     
-    Set sections = New Collection
+    Set Sections = New Collection
     
     For i = 1 To numSections
         Get fhand, , udtSH
@@ -339,7 +402,7 @@ Private Sub LoadSections(fhand As Long, numSections As Integer, Optional section
             CSect.Characteristics = .Characteristics
         End With
         CSect.index = i
-        sections.Add CSect
+        Sections.Add CSect
         sections_csv = sections_csv & CSect.nameSec & ", "
     Next
     
@@ -365,7 +428,7 @@ End Function
  
 Function RvaToOffset(ByVal rva As Long, Optional ByRef VirtualSectionBase As Long, Optional sectName As String)
         
-    If sections.Count = 0 Then
+    If Sections.Count = 0 Then
         MsgBox "No Sections Loaded", vbInformation
         Exit Function
     End If
@@ -373,7 +436,7 @@ Function RvaToOffset(ByVal rva As Long, Optional ByRef VirtualSectionBase As Lon
     Dim c As CSection
     Dim vBase As Long, vSize As Long, vMax As Long
     
-    For Each c In sections
+    For Each c In Sections
        vBase = c.VirtualAddress
        vSize = c.VirtualSize
        vMax = vBase + vSize
@@ -393,7 +456,7 @@ End Function
 
 Function OffsetToRVA(ByVal foffset As Long, Optional sectName As String)
     
-    If sections.Count = 0 Then
+    If Sections.Count = 0 Then
         'MsgBox "No Sections Loaded", vbInformation
         Exit Function
     End If
@@ -401,7 +464,7 @@ Function OffsetToRVA(ByVal foffset As Long, Optional sectName As String)
     Dim c As CSection
     Dim rBase As Long, rSize As Long, rMax As Long
     
-    For Each c In sections
+    For Each c In Sections
        rBase = c.PointerToRawData
        rSize = c.SizeOfRawData
        rMax = rBase + rSize
@@ -417,7 +480,7 @@ End Function
 
 Function GetSectionFromRVA(rva As Long) As CSection
       
-    If sections.Count = 0 Then
+    If Sections.Count = 0 Then
         MsgBox "No Sections Loaded", vbInformation
         Exit Function
     End If
@@ -425,7 +488,7 @@ Function GetSectionFromRVA(rva As Long) As CSection
     Dim c As CSection
     Dim vBase As Long, vSize As Long, vMax As Long
     
-    For Each c In sections
+    For Each c In Sections
        vBase = c.VirtualAddress
        vSize = c.VirtualSize
        vMax = vBase + vSize
