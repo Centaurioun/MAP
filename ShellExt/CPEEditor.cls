@@ -204,6 +204,25 @@ Private Type IMAGE_NT_HEADERS
     
 End Type
 
+Enum eDATA_DIRECTORY
+    Export_Table = 0
+    Import_Table = 1
+    Resource_Table = 2
+    Exception_Table = 3
+    Certificate_Table = 4
+    Relocation_Table = 5
+    Debug_Data = 6
+    Architecture_Data = 7
+    Machine_Value = 8
+    TLS_Table = 9
+    Load_Configuration_Table = 10
+    Bound_Import_Table = 11
+    Import_Address_Table = 12
+    Delay_Import_Descriptor = 13
+    CLI_Header = 14
+    Reserved = 15
+End Enum
+
 Private Type MungeCurr
     value As Double
 End Type
@@ -223,6 +242,19 @@ Private Declare Function GetFileVersion Lib "mscoree.dll" ( _
     bufLen As Long, _
     ByRef cb As Long _
 ) As Long
+
+Private Type asmRefHeader
+    major As Integer
+    minor As Integer
+    build As Integer
+    revnum As Integer
+    flags As Long
+    pubkey As Integer
+    name As Integer
+    culture As Integer
+    hash As Integer
+End Type
+
 
 Function x64ToHex(v As Double) As String
     Dim c As MungeCurr
@@ -303,12 +335,23 @@ hell:
     
 End Function
 
-Private Function GetDotNetVersion() As String
+Private Function GetDotNetSystemVersion() As String
     
     Dim exe As String
     Dim buf As String
     Dim cb As Long
     Dim ret As Long
+    
+    Dim hLib As Long
+    Dim canUseApi As Boolean
+    
+    hLib = LoadLibrary("mscoree.dll")
+    If hLib <> 0 Then
+        If GetProcAddress(hLib, "GetFileVersion") <> 0 Then canUseApi = True
+        FreeLibrary hLib
+    End If
+    
+    If Not canUseApi Then Exit Function
     
     buf = String(255, 0)
     exe = LoadedFile & Chr(0)
@@ -317,12 +360,12 @@ Private Function GetDotNetVersion() As String
     If cb > 0 And ret = 0 Then
         buf = Mid(buf, 1, (cb * 2))
         buf = StrConv(buf, vbFromUnicode, &H409)
-        GetDotNetVersion = Replace(buf, " ", 0)
+        GetDotNetSystemVersion = Replace(buf, " ", 0)
     End If
-    
-    'Debug.Print "ret=" & Hex(ret) & " cb=" & cb & " buf=" & Replace(buf, " ", 0)
 
 End Function
+
+'where cli = opt.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
 
 Private Function GetDotNetAttributes(cli As Long)
     
@@ -333,21 +376,25 @@ Private Function GetDotNetAttributes(cli As Long)
     Dim minor As Integer '2 bytes
     Dim flags As Long    '4 bytes
     Dim fs As Long, f As Long
+    Dim b As Byte
+    Dim i As Long
+    
+    Dim metaData_size As Long
+    Dim metaData_rva As Long
+    Dim foff_metaData As Long
+    Dim streamCount As Integer
+    Dim verLen As Long
+    
+    Dim streamOffset() As Long
+    Dim streamSize() As Long
+    Dim streamName() As String
     
     Const COMIMAGE_FLAGS_32BITREQUIRED = 2
     
-    If cli = 0 Then Exit Function
-
-    Dim hLib As Long
+    On Error GoTo cleanup
     
-    hLib = LoadLibrary("mscoree.dll")
-    If hLib <> 0 Then
-        If GetProcAddress(hLib, "GetFileVersion") <> 0 Then
-            dotNetVersion = GetDotNetVersion()
-        End If
-        FreeLibrary hLib
-    End If
-            
+    If cli = 0 Then Exit Function
+      
     foff_cli = RvaToOffset(cli) + 1
     
     If foff_cli > 1 And foff_cli < FileLen(LoadedFile) Then
@@ -355,10 +402,6 @@ Private Function GetDotNetAttributes(cli As Long)
         isDotNet = True
         f = FreeFile
         Open LoadedFile For Binary As f
-        
-        'Get f, foff_cli + 4, major   'these must be the .net file format version num?
-        'Get f, foff_cli + 6, minor
-        'dotNetVersion = major & "." & minor
         
         If is32Bit Then 'is it really 32bit or is it AnyCpu?
             Get f, foff_cli + 16, flags
@@ -368,7 +411,90 @@ Private Function GetDotNetAttributes(cli As Long)
                 isDotNetAnyCpu = True
             End If
         End If
+
+'below is a good start, but not complete...not all tables are always present..fu ms for shitty design
+'at least give me an offset table..
+
+'        'now shit gets hairy trying to determine the target
+'        'framework it was compiled for...
+'        Get f, foff_cli + 8, metaData_rva
+'        Get f, foff_cli + 12, metaData_size
+'
+'        foff_metaData = RvaToOffset(metaData_rva)
+'
+'        foff_metaData = foff_metaData + 1
+'        Get f, foff_metaData, fs 'signature = 424A5342
+'        Get f, foff_metaData + 12, verLen
+'        Get f, foff_metaData + 14 + verLen + 4, streamCount
+'
+'        If streamCount > 200 Then Exit Function
+'
+'        ReDim streamOffset(1 To streamCount)
+'        ReDim streamSize(1 To streamCount)
+'        ReDim streamName(1 To streamCount)
+'        Dim curPointer As Long
+'
+'        For i = 1 To streamCount
+'            Get f, , streamOffset(i)
+'            Get f, , streamSize(i)
+'            Get f, , b
+'            Do
+'                If b = 0 Then Exit Do
+'                streamName(i) = streamName(i) & Chr(b)
+'                Get f, , b
+'            Loop
+'            curPointer = Seek(f) - 1
+'            While curPointer Mod 4 <> 0   'REALLY?! offset alignment rather than
+'                Get f, , b                'length prefix or simple null termination
+'                curPointer = curPointer + 1
+'            Wend
+'        Next
+'
+'        For i = 1 To streamCount
+'            If streamName(i) = "#-" Or streamName(i) = "#~" Then Exit For
+'        Next
+'
+'        If i > streamCount Then Exit Function
+'
+'        'goto start of #~ stream, then advance past tables header
+'        Seek f, foff_metaData + streamOffset(i) + 24
+'
+'        Dim tableCounts(1 To 15) As Long
+'        Get f, , tableCounts()
+'
+'        Dim asmRefOffset As Long
+'
+'        'we want the assembly ref table..we need to calc its offset
+'        'based on number of items in each table..fuck you again..
+'        For i = 1 To 13
+'            asmRefOffset = asmRefOffset + TableSizeByIndex(i, tableCounts(i))
+'        Next
+'
+'        Seek f, Seek(f) + asmRefOffset 'fs is now start of asmref table..
+'
+'        Dim aRefObj As asmRefHeader
+'        Dim stringsIndex As Long
+'
+'        For i = 1 To streamCount
+'            If streamName(i) = "#Strings" Then
+'                stringsIndex = i
+'                Exit For
+'            End If
+'        Next
+'
+'        Dim asmrefName As String
+'
+'        For i = 1 To tableCounts(14) 'asmref table count..
+'            Get f, , aRefObj
+'            asmrefName = GetStringTableItem(f, foff_metaData + streamOffset(stringsIndex), aRefObj.name)
+'            If asmrefName = "mscorlib" Then
+'                dotNetVersion = aRefObj.major & "." & aRefObj.minor
+'                Exit For
+'            End If
+'        Next
         
+cleanup:
+        On Error Resume Next
         Close f
         
     End If
@@ -377,7 +503,57 @@ Private Function GetDotNetAttributes(cli As Long)
 
 End Function
 
-Private Sub LoadSections(fhand As Long, numSections As Integer, Optional sections_csv As String)
+Private Function GetStringTableItem(fHand As Long, tableStartOffset As Long, index As Integer) As String
+    Dim startFs As Long
+    Dim tmp As String
+    Dim b As Byte
+    
+    startFs = Seek(fHand) 'cache where file point currently is
+    
+    Seek fHand, tableStartOffset + index
+    Do
+        Get fHand, , b
+        If b = 0 Then Exit Do
+        tmp = tmp + Chr(b)
+    Loop
+    
+    GetStringTableItem = tmp
+    
+    Seek fHand, startFs 'restore it..
+    
+End Function
+
+Private Function TableSizeByIndex(index As Long, itemCount As Long) As Long
+    
+    Dim sizes()
+    'modules = 10 bytes
+    'typeref = 6 bytes
+    'typedef = 14
+    'field=6
+    'method = 14
+    'param = 6
+    'memberref = 6 bytes
+    'customattr = 6 bytes
+    'standalonesig = 2
+    'propertymap = 4
+    'property = 6
+    'methsemantics = 6
+    'assembly = 22
+    'assemblyref = target
+    
+    sizes = Array(0, 10, 6, 14, 6, 14, 6, 6, 6, 2, 4, 6, 6, 22)
+    
+    If index = 0 Or index > UBound(sizes) Then
+        MsgBox "Error in tablesizebyindex"
+        Exit Function
+    End If
+    
+    TableSizeByIndex = sizes(index) * itemCount
+    
+        
+End Function
+
+Private Sub LoadSections(fHand As Long, numSections As Integer, Optional sections_csv As String)
     
     Dim i As Long
     Dim udtSH As IMAGE_SECTION_HEADER
@@ -386,7 +562,7 @@ Private Sub LoadSections(fhand As Long, numSections As Integer, Optional section
     Set Sections = New Collection
     
     For i = 1 To numSections
-        Get fhand, , udtSH
+        Get fHand, , udtSH
         Set CSect = New CSection
         With udtSH
             CSect.nameSec = Replace(.nameSec, Chr(0), "")

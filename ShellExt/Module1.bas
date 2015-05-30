@@ -137,24 +137,24 @@ Public Type IMAGE_NT_HEADERS
     'OptionalHeader As IMAGE_OPTIONAL_HEADER
 End Type
 
-Enum eDATA_DIRECTORY
-    Export_Table = 0
-    Import_Table = 1
-    Resource_Table = 2
-    Exception_Table = 3
-    Certificate_Table = 4
-    Relocation_Table = 5
-    Debug_Data = 6
-    Architecture_Data = 7
-    Machine_Value = 8
-    TLS_Table = 9
-    Load_Configuration_Table = 10
-    Bound_Import_Table = 11
-    Import_Address_Table = 12
-    Delay_Import_Descriptor = 13
-    CLI_Header = 14
-    Reserved = 15
-End Enum
+'Enum eDATA_DIRECTORY
+'    Export_Table = 0
+'    Import_Table = 1
+'    Resource_Table = 2
+'    Exception_Table = 3
+'    Certificate_Table = 4
+'    Relocation_Table = 5
+'    Debug_Data = 6
+'    Architecture_Data = 7
+'    Machine_Value = 8
+'    TLS_Table = 9
+'    Load_Configuration_Table = 10
+'    Bound_Import_Table = 11
+'    Import_Address_Table = 12
+'    Delay_Import_Descriptor = 13
+'    CLI_Header = 14
+'    Reserved = 15
+'End Enum
 
 Public Enum tmMsgs
         EM_UNDO = &HC7
@@ -525,14 +525,14 @@ Sub SaveFormSizeAnPosition(f As Form)
     Dim s As String
     If f.WindowState <> 0 Then Exit Sub 'vbnormal
     s = f.Left & "," & f.Top & "," & f.Width & "," & f.Height
-    SaveMySetting f.Name & "_pos", s
+    SaveMySetting f.name & "_pos", s
 End Sub
 
 Sub RestoreFormSizeAnPosition(f As Form)
     On Error GoTo hell
     Dim s
     
-    s = GetMySetting(f.Name & "_pos", "")
+    s = GetMySetting(f.name & "_pos", "")
     
     If Len(s) = 0 Then Exit Sub
     If occuranceCount(s, ",") <> 3 Then Exit Sub
