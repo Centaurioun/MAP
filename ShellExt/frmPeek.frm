@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmStrings 
    Caption         =   "Strings"
    ClientHeight    =   5340
@@ -126,7 +126,6 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
-      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -210,6 +209,11 @@ Begin VB.Form frmStrings
       Begin VB.Menu mnuDelphiFIlter 
          Caption         =   "Delphi Filter"
       End
+      Begin VB.Menu mnuHiddenStrings 
+         Caption         =   "Hidden Strings"
+         Enabled         =   0   'False
+         Visible         =   0   'False
+      End
    End
 End
 Attribute VB_Name = "frmStrings"
@@ -248,6 +252,7 @@ Dim formLoaded As Boolean
 Dim filtered() As String
 Dim abort As Boolean
 Dim running As Boolean
+Dim ranHidden As Boolean
 
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) As Long
@@ -293,29 +298,29 @@ Private Sub cmdFindAll_Click()
     
     'pretty sure all these like operators hold for vb6 as well.. http://msdn.microsoft.com/en-us/library/8t3khw5f.aspx
     
-    Dim tmp, X, ret(), i, f As String
+    Dim tmp, x, ret(), i, f As String
      
     If Len(Text1) = 0 Then Exit Sub
     tmp = Split(rtf.Text, vbCrLf)
     
-    pb.Value = 0
-    For Each X In tmp
+    pb.value = 0
+    For Each x In tmp
          i = i + 1
         If InStr(Text1, "*") > 0 Then
-            If X Like Text1 Then
-                push ret, X
+            If x Like Text1 Then
+                push ret, x
             End If
         Else
-            If InStr(1, X, Text1, vbTextCompare) > 0 Then
-                push ret, X
+            If InStr(1, x, Text1, vbTextCompare) > 0 Then
+                push ret, x
             End If
         End If
         If i Mod 5 = 0 Then setpb i, UBound(tmp)
     Next
-    pb.Value = 0
+    pb.value = 0
     
-    X = UBound(ret)
-    If X < 0 Then
+    x = UBound(ret)
+    If x < 0 Then
         Me.Caption = "No results found.."
         Exit Sub
     End If
@@ -393,13 +398,14 @@ Private Sub Form_Load()
     sSearch = -1
     txtMinLen = minStrLen 'global
     pb.max = 100
-    pb.Value = 0
+    pb.value = 0
     RestoreFormSizeAnPosition Me
     Me.Visible = True
-    chkShowOffsets.Value = GetMySetting("offsests", 1)
-    chkFilter.Value = GetMySetting("Filter", 0)
-    optRaw.Value = IIf(GetMySetting("Raw", 1) = 1, True, False)
-    If Not optRaw.Value Then optVa.Value = True
+    chkShowOffsets.value = GetMySetting("offsests", 1)
+    mnuHiddenStrings.Checked = IIf(GetMySetting("hiddenstrings", 0) = 0, False, True)
+    chkFilter.value = GetMySetting("Filter", 0)
+    optRaw.value = IIf(GetMySetting("Raw", 1) = 1, True, False)
+    If Not optRaw.value Then optVa.value = True
     mnuMore.Visible = False
     formLoaded = True
 End Sub
@@ -407,9 +413,10 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
    abort = True
    SaveFormSizeAnPosition Me
-   SaveMySetting "offsests", chkShowOffsets.Value
-   SaveMySetting "Filter", chkFilter.Value
-   SaveMySetting "Raw", IIf(optRaw.Value, 1, 0)
+   SaveMySetting "offsests", chkShowOffsets.value
+   SaveMySetting "Filter", chkFilter.value
+   SaveMySetting "Raw", IIf(optRaw.value, 1, 0)
+   SaveMySetting "hiddenstrings", IIf(mnuHiddenStrings.Checked, 1, 0)
    'End
 End Sub
 
@@ -421,7 +428,7 @@ End Sub
  
  Sub setpb(cur, max)
     On Error Resume Next
-    pb.Value = (cur / max) * 100
+    pb.value = (cur / max) * 100
     Me.Refresh
     DoEvents
  End Sub
@@ -432,7 +439,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     
     Dim f As Long, pointer As Long
     Dim buf()  As Byte
-    Dim X As Long
+    Dim x As Long
     Dim fs As Long
     
     If Not formLoaded Then Form_Load
@@ -479,13 +486,13 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     ReDim buf(9000)
     Open fPath For Binary Access Read As f
     
-    pb.Value = 0
+    pb.value = 0
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
-        X = LOF(f) - pointer
-        If X < 1 Then Exit Do
-        If X < 9000 Then ReDim buf(X)
+        x = LOF(f) - pointer
+        If x < 1 Then Exit Do
+        If x < 9000 Then ReDim buf(x)
         Get f, , buf()
         search buf, pointer
         setpb pointer, LOF(f)
@@ -508,18 +515,18 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     pointer = 1
     Seek f, 1
     
-    pb.Value = 0
+    pb.value = 0
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
-        X = LOF(f) - pointer
-        If X < 1 Then Exit Do
-        If X < 9000 Then ReDim buf(X)
+        x = LOF(f) - pointer
+        If x < 1 Then Exit Do
+        If x < 9000 Then ReDim buf(x)
         Get f, , buf()
         search buf, pointer
         setpb pointer, LOF(f)
     Loop
-    pb.Value = 0
+    pb.value = 0
     
     Close f
      
@@ -537,12 +544,15 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     Me.Caption = lines & " matches found..."
     Me.Show 1
    
-    If chkFilter.Value = 1 Then
+    If chkFilter.value = 1 Then
         Me.Caption = Me.Caption & "  ( " & UBound(filtered) & " results filtered)"
     End If
     
     running = False
+    
+    'If mnuHiddenStrings.Checked Then DoHiddenStringScan
     RevertRedir fs
+    
     
 Exit Sub
 hell:
@@ -557,7 +567,7 @@ aborting:
       RevertRedir fs
       running = False
       abort = False
-      pb.Value = 0
+      pb.value = 0
       
 End Sub
 
@@ -571,8 +581,8 @@ Private Sub search(buf() As Byte, offset As Long)
     For Each m In mc
         DoEvents
         If abort Then Exit Sub
-        If chkFilter.Value = 1 Then
-            If Not Filter(m.Value) Then AddResult m, offset
+        If chkFilter.value = 1 Then
+            If Not Filter(m.value) Then AddResult m, offset
         Else
             AddResult m, offset
         End If
@@ -581,37 +591,58 @@ Private Sub search(buf() As Byte, offset As Long)
 End Sub
 
 Function AddResult(m As match, offset As Long)
-    Dim X As Long, xx As Long, sect As String, o As String
+    Dim x As Long, xx As Long, sect As String, o As String
     
-    If chkShowOffsets.Value = 1 Then
-        X = m.FirstIndex + offset - 1
-        If optVa.Value And pe.isLoaded = True Then
-            xx = pe.OffsetToVA(X, sect)
+    If chkShowOffsets.value = 1 Then
+        x = m.firstIndex + offset - 1
+        If optVa.value And pe.isLoaded = True Then
+            xx = pe.OffsetToVA(x, sect)
             If xx = 0 Then
-                o = pad(X) & "  "
+                o = pad(x) & "  "
             Else
                 o = sect & ":" & pad(xx) & "  "
             End If
         Else
-            o = pad(X) & "  "
+            o = pad(x) & "  "
         End If
     End If
     
-    push ret(), o & Replace(m.Value, Chr(0), Empty)
+    push ret(), o & Replace(m.value, Chr(0), Empty)
+    
+End Function
+
+Function AddResultHidden(s As String, offset As Long)
+    Dim x As Long, xx As Long, sect As String, o As String
+    
+    If chkShowOffsets.value = 1 Then
+        x = offset - 1
+        If optVa.value And pe.isLoaded = True Then
+            xx = pe.OffsetToVA(x, sect)
+            If xx = 0 Then
+                o = pad(x) & "  "
+            Else
+                o = sect & ":" & pad(xx) & "  "
+            End If
+        Else
+            o = pad(x) & "  "
+        End If
+    End If
+    
+    push ret(), o & Replace(s, Chr(0), Empty)
     
 End Function
 
 Function pad(v, Optional leng = 8)
     On Error GoTo hell
-    Dim X As String
-    X = Hex(v)
-    While Len(X) < leng
-        X = "0" & X
+    Dim x As String
+    x = Hex(v)
+    While Len(x) < leng
+        x = "0" & x
     Wend
-    pad = X
+    pad = x
     Exit Function
 hell:
-    pad = X
+    pad = x
 End Function
 
 'Function ApplyFilters(r() As String) As String()
@@ -643,25 +674,25 @@ End Function
 '
 'End Function
 
-Function Filter(X As String) As Boolean
+Function Filter(x As String) As Boolean
     
     
     On Error Resume Next
     Dim f As String
     
-    If InStr(X, "http://") > 0 Then
+    If InStr(x, "http://") > 0 Then
         Filter = False
-    ElseIf toManySpecialChars(X) Then
+    ElseIf toManySpecialChars(x) Then
         If IsIde() Then f = vbTab & vbTab & "(SpecialCharsFilter)"
-        push filtered, X & f
+        push filtered, x & f
         Filter = True
-    ElseIf toManyRepeats(X) Then
+    ElseIf toManyRepeats(x) Then
         If IsIde() Then f = vbTab & vbTab & "(RepeatFilter)"
-        push filtered, X & f
+        push filtered, x & f
         Filter = True
-    ElseIf toManyNumbers(X) Then
+    ElseIf toManyNumbers(x) Then
         If IsIde() Then f = vbTab & vbTab & "(NumberFilter)"
-        push filtered, X & f
+        push filtered, x & f
         Filter = True
     Else
         Filter = False
@@ -777,7 +808,7 @@ Private Sub Label3_Click()
     End If
 End Sub
 
-Private Sub lblMore_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub lblMore_MouseUp(Button As Integer, Shift As Integer, x As Single, Y As Single)
    PopupMenu mnuMore
 End Sub
 
@@ -799,7 +830,7 @@ Private Sub mnuDelphiFIlter_Click()
     
     Me.Caption = "Filter contains: " & UBound(filt)
     pb.max = 100
-    pb.Value = 0
+    pb.value = 0
     i = 0
     
     tmp = rtf.Text
@@ -807,7 +838,7 @@ Private Sub mnuDelphiFIlter_Click()
     For i = 0 To UBound(filt)
         tmp = Replace(tmp, filt(i), "-[dtd]-")
         If i Mod 100 = 0 Then
-            pb.Value = i / UBound(txt) * 100
+            pb.value = i / UBound(txt) * 100
             DoEvents
         End If
         If abort Then Exit Sub
@@ -815,7 +846,7 @@ Private Sub mnuDelphiFIlter_Click()
     
     Erase filt
     txt = Split(tmp, vbCrLf)
-    pb.Value = 0
+    pb.value = 0
     
     For i = 0 To UBound(txt)
         
@@ -826,7 +857,7 @@ Private Sub mnuDelphiFIlter_Click()
         End If
         
         If i Mod 100 = 0 Then
-            pb.Value = i / UBound(txt) * 100
+            pb.value = i / UBound(txt) * 100
             DoEvents
         End If
         
@@ -834,20 +865,265 @@ Private Sub mnuDelphiFIlter_Click()
     Next
     
     Me.Caption = UBound(filt) & " results shown  (" & removed & " removed by Delphi Filter)"
-    pb.Value = 0
+    pb.value = 0
     
     rtf.Text = Join(filt, vbCrLf)
     
 End Sub
 
+Private Sub mnuHiddenStrings_Click()
+    mnuHiddenStrings.Checked = Not mnuHiddenStrings.Checked
+    If mnuHiddenStrings.Checked And Not ranHidden Then DoHiddenStringScan
+End Sub
+
+Private Sub DoHiddenStringScan()
+
+    Dim b As String
+    Dim m As match
+    Dim f As Long
+    Dim bb As Byte
+    Dim tmp As String
+    Dim firstIndex As Long
+    Dim buf() As Byte
+    Dim isBinary As Boolean
+    
+    'i will add more scaning formats as i need them..
+    
+    'seg000:00001C83 C6 45 5C 77                       mov     byte ptr [ebp+5Ch], 77h ; 'w'
+    'seg000:00001C87 C6 45 5D 61                       mov     byte ptr [ebp+5Dh], 61h ; 'a'
+    'seg000:00001C8B C6 45 5E 74                       mov     byte ptr [ebp+5Eh], 74h ; 't'
+    '
+    'seg000:00006F79 C6 85 C0 FE FF FF 43                          mov     [ebp+68h+var_1A8], 43h ; 'C'
+    'seg000:00006F80 C6 85 C1 FE FF FF 6F                          mov     [ebp+68h+var_1A7], 6Fh ; 'o'
+    'seg000:00006F87 C6 85 C2 FE FF FF 75                          mov     [ebp+68h+var_1A6], 75h ; 'u'
+    'seg000:00006F8E C6 85 C3 FE FF FF 6E                          mov     [ebp+68h+var_1A5], 6Eh ; 'n'
+
+
+    Erase ret
+    ranHidden = True
+    Me.Caption = "Scanning for hidden strings 1.."
+    push ret, ""
+    push ret, "hidden strings 1:" & vbCrLf & String(75, "-")
+    
+    f = FreeFile
+    Open curFile For Binary Access Read As f
+ 
+    d.Pattern = "\xC6\x45"
+    
+    ReDim buf(9000)
+    pointer = 1
+    Seek f, 1
+    
+    pb.value = 0
+    Do While pointer < LOF(f)
+        If abort Then GoTo aborting
+        pointer = Seek(f)
+        x = LOF(f) - pointer
+        If x < 1 Then Exit Do
+        If x < 9000 Then ReDim buf(x)
+        Get f, , buf()
+        'search buf, pointer
+        
+        b = StrConv(buf, vbUnicode)
+        Set mc = d.Execute(b)
+        
+        For Each m In mc
+        
+            If firstIndex = 0 Then firstIndex = m.firstIndex + pointer
+            
+            DoEvents
+            If abort Then GoTo aborting
+            
+            bb = buf(m.firstIndex + 3)
+        
+            If bb = 0 Then
+                tmp = tmp & " "
+            ElseIf isAscii(bb) Then
+                tmp = tmp & Chr(bb)
+            Else
+                isBinary = True
+                tmp = tmp & Chr(bb)
+            End If
+            
+            If buf(m.firstIndex + 4) <> &HC6 Then 'end of sequence..
+                If Len(Trim(tmp)) > 0 Then
+                    If chkFilter.value = 1 Then
+                        If Not Filter(tmp) Then
+                            If isBinary Then
+                                If Len(tmp) > 4 Then AddResultHidden BinaryString(tmp), firstIndex
+                            Else
+                                AddResultHidden tmp, firstIndex
+                            End If
+                        End If
+                    Else
+                        If isBinary Then
+                            If Len(tmp) > 4 Then AddResultHidden BinaryString(tmp), firstIndex
+                        Else
+                            AddResultHidden tmp, firstIndex
+                        End If
+                    End If
+                End If
+                tmp = Empty
+                firstIndex = 0
+                isBinary = False
+            End If
+            
+        Next
+    
+        setpb pointer, LOF(f)
+    Loop
+    
+    If Len(tmp) > 0 Then 'not terminated
+        If chkFilter.value = 1 Then
+            If Not Filter(m.value) Then AddResultHidden tmp, firstIndex
+        Else
+            AddResultHidden tmp, firstIndex
+        End If
+    End If
+    
+    
+    '-----------------------------------------------------
+    Me.Caption = "Scanning for hidden strings 2.."
+    push ret, ""
+    push ret, "hidden strings 2:" & vbCrLf & String(75, "-")
+
+    firstIndex = 0
+    Set d = New RegExp
+    d.Global = True
+    d.Pattern = "\xC6" 'i cant search for c6 85??? wtf..
+    
+    ReDim buf(9000)
+    pointer = 1
+    Seek f, 1
+    
+    pb.value = 0
+    Do While pointer < LOF(f)
+        If abort Then GoTo aborting
+        pointer = Seek(f)
+        x = LOF(f) - pointer
+        If x < 1 Then Exit Do
+        If x < 9000 Then ReDim buf(x)
+        Get f, , buf()
+        
+        b = StrConv(buf, vbUnicode, LANG_US)
+        Set mc = d.Execute(b)
+        
+        For Each m In mc
+        
+            If buf(m.firstIndex + 1) <> &H85 Then GoTo nextone
+            
+            If firstIndex = 0 Then firstIndex = m.firstIndex + pointer
+            
+            DoEvents
+            If abort Then GoTo aborting
+            
+            bb = buf(m.firstIndex + 6)
+        
+            If bb = 0 Then
+                 tmp = tmp & " "
+            ElseIf isAscii(bb) Then
+                tmp = tmp & Chr(bb)
+            Else
+                isBinary = True
+                tmp = tmp & Chr(bb)
+            End If
+            
+nextone:
+            If buf(m.firstIndex + 7) <> &HC6 Then 'end of sequence..
+                If Len(Trim(tmp)) > 0 Then
+                    If chkFilter.value = 1 Then
+                        If Not Filter(tmp) Then
+                            If isBinary Then
+                                If Len(tmp) > 4 Then AddResultHidden BinaryString(tmp), firstIndex
+                            Else
+                                AddResultHidden tmp, firstIndex
+                            End If
+                        End If
+                    Else
+                        If isBinary Then
+                            If Len(tmp) > 4 Then AddResultHidden BinaryString(tmp), firstIndex
+                        Else
+                            AddResultHidden tmp, firstIndex
+                        End If
+                    End If
+                End If
+                tmp = Empty
+                firstIndex = 0
+                isBinary = False
+            End If
+            
+        Next
+    
+        setpb pointer, LOF(f)
+    Loop
+    
+    If Len(tmp) > 0 Then 'not terminated
+        If chkFilter.value = 1 Then
+            If Not Filter(m.value) Then AddResultHidden tmp, firstIndex
+        Else
+            AddResultHidden tmp, firstIndex
+        End If
+    End If
+    
+    
+    pb.value = 0
+    'rtf.Text = Join(ret, vbCrLf)
+
+
+aborting:
+    Dim topLine As Integer
+
+    lines = lines + UBound(ret)
+    LockWindowUpdate rtf.hwnd 'try to make it not jump when we add more...
+    topLine = TopLineIndex(rtf)
+    rtf.Text = rtf.Text & vbCrLf & vbCrLf & Join(ret, vbCrLf)
+    ScrollToLine rtf, topLine
+    LockWindowUpdate 0
+    
+    Erase ret
+    
+    Close f
+    'RevertRedir fs
+    running = False
+    abort = False
+    pb.value = 0
+
+
+End Sub
+
+Function BinaryString(str As String) As String
+    Dim i As Long
+    Dim ret As String
+    Dim b() As Byte
+    
+    b() = StrConv(str, vbFromUnicode, LANG_US)
+    
+    For i = 0 To UBound(b)
+         If b(i) < &H10 Then
+            ret = ret & "0" & Hex(b(i))
+         Else
+             ret = ret & Hex(b(i))
+         End If
+    Next
+    
+    BinaryString = "Binary String (" & UBound(b) + 1 & " bytes): " & ret
+    
+End Function
+
+Function isAscii(x As Byte) As Boolean
+    If x >= 9 And x <= Asc("z") Then isAscii = True
+End Function
+
+
+
 Private Sub optRaw_Click()
     If Not formLoaded Then Exit Sub
-    If chkShowOffsets.Value = 1 Then ParseFile curFile, True
+    If chkShowOffsets.value = 1 Then ParseFile curFile, True
 End Sub
 
 Private Sub optVa_Click()
     If Not formLoaded Then Exit Sub
-    If chkShowOffsets.Value = 1 Then ParseFile curFile, True
+    If chkShowOffsets.value = 1 Then ParseFile curFile, True
 End Sub
 
 Private Sub tmrReRun_Timer()

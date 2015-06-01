@@ -335,35 +335,35 @@ hell:
     
 End Function
 
-Private Function GetDotNetSystemVersion() As String
-    
-    Dim exe As String
-    Dim buf As String
-    Dim cb As Long
-    Dim ret As Long
-    
-    Dim hLib As Long
-    Dim canUseApi As Boolean
-    
-    hLib = LoadLibrary("mscoree.dll")
-    If hLib <> 0 Then
-        If GetProcAddress(hLib, "GetFileVersion") <> 0 Then canUseApi = True
-        FreeLibrary hLib
-    End If
-    
-    If Not canUseApi Then Exit Function
-    
-    buf = String(255, 0)
-    exe = LoadedFile & Chr(0)
-    ret = GetFileVersion(StrPtr(exe), buf, Len(buf), cb)
-    
-    If cb > 0 And ret = 0 Then
-        buf = Mid(buf, 1, (cb * 2))
-        buf = StrConv(buf, vbFromUnicode, &H409)
-        GetDotNetSystemVersion = Replace(buf, " ", 0)
-    End If
-
-End Function
+'Private Function GetDotNetSystemVersion() As String
+'
+'    Dim exe As String
+'    Dim buf As String
+'    Dim cb As Long
+'    Dim ret As Long
+'
+'    Dim hLib As Long
+'    Dim canUseApi As Boolean
+'
+'    hLib = LoadLibrary("mscoree.dll")
+'    If hLib <> 0 Then
+'        If GetProcAddress(hLib, "GetFileVersion") <> 0 Then canUseApi = True
+'        FreeLibrary hLib
+'    End If
+'
+'    If Not canUseApi Then Exit Function
+'
+'    buf = String(255, 0)
+'    exe = LoadedFile & Chr(0)
+'    ret = GetFileVersion(StrPtr(exe), buf, Len(buf), cb)
+'
+'    If cb > 0 And ret = 0 Then
+'        buf = Mid(buf, 1, (cb * 2))
+'        buf = StrConv(buf, vbFromUnicode, &H409)
+'        GetDotNetSystemVersion = Replace(buf, " ", 0)
+'    End If
+'
+'End Function
 
 'where cli = opt.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
 
@@ -413,7 +413,8 @@ Private Function GetDotNetAttributes(cli As Long)
         End If
 
 'below is a good start, but not complete...not all tables are always present..fu ms for shitty design
-'at least give me an offset table..
+'at least give me an offset table..and type flag per table..why multiplex all into one..needless complexity
+'for literally a dozen bytes?
 
 '        'now shit gets hairy trying to determine the target
 '        'framework it was compiled for...
