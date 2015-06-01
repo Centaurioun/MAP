@@ -126,6 +126,7 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
+      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -208,11 +209,6 @@ Begin VB.Form frmStrings
       Caption         =   "mnuMore"
       Begin VB.Menu mnuDelphiFIlter 
          Caption         =   "Delphi Filter"
-      End
-      Begin VB.Menu mnuHiddenStrings 
-         Caption         =   "Hidden Strings"
-         Enabled         =   0   'False
-         Visible         =   0   'False
       End
    End
 End
@@ -549,8 +545,6 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     End If
     
     running = False
-    
-    'If mnuHiddenStrings.Checked Then DoHiddenStringScan
     RevertRedir fs
     
     
@@ -608,27 +602,6 @@ Function AddResult(m As match, offset As Long)
     End If
     
     push ret(), o & Replace(m.value, Chr(0), Empty)
-    
-End Function
-
-Function AddResultHidden(s As String, offset As Long)
-    Dim x As Long, xx As Long, sect As String, o As String
-    
-    If chkShowOffsets.value = 1 Then
-        x = offset - 1
-        If optVa.value And pe.isLoaded = True Then
-            xx = pe.OffsetToVA(x, sect)
-            If xx = 0 Then
-                o = pad(x) & "  "
-            Else
-                o = sect & ":" & pad(xx) & "  "
-            End If
-        Else
-            o = pad(x) & "  "
-        End If
-    End If
-    
-    push ret(), o & Replace(s, Chr(0), Empty)
     
 End Function
 
@@ -870,251 +843,6 @@ Private Sub mnuDelphiFIlter_Click()
     rtf.Text = Join(filt, vbCrLf)
     
 End Sub
-
-Private Sub mnuHiddenStrings_Click()
-    mnuHiddenStrings.Checked = Not mnuHiddenStrings.Checked
-    If mnuHiddenStrings.Checked And Not ranHidden Then DoHiddenStringScan
-End Sub
-
-Private Sub DoHiddenStringScan()
-
-    Dim b As String
-    Dim m As match
-    Dim f As Long
-    Dim bb As Byte
-    Dim tmp As String
-    Dim firstIndex As Long
-    Dim buf() As Byte
-    Dim isBinary As Boolean
-    
-    'i will add more scaning formats as i need them..
-    
-    'seg000:00001C83 C6 45 5C 77                       mov     byte ptr [ebp+5Ch], 77h ; 'w'
-    'seg000:00001C87 C6 45 5D 61                       mov     byte ptr [ebp+5Dh], 61h ; 'a'
-    'seg000:00001C8B C6 45 5E 74                       mov     byte ptr [ebp+5Eh], 74h ; 't'
-    '
-    'seg000:00006F79 C6 85 C0 FE FF FF 43                          mov     [ebp+68h+var_1A8], 43h ; 'C'
-    'seg000:00006F80 C6 85 C1 FE FF FF 6F                          mov     [ebp+68h+var_1A7], 6Fh ; 'o'
-    'seg000:00006F87 C6 85 C2 FE FF FF 75                          mov     [ebp+68h+var_1A6], 75h ; 'u'
-    'seg000:00006F8E C6 85 C3 FE FF FF 6E                          mov     [ebp+68h+var_1A5], 6Eh ; 'n'
-
-
-    Erase ret
-    ranHidden = True
-    Me.Caption = "Scanning for hidden strings 1.."
-    push ret, ""
-    push ret, "hidden strings 1:" & vbCrLf & String(75, "-")
-    
-    f = FreeFile
-    Open curFile For Binary Access Read As f
- 
-    d.Pattern = "\xC6\x45"
-    
-    ReDim buf(9000)
-    pointer = 1
-    Seek f, 1
-    
-    pb.value = 0
-    Do While pointer < LOF(f)
-        If abort Then GoTo aborting
-        pointer = Seek(f)
-        x = LOF(f) - pointer
-        If x < 1 Then Exit Do
-        If x < 9000 Then ReDim buf(x)
-        Get f, , buf()
-        'search buf, pointer
-        
-        b = StrConv(buf, vbUnicode)
-        Set mc = d.Execute(b)
-        
-        For Each m In mc
-        
-            If firstIndex = 0 Then firstIndex = m.firstIndex + pointer
-            
-            DoEvents
-            If abort Then GoTo aborting
-            
-            bb = buf(m.firstIndex + 3)
-        
-            If bb = 0 Then
-                tmp = tmp & " "
-            ElseIf isAscii(bb) Then
-                tmp = tmp & Chr(bb)
-            Else
-                isBinary = True
-                tmp = tmp & Chr(bb)
-            End If
-            
-            If buf(m.firstIndex + 4) <> &HC6 Then 'end of sequence..
-                If Len(Trim(tmp)) > 0 Then
-                    If chkFilter.value = 1 Then
-                        If Not Filter(tmp) Then
-                            If isBinary Then
-                                If Len(tmp) > 4 Then AddResultHidden BinaryString(tmp), firstIndex
-                            Else
-                                AddResultHidden tmp, firstIndex
-                            End If
-                        End If
-                    Else
-                        If isBinary Then
-                            If Len(tmp) > 4 Then AddResultHidden BinaryString(tmp), firstIndex
-                        Else
-                            AddResultHidden tmp, firstIndex
-                        End If
-                    End If
-                End If
-                tmp = Empty
-                firstIndex = 0
-                isBinary = False
-            End If
-            
-        Next
-    
-        setpb pointer, LOF(f)
-    Loop
-    
-    If Len(tmp) > 0 Then 'not terminated
-        If chkFilter.value = 1 Then
-            If Not Filter(m.value) Then AddResultHidden tmp, firstIndex
-        Else
-            AddResultHidden tmp, firstIndex
-        End If
-    End If
-    
-    
-    '-----------------------------------------------------
-    Me.Caption = "Scanning for hidden strings 2.."
-    push ret, ""
-    push ret, "hidden strings 2:" & vbCrLf & String(75, "-")
-
-    firstIndex = 0
-    Set d = New RegExp
-    d.Global = True
-    d.Pattern = "\xC6" 'i cant search for c6 85??? wtf..
-    
-    ReDim buf(9000)
-    pointer = 1
-    Seek f, 1
-    
-    pb.value = 0
-    Do While pointer < LOF(f)
-        If abort Then GoTo aborting
-        pointer = Seek(f)
-        x = LOF(f) - pointer
-        If x < 1 Then Exit Do
-        If x < 9000 Then ReDim buf(x)
-        Get f, , buf()
-        
-        b = StrConv(buf, vbUnicode, LANG_US)
-        Set mc = d.Execute(b)
-        
-        For Each m In mc
-        
-            If buf(m.firstIndex + 1) <> &H85 Then GoTo nextone
-            
-            If firstIndex = 0 Then firstIndex = m.firstIndex + pointer
-            
-            DoEvents
-            If abort Then GoTo aborting
-            
-            bb = buf(m.firstIndex + 6)
-        
-            If bb = 0 Then
-                 tmp = tmp & " "
-            ElseIf isAscii(bb) Then
-                tmp = tmp & Chr(bb)
-            Else
-                isBinary = True
-                tmp = tmp & Chr(bb)
-            End If
-            
-nextone:
-            If buf(m.firstIndex + 7) <> &HC6 Then 'end of sequence..
-                If Len(Trim(tmp)) > 0 Then
-                    If chkFilter.value = 1 Then
-                        If Not Filter(tmp) Then
-                            If isBinary Then
-                                If Len(tmp) > 4 Then AddResultHidden BinaryString(tmp), firstIndex
-                            Else
-                                AddResultHidden tmp, firstIndex
-                            End If
-                        End If
-                    Else
-                        If isBinary Then
-                            If Len(tmp) > 4 Then AddResultHidden BinaryString(tmp), firstIndex
-                        Else
-                            AddResultHidden tmp, firstIndex
-                        End If
-                    End If
-                End If
-                tmp = Empty
-                firstIndex = 0
-                isBinary = False
-            End If
-            
-        Next
-    
-        setpb pointer, LOF(f)
-    Loop
-    
-    If Len(tmp) > 0 Then 'not terminated
-        If chkFilter.value = 1 Then
-            If Not Filter(m.value) Then AddResultHidden tmp, firstIndex
-        Else
-            AddResultHidden tmp, firstIndex
-        End If
-    End If
-    
-    
-    pb.value = 0
-    'rtf.Text = Join(ret, vbCrLf)
-
-
-aborting:
-    Dim topLine As Integer
-
-    lines = lines + UBound(ret)
-    LockWindowUpdate rtf.hwnd 'try to make it not jump when we add more...
-    topLine = TopLineIndex(rtf)
-    rtf.Text = rtf.Text & vbCrLf & vbCrLf & Join(ret, vbCrLf)
-    ScrollToLine rtf, topLine
-    LockWindowUpdate 0
-    
-    Erase ret
-    
-    Close f
-    'RevertRedir fs
-    running = False
-    abort = False
-    pb.value = 0
-
-
-End Sub
-
-Function BinaryString(str As String) As String
-    Dim i As Long
-    Dim ret As String
-    Dim b() As Byte
-    
-    b() = StrConv(str, vbFromUnicode, LANG_US)
-    
-    For i = 0 To UBound(b)
-         If b(i) < &H10 Then
-            ret = ret & "0" & Hex(b(i))
-         Else
-             ret = ret & Hex(b(i))
-         End If
-    Next
-    
-    BinaryString = "Binary String (" & UBound(b) + 1 & " bytes): " & ret
-    
-End Function
-
-Function isAscii(x As Byte) As Boolean
-    If x >= 9 And x <= Asc("z") Then isAscii = True
-End Function
-
-
 
 Private Sub optRaw_Click()
     If Not formLoaded Then Exit Sub
