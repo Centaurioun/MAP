@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmtlbViewer 
    BackColor       =   &H8000000A&
    Caption         =   "Type Library Viewer"
@@ -135,6 +135,9 @@ Begin VB.Form frmtlbViewer
       End
       Begin VB.Menu mnuStringScanner 
          Caption         =   "Scan for Strings"
+      End
+      Begin VB.Menu mnuFullProtos 
+         Caption         =   "Full Prototypes"
       End
    End
 End
@@ -327,11 +330,30 @@ Private Sub mnuShowAllClasses_Click()
 End Sub
 
 
+Private Sub mnuFullProtos_Click()
+
+    If Not mnuFullProtos.Checked Then
+        mnuFullProtos.Checked = True
+    Else
+        If mnuFullProtos.Checked = True And InStr(mnuFullProtos.caption, "Compact") < 1 Then
+            mnuFullProtos.caption = "Compact Protos"
+        ElseIf mnuFullProtos.Checked = True And InStr(mnuFullProtos.caption, "Compact") >= 1 Then
+            mnuFullProtos.Checked = False
+            mnuFullProtos.caption = "Full Prototypes"
+        Else
+            mnuFullProtos.Checked = False
+        End If
+    
+    End If
+        
+End Sub
+
 Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single)
     On Error Resume Next
     Text1 = Data.Files(1)
 End Sub
 
+ 
 Private Sub tv_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
@@ -373,8 +395,20 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
         'push tmp, "Licensed: " & i.isLicensed()
         push tmp, "Members : " & i.mMembers.Count
         
+        If mnuFullProtos.Checked Then push tmp, Empty
+        
         For Each c In i.mMembers
-           push tmp, vbTab & c.mMemberInfo.Name
+            If mnuFullProtos.Checked Then
+                report = c.ProtoString
+                If InStr(mnuFullProtos.caption, "Compact") >= 1 Then
+                    report = Replace(Replace(report, vbTab, Empty), vbCrLf, Empty)
+                Else
+                    report = report & vbCrLf
+                End If
+                push tmp, report
+            Else
+                push tmp, vbTab & c.mMemberInfo.Name
+            End If
         Next
         Text2 = Join(tmp, vbCrLf)
     End If

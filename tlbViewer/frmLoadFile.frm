@@ -183,7 +183,12 @@ Private Sub cndNext_Click()
         Else
             Unload Me
         End If
+    
+    ElseIf optProgIDScan.value Then
         
+        frmProgIDLookup.Visible = True
+        Unload Me
+
     End If
     
 End Sub
