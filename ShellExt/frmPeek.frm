@@ -126,7 +126,6 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
-      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -398,7 +397,7 @@ Private Sub Form_Load()
     RestoreFormSizeAnPosition Me
     Me.Visible = True
     chkShowOffsets.value = GetMySetting("offsests", 1)
-    mnuHiddenStrings.Checked = IIf(GetMySetting("hiddenstrings", 0) = 0, False, True)
+   ' mnuHiddenStrings.Checked = IIf(GetMySetting("hiddenstrings", 0) = 0, False, True)
     chkFilter.value = GetMySetting("Filter", 0)
     optRaw.value = IIf(GetMySetting("Raw", 1) = 1, True, False)
     If Not optRaw.value Then optVa.value = True
@@ -412,7 +411,7 @@ Private Sub Form_Unload(Cancel As Integer)
    SaveMySetting "offsests", chkShowOffsets.value
    SaveMySetting "Filter", chkFilter.value
    SaveMySetting "Raw", IIf(optRaw.value, 1, 0)
-   SaveMySetting "hiddenstrings", IIf(mnuHiddenStrings.Checked, 1, 0)
+   'SaveMySetting "hiddenstrings", IIf(mnuHiddenStrings.Checked, 1, 0)
    'End
 End Sub
 
@@ -588,7 +587,7 @@ Function AddResult(m As match, offset As Long)
     Dim x As Long, xx As Long, sect As String, o As String
     
     If chkShowOffsets.value = 1 Then
-        x = m.firstIndex + offset - 1
+        x = m.FirstIndex + offset - 1
         If optVa.value And pe.isLoaded = True Then
             xx = pe.OffsetToVA(x, sect)
             If xx = 0 Then

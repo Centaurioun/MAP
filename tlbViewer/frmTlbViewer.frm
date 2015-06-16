@@ -1,5 +1,6 @@
 VERSION 5.00
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
 Begin VB.Form frmtlbViewer 
    BackColor       =   &H8000000A&
    Caption         =   "Type Library Viewer"
@@ -12,16 +13,19 @@ Begin VB.Form frmtlbViewer
    ScaleHeight     =   5370
    ScaleWidth      =   9900
    StartUpPosition =   2  'CenterScreen
-   Begin VB.CommandButton cmdLoad 
-      Caption         =   "Load"
-      Height          =   330
-      Left            =   8910
+   Begin RichTextLib.RichTextBox text2 
+      Height          =   4830
+      Left            =   3330
       TabIndex        =   4
-      Top             =   90
-      Width           =   960
-   End
-   Begin VB.TextBox Text2 
-      BeginProperty Font 
+      Top             =   495
+      Width           =   6540
+      _ExtentX        =   11536
+      _ExtentY        =   8520
+      _Version        =   393217
+      Enabled         =   -1  'True
+      ScrollBars      =   3
+      TextRTF         =   $"frmTlbViewer.frx":0000
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
          Name            =   "Fixedsys"
          Size            =   9
          Charset         =   0
@@ -30,13 +34,14 @@ Begin VB.Form frmtlbViewer
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   4770
-      Left            =   3285
-      MultiLine       =   -1  'True
-      ScrollBars      =   3  'Both
+   End
+   Begin VB.CommandButton cmdLoad 
+      Caption         =   "Load"
+      Height          =   330
+      Left            =   8910
       TabIndex        =   3
-      Top             =   480
-      Width           =   6630
+      Top             =   90
+      Width           =   960
    End
    Begin MSComctlLib.ImageList ImageList1 
       Left            =   2040
@@ -51,43 +56,43 @@ Begin VB.Form frmtlbViewer
       BeginProperty Images {2C247F25-8591-11D1-B16A-00C0F0283628} 
          NumListImages   =   10
          BeginProperty ListImage1 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":0000
+            Picture         =   "frmTlbViewer.frx":007D
             Key             =   "const"
          EndProperty
          BeginProperty ListImage2 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":0112
+            Picture         =   "frmTlbViewer.frx":018F
             Key             =   "event"
          EndProperty
          BeginProperty ListImage3 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":0224
+            Picture         =   "frmTlbViewer.frx":02A1
             Key             =   "class"
          EndProperty
          BeginProperty ListImage4 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":0336
+            Picture         =   "frmTlbViewer.frx":03B3
             Key             =   "interface"
          EndProperty
          BeginProperty ListImage5 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":0448
+            Picture         =   "frmTlbViewer.frx":04C5
             Key             =   "lib"
          EndProperty
          BeginProperty ListImage6 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":055A
+            Picture         =   "frmTlbViewer.frx":05D7
             Key             =   "sub"
          EndProperty
          BeginProperty ListImage7 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":066C
+            Picture         =   "frmTlbViewer.frx":06E9
             Key             =   "module"
          EndProperty
          BeginProperty ListImage8 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":077E
+            Picture         =   "frmTlbViewer.frx":07FB
             Key             =   "value"
          EndProperty
          BeginProperty ListImage9 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":0890
+            Picture         =   "frmTlbViewer.frx":090D
             Key             =   "prop"
          EndProperty
          BeginProperty ListImage10 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-            Picture         =   "frmTlbViewer.frx":09A2
+            Picture         =   "frmTlbViewer.frx":0A1F
             Key             =   "control"
          EndProperty
       EndProperty
@@ -137,7 +142,7 @@ Begin VB.Form frmtlbViewer
          Caption         =   "Scan for Strings"
       End
       Begin VB.Menu mnuFullProtos 
-         Caption         =   "Full Prototypes"
+         Caption         =   "Compact Prototypes"
       End
    End
 End
@@ -219,7 +224,7 @@ Function LoadFile(fPath As String, Optional onlyShowGuid As String) As Boolean
     
     tv.Nodes.Clear
      
-    Text2 = Empty
+    text2 = Empty
     
     loaded = tlb.LoadFile(Text1, onlyShowGuid)
                 
@@ -247,7 +252,7 @@ Function LoadFile(fPath As String, Optional onlyShowGuid As String) As Boolean
                     Set n3 = tv.Nodes.Add(n2, tvwChild, , m.mMemberInfo.Name, IIf(m.CallType > 1, "prop", "sub"))
                     Set n3.Tag = m
                     mMembers = mMembers + 1
-                    If ObjPtr(n3) And Not m.SupportsFuzzing Then n3.ForeColor = &H606060
+                    'If ObjPtr(n3) And Not m.SupportsFuzzing Then n3.ForeColor = &H606060
                     Set n3 = Nothing
                 Next
                 n2.Sorted = True
@@ -274,7 +279,7 @@ nextOne:
     End If
     
     If tv.Nodes.Count = 0 Then
-        Text2 = tlb.ErrMsg
+        text2 = tlb.ErrMsg
         LoadFile = False
     Else
         LoadFile = True
@@ -296,9 +301,9 @@ End Sub
 
 Private Sub Form_Resize()
     On Error Resume Next
-    tv.Height = Me.Height - tv.top - 200
-    Text2.Height = tv.Height - 200
-    Text2.Width = Me.Width - Text2.Left - 200
+    tv.Height = Me.Height - tv.top - 450
+    text2.Height = tv.Height
+    text2.Width = Me.Width - text2.Left - 200
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
@@ -332,19 +337,21 @@ End Sub
 
 Private Sub mnuFullProtos_Click()
 
-    If Not mnuFullProtos.Checked Then
-        mnuFullProtos.Checked = True
-    Else
-        If mnuFullProtos.Checked = True And InStr(mnuFullProtos.caption, "Compact") < 1 Then
-            mnuFullProtos.caption = "Compact Protos"
-        ElseIf mnuFullProtos.Checked = True And InStr(mnuFullProtos.caption, "Compact") >= 1 Then
-            mnuFullProtos.Checked = False
-            mnuFullProtos.caption = "Full Prototypes"
-        Else
-            mnuFullProtos.Checked = False
-        End If
-    
-    End If
+    mnuFullProtos.Checked = Not mnuFullProtos.Checked
+
+'    If Not mnuFullProtos.Checked Then
+'        mnuFullProtos.Checked = True
+'    Else
+'        If mnuFullProtos.Checked = True And InStr(mnuFullProtos.caption, "Compact") < 1 Then
+'            mnuFullProtos.caption = "Compact Protos"
+'        ElseIf mnuFullProtos.Checked = True And InStr(mnuFullProtos.caption, "Compact") >= 1 Then
+'            mnuFullProtos.Checked = False
+'            mnuFullProtos.caption = "Full Prototypes"
+'        Else
+'            mnuFullProtos.Checked = False
+'        End If
+'
+'    End If
         
 End Sub
 
@@ -354,6 +361,11 @@ Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Inte
 End Sub
 
  
+Private Sub text2_Change()
+    On Error Resume Next
+    modSyntaxHighlighting.SyntaxHighlight text2
+End Sub
+
 Private Sub tv_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
@@ -377,12 +389,12 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
             push tmp(), "Version:     " & tlb.tli.MajorVersion & "." & tlb.tli.MinorVersion
         End If
         push tmp(), "Lib Classes: " & tlb.NumClassesInLib
-        Text2 = Join(tmp, vbCrLf)
+        text2 = Join(tmp, vbCrLf)
     End If
     
     If TypeName(Node.Tag) = "CMember" Then
         Set c = Node.Tag
-        Text2 = c.ProtoString
+        text2 = c.ProtoString
     End If
     
     If TypeName(Node.Tag) = "CInterface" Then
@@ -395,22 +407,24 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
         'push tmp, "Licensed: " & i.isLicensed()
         push tmp, "Members : " & i.mMembers.Count
         
-        If mnuFullProtos.Checked Then push tmp, Empty
+        push tmp, Empty
+        'If mnuFullProtos.Checked Then push tmp, Empty
         
         For Each c In i.mMembers
-            If mnuFullProtos.Checked Then
+            'If mnuFullProtos.Checked Then
                 report = c.ProtoString
-                If InStr(mnuFullProtos.caption, "Compact") >= 1 Then
+                If mnuFullProtos.Checked Then
+                'If InStr(mnuFullProtos.caption, "Compact") >= 1 Then
                     report = Replace(Replace(report, vbTab, Empty), vbCrLf, Empty)
                 Else
                     report = report & vbCrLf
                 End If
                 push tmp, report
-            Else
-                push tmp, vbTab & c.mMemberInfo.Name
-            End If
+            'Else
+            '    push tmp, vbTab & c.mMemberInfo.Name
+            'End If
         Next
-        Text2 = Join(tmp, vbCrLf)
+        text2 = Join(tmp, vbCrLf)
     End If
     
     If TypeName(Node.Tag) = "CClass" Then
@@ -433,7 +447,7 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
             If cc.isControl Then push tmp, "Control"
         End If
                 
-        Text2 = Join(tmp, vbCrLf)
+        text2 = Join(tmp, vbCrLf)
     End If
     
 End Sub

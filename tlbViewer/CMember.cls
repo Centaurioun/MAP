@@ -70,6 +70,8 @@ Sub LoadMember(m As MemberInfo, ownerClassGuid As String)
     
     Set mMemberInfo = m
     Name = m.Name
+    'If Name = "OpenTextFile" Then Stop
+    
     ClassGUID = ownerClassGuid
     ArgCount = m.Parameters.Count
     ProtoString = GetProtoString()
@@ -182,7 +184,8 @@ End Sub
 Private Sub ParseObjArg(tmp, pi As ParameterInfo, arg As CArgument, TIResolved As TypeInfo)
     Dim TIType As TypeInfo
     Dim TKind As TypeKinds
- 
+    Dim overRideAsLong As Boolean
+    
     On Error Resume Next
     
     TKind = TKIND_MAX
@@ -212,9 +215,11 @@ Private Sub ParseObjArg(tmp, pi As ParameterInfo, arg As CArgument, TIResolved A
                   Case TKIND_RECORD 'Records not passed ByVal in VB
                           arg.isByVal = False
                           arg.ManSetType atLong, True
+                          overRideAsLong = True
                   Case TKIND_ENUM
                           arg.ManSetType atLong, True
                           arg.isByVal = .PointerLevel = 0
+                          overRideAsLong = True
                   Case Else
                           arg.isByVal = .PointerLevel = 0
             End Select
@@ -228,8 +233,8 @@ Private Sub ParseObjArg(tmp, pi As ParameterInfo, arg As CArgument, TIResolved A
                           glue tmp, "As " & .TypeLibInfoExternal.Name & "." & TIType.Name
                           arg.ObjectType = .TypeLibInfoExternal.Name & "." & TIType.Name
                   Else
-                          glue tmp, "As " & TIType.Name
-                          arg.ObjectType = TIType.Name
+                          glue tmp, "As " & IIf(overRideAsLong, "Long", TIType.Name)
+                          arg.ObjectType = IIf(overRideAsLong, "Long", TIType.Name)
                   End If
             End If
             
@@ -287,6 +292,7 @@ Private Sub BuildFuncName(tmp)
         End If
         
         glue tmp, .Name
+        'If .Name = "GetSpecialFolder" Then Stop
     End With
     
 End Sub
