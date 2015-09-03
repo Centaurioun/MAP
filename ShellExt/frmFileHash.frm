@@ -142,7 +142,7 @@ Attribute VB_Exposed = False
 Dim myMd5 As String
 Dim LoadedFile As String
 Dim isPE As Boolean
-Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
+Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hInst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
 Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
 
@@ -362,11 +362,11 @@ End Sub
 Private Sub mnuSearchFileName_Click()
     Dim f As String
     f = fso.FileNameFromPath(LoadedFile)
-    Google f, Me.hWnd
+    Google f, Me.hwnd
 End Sub
 
 Private Sub mnuSearchHash_Click()
-    Google myMd5, Me.hWnd
+    Google myMd5, Me.hwnd
 End Sub
 
 Private Sub mnuStrings_Click()

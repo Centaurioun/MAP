@@ -2,8 +2,8 @@ Attribute VB_Name = "mWinVerify"
 Private Declare Function WinVerifyTrust Lib "wintrust.dll" (ByVal hwnd As Long, ByRef pgActionID As GUID, ByRef pWVTData As Any) As Long
 Private Declare Function CLSIDFromString Lib "ole32.dll" (ByVal lpszProgID As Long, pCLSID As GUID) As Long
 Private Declare Function GetLastError Lib "kernel32.dll" () As Long
-Private Declare Sub RtlZeroMemory Lib "kernel32.dll" (Destination As Any, ByRef Length As Long)
-Private Declare Sub RtlFillMemory Lib "kernel32.dll" (Destination As Long, Length As Long, Fill As Byte)
+Private Declare Sub RtlZeroMemory Lib "kernel32.dll" (Destination As Any, ByRef length As Long)
+Private Declare Sub RtlFillMemory Lib "kernel32.dll" (Destination As Long, length As Long, Fill As Byte)
 
 Private Type GUID
     Data1 As Long
@@ -65,12 +65,12 @@ Private Const SignatureOrFileCorrupt = &H80096010
 Private Const SignatureExpired = &H800B0101
 
 Public Enum SigResults
-    srNotSigned
-    srSignedOK
-    srSignedFail
-    srError
-    srCorrupt
-    srSigExpired
+    srNotSigned = 0
+    srSignedOK = 1
+    srSignedFail = 2
+    srError = 3
+    srCorrupt = 4
+    srSigExpired = 5
 End Enum
 
 Private lastError As Long

@@ -721,17 +721,19 @@ Private Function DetectFileType(buf As String, fname As String) As String
         DetectFileType = "Zip file"
     ElseIf InStr(1, buf, "%PDF", vbTextCompare) > 0 Then
         DetectFileType = "Pdf File"
-    ElseIf VBA.Left(buf, 8) = Chr(&HD0) & Chr(&HCF) & Chr(&H11) & Chr(&HE0) & _
-                              Chr(&HA1) & Chr(&HB1) & Chr(&H1A) & Chr(&HE1) Then
-        DetectFileType = "MSI Installer"
+    'ElseIf VBA.Left(buf, 8) = Chr(&HD0) & Chr(&HCF) & Chr(&H11) & Chr(&HE0) & _
+    '                          Chr(&HA1) & Chr(&HB1) & Chr(&H1A) & Chr(&HE1) Then
+    '    DetectFileType = "MSI Installer"
     ElseIf VBA.Left(buf, 4) = Chr(&HD0) & Chr(&HCF) & Chr(&H11) & Chr(&HE0) Then
-        DetectFileType = "Office Document"
+        DetectFileType = "Ole Document"
     ElseIf VBA.Left(buf, 4) = "L" & Chr(0) & Chr(0) & Chr(0) Then
         DetectFileType = "Link File"
     ElseIf VBA.Left(buf, 3) = "CWS" Then
         DetectFileType = "Compressed SWF File"
     ElseIf VBA.Left(buf, 3) = "FWS" Then
         DetectFileType = "SWF File"
+    ElseIf VBA.Left(buf, 3) = "ZWS" Then
+        DetectFileType = "LZMA Compressed SWF File"
     ElseIf VBA.Left(buf, 4) = "Rar!" Then
         DetectFileType = "RAR File"
     ElseIf VBA.Left(buf, 5) = "{\rtf" Then

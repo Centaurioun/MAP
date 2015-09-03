@@ -89,7 +89,7 @@ Private Type CERT_EXTENSION
 End Type
 
 Private Type CRYPT_ALGORITHM_IDENTIFIER
-    pszObjId As String
+    pszObjId As Long 'String <--crashity crash in copymemory rtcconvertunicode automatic handling pfft
     Parameters As CRYPT_OBJID_BLOB
 End Type
 
@@ -154,7 +154,7 @@ Public Function GetSigner(fPath As String, ByRef out_Issuer As String, ByRef out
     Dim b() As Byte
      
     Const my_encoding = X509_ASN_ENCODING Or PKCS_7_ASN_ENCODING
-    
+     
     out_Issuer = Empty
     out_Subject = Empty
     ErrMsg = Empty
@@ -170,6 +170,7 @@ Public Function GetSigner(fPath As String, ByRef out_Issuer As String, ByRef out
     If fResult = 1 Then
         ' Determine buffer size for the next call to CryptMsgGetParam
         fResult = CryptMsgGetParam(ByVal hMsg, CMSG_SIGNER_INFO_PARAM, 0&, ByVal 0&, bufSz)
+        If fResult = 0 Then GoTo cleanup
     Else
         ErrMsg = fPath & " is not signed!"
         GoTo cleanup
@@ -185,8 +186,10 @@ Public Function GetSigner(fPath As String, ByRef out_Issuer As String, ByRef out
     
     fResult = CryptMsgGetParam(ByVal hMsg, CMSG_SIGNER_INFO_PARAM, 0&, b(0), bufSz)
     
+    If fResult = 0 Then GoTo cleanup
+    
     CopyMemory signerInfo, b(0), LenB(signerInfo) 'bug: can crash here with call stack unicode convert sometimes?
-                                                  '     problem starts with __vbaRecAnsiToUni
+                                                  '     problem starts with __vbaRecAnsiToUni - fixed see def above 9.3.15
     
     ci.issuer = signerInfo.issuer
     ci.SerialNumber = signerInfo.SerialNumber
