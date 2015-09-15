@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmMain 
    Caption         =   "sniff_hit"
    ClientHeight    =   8910
@@ -364,7 +364,7 @@ End Sub
 
 Private Sub cmdBrowse_Click()
     Dim pth As String
-    pth = dlg.FolderDialog(, Me.hWnd)
+    pth = dlg.FolderDialog(, Me.hwnd)
     If Len(pth) = 0 Then Exit Sub
     txtLogDir = pth
     logDir = pth
@@ -456,9 +456,23 @@ Private Sub Form_Load()
     On Error Resume Next
     
     If App.PrevInstance Then
-        MsgBox "Another instance is already running", vbExclamation
+        'MsgBox "Another instance is already running", vbExclamation
         'todo: findwindow sendmessage
         End
+    End If
+    
+    If IsVistaPlus() Then
+        If Not IsProcessElevated() Then
+            'If Not MsgBox("Can I elevate to administrator?", vbYesNo) = vbYes Then
+                If Not IsUserAnAdministrator() Then
+                    MsgBox "This tool requires admin privledges", vbExclamation
+                    End
+                Else
+                    RunElevated App.Path & "\sniff_hit.exe", essSW_SHOW, , Command
+                    End
+                End If
+            'End If
+        End If
     End If
     
     Dim str() As String, i As Integer, defaultInterface As Long

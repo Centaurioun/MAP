@@ -1,13 +1,14 @@
 Type=Exe
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\WINDOWS\system32\stdole2.tlb#OLE Automation
-Reference=*\G{C2900446-C60F-4066-9FB6-B5619E959E89}#1.0#0#..\..\SysAnalyzer\dependancy\spSubclass2.dll#SandSprite_SubClass2 Component
-Reference=*\G{DDC88AC2-2723-4C1B-9D61-C4F4D7CF5375}#2.5#0#C:\WINDOWS\vbDevKit.dll#Vb Developers Library From Sandsprite.com
-Object={831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0; mscomctl.ocx
+Reference=*\G{C2900446-C60F-4066-9FB6-B5619E959E89}#1.0#0#..\..\..\libs\Subclass2\spSubclass2.dll#SandSprite_SubClass2 Component
+Reference=*\G{DDC88AC2-2723-4C1B-9D61-C4F4D7CF5375}#2.5#0#C:\WINDOWS\vbdevkit.dll#Vb Developers Library From Sandsprite.com
+Object={831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0; MSCOMCTL.OCX
 Class=CSniffer; CSniffer.cls
 Class=CTcpPacket; CTcpPacket.cls
 Form=frmData.frm
 Form=frmMain.frm
 Class=CUDPPacket; CUdpPacket.cls
+Module=ModElevate; ModElevate.bas
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""
@@ -42,3 +43,6 @@ MaxNumberOfThreads=1
 
 [MS Transaction Server]
 AutoRefresh=1
+
+[fastBuild]
+fullPath=D:\_code\iDef\MAP\sniff_hit.exe
