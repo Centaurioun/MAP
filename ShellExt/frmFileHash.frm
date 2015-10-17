@@ -112,6 +112,26 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuSpacer2 
          Caption         =   "-"
       End
+      Begin VB.Menu mnuMoreHashs 
+         Caption         =   "More Hashs"
+         Begin VB.Menu mnuCopyHashMore 
+            Caption         =   "MD5"
+            Index           =   0
+            Visible         =   0   'False
+         End
+         Begin VB.Menu mnuCopyHashMore 
+            Caption         =   "SHA1"
+            Index           =   1
+         End
+         Begin VB.Menu mnuCopyHashMore 
+            Caption         =   "SHA256"
+            Index           =   2
+         End
+         Begin VB.Menu mnuCopyHashMore 
+            Caption         =   "SHA512"
+            Index           =   3
+         End
+      End
       Begin VB.Menu mnuExternal 
          Caption         =   "External"
          Begin VB.Menu mnuKryptoAnalyzer 
@@ -177,7 +197,7 @@ Sub ShowFileStats(fPath As String)
         mnuNameMD5.enabled = False
     End If
     
-    'mySHA = hash.HashFile(fpath, SHA, HexFormat)
+    'mySHA =
     sz = FileLen(fPath)
     RevertRedir fs
     
@@ -193,7 +213,28 @@ Sub ShowFileStats(fPath As String)
     
     push ret(), rpad("Size:") & sz
     push ret(), rpad("MD5:") & myMd5
-    'push ret(), rpad("SHA:") & mySHA
+    
+    If mnuCopyHashMore(1).Checked Then
+        push ret(), rpad("SHA1:") & hash.HashFile(fPath, SHA, HexFormat)
+    End If
+    
+    If mnuCopyHashMore(2).Checked Then
+        tmp = hash.HashFile(fPath, 256, HexFormat)
+        If Len(tmp) = 0 Then tmp = "must update vbdevkit.dll"
+        push ret(), rpad("SHA256:") & tmp
+    End If
+    
+    If mnuCopyHashMore(3).Checked Then
+        tmp = hash.HashFile(fPath, 512, HexFormat)
+        If Len(tmp) > 0 Then
+            a = Mid(tmp, 1, 64)
+            b = Mid(tmp, 65)
+            push ret(), rpad("SHA512:") & a
+            push ret(), rpad(" ") & b
+        Else
+            push ret, rpad("SHA512:") & "must update vbdevkit.dll"
+        End If
+    End If
     
     compiled = GetCompileDateOrType(fPath, istype, isPE)
     push ret(), IIf(istype, rpad("FileType: "), rpad("Compiled:")) & compiled
@@ -292,10 +333,41 @@ Private Sub Form_Load()
         Next
     End If
     
+    On Error Resume Next
+    
+    Dim hashs()
+    hashs = Array("MD5", "SHA1", "SHA256", "SHA512")
+    
+    For i = 0 To mnuCopyHashMore.Count - 1
+        mnuCopyHashMore(i).Checked = CBool(GetMySetting(hashs(i), IIf(i = 0, True, False)))
+    Next
+    
+    
 End Sub
 
 Private Sub lblMore_Click()
     PopupMenu mnuPopup
+End Sub
+
+Private Sub mnuCopyHashMore_Click(index As Integer)
+    
+    
+'    Select Case index
+'        Case 0: h = "SHA1: " & hash.HashFile(LoadedFile, SHA)
+'        Case 1: h = "SHA256: " & hash.HashFile(LoadedFile, 256)
+'        Case 2: h = "SHA512: " & hash.HashFile(LoadedFile, 512)
+'    End Select
+'
+'    Clipboard.Clear
+'    Clipboard.SetText h
+    
+    Dim hashs()
+    hashs = Array("MD5", "SHA1", "SHA256", "SHA512")
+    
+    mnuCopyHashMore(index).Checked = Not mnuCopyHashMore(index).Checked
+    SaveMySetting hashs(index), mnuCopyHashMore(index).Checked
+    Me.ShowFileStats LoadedFile
+    
 End Sub
 
 Private Sub mnuExt_Click(index As Integer)

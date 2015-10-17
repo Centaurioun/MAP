@@ -1,0 +1,3 @@
+
+virustotal: lower textbox to rtf, highlight all matches yellow on selection
+vt download bulk 

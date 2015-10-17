@@ -126,6 +126,7 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
+      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -369,7 +370,7 @@ Public Sub AutoSave()
     On Error Resume Next
     pf = fso.GetParentFolder(curFile)
     def = fso.GetBaseName(curFile)
-    If Len(def) > 12 Then def = VBA.Left(def, 8)
+    'If Len(def) > 12 Then def = VBA.Left(def, 8)
     f = pf & "\str_" & def & ".txt"
     fso.WriteFile f, rtf.Text
 End Sub

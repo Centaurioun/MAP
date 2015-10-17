@@ -347,7 +347,7 @@ Private Sub LogData(Data, dt As dTypes)
     If Len(logDir) = 0 Then Exit Sub
     
     f = Array("http", "irc", "servers")
-    pth = logDir & "\" & f(dt) & ".txt"
+    pth = logDir & "\" & f(dt) & ".log"
     
     If fso.FileExists(pth) Then
         fso.AppendFile pth, Data
