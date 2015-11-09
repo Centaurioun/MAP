@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form Form1 
    Caption         =   "Bulk Hash Lookup"
    ClientHeight    =   7770
@@ -366,20 +366,20 @@ Private Sub mnuAddHashs_Click()
     On Error Resume Next
     Dim f As CFile
     
-    x = Clipboard.GetText
-    tmp = Split(x, vbCrLf)
-    For Each x In tmp
-        x = Trim(x)
-        If Len(x) > 0 Then
-            If InStr(x, ",") > 0 Then 'new "hash,path" format
-                Y = Split(x, ",")
+    X = Clipboard.GetText
+    tmp = Split(X, vbCrLf)
+    For Each X In tmp
+        X = Trim(X)
+        If Len(X) > 0 Then
+            If InStr(X, ",") > 0 Then 'new "hash,path" format
+                Y = Split(X, ",")
                 Set f = New CFile
                 f.hash = Y(0)
                 f.path = Y(1)
                 lv.ListItems.Add , , f.hash
                 If fso.FileExists(f.path) Then files.Add f
             Else
-                lv.ListItems.Add , , x
+                lv.ListItems.Add , , X
             End If
         End If
     Next
@@ -395,6 +395,22 @@ Private Sub Form_Resize()
     Text2.Height = Me.Height - Text2.Top - 400
 End Sub
 
+Public Sub LV_ColumnSort(ListViewControl As ListView, Column As ColumnHeader)
+     On Error Resume Next
+    With ListViewControl
+       If .SortKey <> Column.Index - 1 Then
+             .SortKey = Column.Index - 1
+             .SortOrder = lvwAscending
+       Else
+             If .SortOrder = lvwAscending Then
+              .SortOrder = lvwDescending
+             Else
+              .SortOrder = lvwAscending
+             End If
+       End If
+       .Sorted = -1
+    End With
+End Sub
 
 
 Private Sub Form_Load()
@@ -474,6 +490,10 @@ Private Sub lv_ItemClick(ByVal Item As MSComctlLib.ListItem)
     Text2 = scan.GetReport()
 End Sub
 
+Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
+    LV_ColumnSort lv, ColumnHeader
+End Sub
+
 Private Function PathForHash(hash As String) As String
     Dim f As CFile
     For Each f In files
@@ -484,7 +504,7 @@ Private Function PathForHash(hash As String) As String
     Next
 End Function
 
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub lv_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
@@ -755,15 +775,15 @@ Private Sub mnuSubmitSelected_Click()
 End Sub
 
 Private Sub mnuUsePrivateKey_Click()
-    Dim x As String
+    Dim X As String
     
-    x = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
+    X = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
                  "Enter an empty string or hit cancel to clear the private key." & vbCrLf & vbCrLf & "Your key will be stored in the registry.", _
                  "Enter private api key", _
                  vt.ReadPrivateApiKey _
         )
                  
-    vt.SetPrivateApiKey x
+    vt.SetPrivateApiKey X
     mnuUsePrivateKey.Checked = vt.usingPrivateKey
     
     If vt.usingPrivateKey Then
