@@ -71,6 +71,7 @@ Public Function GetReport() As String
 
         tmp = "Scan Date:   " & Me.scan_date & vbCrLf
         tmp = tmp & "Hash:        " & Me.md5 & vbCrLf
+        tmp = tmp & "Detections:  " & Me.positives & "/" & Me.total & vbCrLf
         
         If Len(LocalFilePath) > 0 Then tmp = tmp & "File:        " & FileNameFromPath(LocalFilePath) & vbCrLf
         
