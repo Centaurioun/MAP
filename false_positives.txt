@@ -1,0 +1,39 @@
+
+fakedns:
+x CAT-QuickHeal       (Suspicious) - DNAScan
+x Avira               TR/Dropper.Gen
+x Ikarus              Trojan.Dropper
+x Qihoo-360           HEUR/QVM03.0.Malware.Gen
+
+x find dll: Symantec            WS.Reputation.1
+x gdiprocs: Symantec            WS.Reputation.1
+x loadlib:  Symantec            WS.Reputation.1
+x scktool:  Symantec            WS.Reputation.1
+
+idcdumpfix
+x Avira               TR/VB.Downloader.Gen
+x Qihoo-360           Win32/Trojan.Downloader.8a8
+
+kanl:
+x TrendMicro-HouseCallPAK_Generic.001
+x TrendMicro          PAK_Generic.001
+
+
+virustotal:
+x CAT-QuickHeal       (Suspicious) - DNAScan
+x F-Prot              W32/VBTrojan.19F1!Maximus
+x Sophos              Mal/VB-F
+x Cyren               W32/VBTrojan.19F1!Maximus
+x VBA32               Trojan.VB.gen
+x Qihoo-360           HEUR/QVM03.0.Malware.Gen
+
+
+hi you are giving false positive for my product
+it is all open source:
+
+http://sandsprite.com/iDef/MAP/
+
+
+
+
+http://www.techsupportalert.com/content/how-report-malware-or-false-positives-multiple-antivirus-vendors.htm#Trend%20Micro

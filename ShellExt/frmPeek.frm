@@ -126,7 +126,6 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
-      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -299,7 +298,7 @@ Private Sub cmdFindAll_Click()
     If Len(Text1) = 0 Then Exit Sub
     tmp = Split(rtf.Text, vbCrLf)
     
-    pb.value = 0
+    pb.Value = 0
     For Each x In tmp
          i = i + 1
         If InStr(Text1, "*") > 0 Then
@@ -313,7 +312,7 @@ Private Sub cmdFindAll_Click()
         End If
         If i Mod 5 = 0 Then setpb i, UBound(tmp)
     Next
-    pb.value = 0
+    pb.Value = 0
     
     x = UBound(ret)
     If x < 0 Then
@@ -394,14 +393,14 @@ Private Sub Form_Load()
     sSearch = -1
     txtMinLen = minStrLen 'global
     pb.max = 100
-    pb.value = 0
+    pb.Value = 0
     RestoreFormSizeAnPosition Me
     Me.Visible = True
-    chkShowOffsets.value = GetMySetting("offsests", 1)
+    chkShowOffsets.Value = GetMySetting("offsests", 1)
    ' mnuHiddenStrings.Checked = IIf(GetMySetting("hiddenstrings", 0) = 0, False, True)
-    chkFilter.value = GetMySetting("Filter", 0)
-    optRaw.value = IIf(GetMySetting("Raw", 1) = 1, True, False)
-    If Not optRaw.value Then optVa.value = True
+    chkFilter.Value = GetMySetting("Filter", 0)
+    optRaw.Value = IIf(GetMySetting("Raw", 1) = 1, True, False)
+    If Not optRaw.Value Then optVa.Value = True
     mnuMore.Visible = False
     formLoaded = True
 End Sub
@@ -409,9 +408,9 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
    abort = True
    SaveFormSizeAnPosition Me
-   SaveMySetting "offsests", chkShowOffsets.value
-   SaveMySetting "Filter", chkFilter.value
-   SaveMySetting "Raw", IIf(optRaw.value, 1, 0)
+   SaveMySetting "offsests", chkShowOffsets.Value
+   SaveMySetting "Filter", chkFilter.Value
+   SaveMySetting "Raw", IIf(optRaw.Value, 1, 0)
    'SaveMySetting "hiddenstrings", IIf(mnuHiddenStrings.Checked, 1, 0)
    'End
 End Sub
@@ -424,7 +423,7 @@ End Sub
  
  Sub setpb(cur, max)
     On Error Resume Next
-    pb.value = (cur / max) * 100
+    pb.Value = (cur / max) * 100
     Me.Refresh
     DoEvents
  End Sub
@@ -482,7 +481,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     ReDim buf(9000)
     Open fPath For Binary Access Read As f
     
-    pb.value = 0
+    pb.Value = 0
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
@@ -511,7 +510,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     pointer = 1
     Seek f, 1
     
-    pb.value = 0
+    pb.Value = 0
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
@@ -522,7 +521,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
         search buf, pointer
         setpb pointer, LOF(f)
     Loop
-    pb.value = 0
+    pb.Value = 0
     
     Close f
      
@@ -540,7 +539,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     Me.Caption = lines & " matches found..."
     Me.Show 1
    
-    If chkFilter.value = 1 Then
+    If chkFilter.Value = 1 Then
         Me.Caption = Me.Caption & "  ( " & UBound(filtered) & " results filtered)"
     End If
     
@@ -561,7 +560,7 @@ aborting:
       RevertRedir fs
       running = False
       abort = False
-      pb.value = 0
+      pb.Value = 0
       
 End Sub
 
@@ -575,8 +574,8 @@ Private Sub search(buf() As Byte, offset As Long)
     For Each m In mc
         DoEvents
         If abort Then Exit Sub
-        If chkFilter.value = 1 Then
-            If Not Filter(m.value) Then AddResult m, offset
+        If chkFilter.Value = 1 Then
+            If Not Filter(m.Value) Then AddResult m, offset
         Else
             AddResult m, offset
         End If
@@ -584,12 +583,13 @@ Private Sub search(buf() As Byte, offset As Long)
     
 End Sub
 
+'todo: this is not x64 safe..
 Function AddResult(m As match, offset As Long)
-    Dim x As Long, xx As Long, sect As String, o As String
+    Dim x As Long, xx As Double, sect As String, o As String
     
-    If chkShowOffsets.value = 1 Then
+    If chkShowOffsets.Value = 1 Then
         x = m.FirstIndex + offset - 1
-        If optVa.value And pe.isLoaded = True Then
+        If optVa.Value And pe.isLoaded = True Then
             xx = pe.OffsetToVA(x, sect)
             If xx = 0 Then
                 o = pad(x) & "  "
@@ -601,7 +601,7 @@ Function AddResult(m As match, offset As Long)
         End If
     End If
     
-    push ret(), o & Replace(m.value, Chr(0), Empty)
+    push ret(), o & Replace(m.Value, Chr(0), Empty)
     
 End Function
 
@@ -803,7 +803,7 @@ Private Sub mnuDelphiFIlter_Click()
     
     Me.Caption = "Filter contains: " & UBound(filt)
     pb.max = 100
-    pb.value = 0
+    pb.Value = 0
     i = 0
     
     tmp = rtf.Text
@@ -811,7 +811,7 @@ Private Sub mnuDelphiFIlter_Click()
     For i = 0 To UBound(filt)
         tmp = Replace(tmp, filt(i), "-[dtd]-")
         If i Mod 100 = 0 Then
-            pb.value = i / UBound(txt) * 100
+            pb.Value = i / UBound(txt) * 100
             DoEvents
         End If
         If abort Then Exit Sub
@@ -819,7 +819,7 @@ Private Sub mnuDelphiFIlter_Click()
     
     Erase filt
     txt = Split(tmp, vbCrLf)
-    pb.value = 0
+    pb.Value = 0
     
     For i = 0 To UBound(txt)
         
@@ -830,7 +830,7 @@ Private Sub mnuDelphiFIlter_Click()
         End If
         
         If i Mod 100 = 0 Then
-            pb.value = i / UBound(txt) * 100
+            pb.Value = i / UBound(txt) * 100
             DoEvents
         End If
         
@@ -838,7 +838,7 @@ Private Sub mnuDelphiFIlter_Click()
     Next
     
     Me.Caption = UBound(filt) & " results shown  (" & removed & " removed by Delphi Filter)"
-    pb.value = 0
+    pb.Value = 0
     
     rtf.Text = Join(filt, vbCrLf)
     
@@ -846,12 +846,12 @@ End Sub
 
 Private Sub optRaw_Click()
     If Not formLoaded Then Exit Sub
-    If chkShowOffsets.value = 1 Then ParseFile curFile, True
+    If chkShowOffsets.Value = 1 Then ParseFile curFile, True
 End Sub
 
 Private Sub optVa_Click()
     If Not formLoaded Then Exit Sub
-    If chkShowOffsets.value = 1 Then ParseFile curFile, True
+    If chkShowOffsets.Value = 1 Then ParseFile curFile, True
 End Sub
 
 Private Sub tmrReRun_Timer()

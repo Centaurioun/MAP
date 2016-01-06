@@ -24,6 +24,12 @@ Public API_KEY As String
 Const PUBLIC_API_KEY = "a949ea9c64e7145a065b0e562673a66216a132712e958168c8c00ee5f451485b"
 Public usingPrivateKey As Boolean
 
+Private Declare Function URLDownloadToFile Lib "urlmon" Alias _
+    "URLDownloadToFileA" (ByVal pCaller As Long, _
+    ByVal szURL As String, _
+    ByVal szFileName As String, _
+    ByVal dwReserved As Long, _
+    ByVal lpfnCB As Long) As Long
 
 Private List1 As ListBox 'for logging...
 Private WithEvents Timer1 As Timer
@@ -41,31 +47,38 @@ Dim repeatOnce As Boolean
 Public owner As Form
 Const LANG_US = &H409
 
+Public Function RawDownloadFile(URL, LocalFilename) As Boolean
+    Dim lngRetVal As Long
+    lngRetVal = URLDownloadToFile(0, CStr(URL), CStr(LocalFilename), 0, 0)
+    If lngRetVal = 0 Then RawDownloadFile = True
+End Function
+
 Property Get delayInterval() As Long
     delayInterval = m_delayInterval
 End Property
 
-Property Let delayInterval(X As Long)
+Property Let delayInterval(x As Long)
     If Not usingPrivateKey Then
-        m_delayInterval = X
+        m_delayInterval = x
     End If
 End Property
 
 
-'Public Function DownloadFile(hash As String, toDir As String) As Boolean
-'
-'    If Len(API_KEY) = 0 Then Class_Initialize
-'    If Not usingPrivateKey Then Exit Function
-'
-'    MsgBox "Todo!", vbExclamation
-'
-''private api: GET /vtapi/v2/file/download
-''  apikey
-''  hash    The md5/sha1/sha256 hash of the file you want to download.
-'
-'
-'
-'End Function
+Public Function DownloadFile(hash As String, toDir As String) As Boolean
+
+    If Len(API_KEY) = 0 Then Class_Initialize
+    If Not usingPrivateKey Then Exit Function
+    If Not FolderExists(toDir) Then Exit Function
+    
+'private api: GET /vtapi/v2/file/download
+'  apikey
+'  hash    The md5/sha1/sha256 hash of the file you want to download.
+
+    Dim URL As String
+    URL = "https://www.virustotal.com/vtapi/v2/file/download?apikey=" & API_KEY & "&hash=" & hash
+    DownloadFile = RawDownloadFile(URL, toDir & "\" & hash)
+
+End Function
 
 'this class supports a couple nice things..
 '1) if you set the cache dir, it will save raw json there as optimization in case you lookup the same file
@@ -165,7 +178,7 @@ Private Function Get_Web_Report(hash, out_response As String, out_status As Stri
     
     Err.Clear
         
-    Dim X As Variant
+    Dim x As Variant
     out_status = Empty
     out_response = Empty
     repeatOnce = True
@@ -231,7 +244,7 @@ Function AddComment(hash, comment, out_response As String, out_status As String,
     Err.Clear
     On Error GoTo hell
     
-    Dim X As Variant
+    Dim x As Variant
     out_status = Empty
     out_response = Empty
     

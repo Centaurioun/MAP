@@ -32,7 +32,7 @@ Private Declare Function GetFileVersionInfo Lib "Version.dll" Alias "GetFileVers
 Private Declare Function GetFileVersionInfoSize Lib "Version.dll" Alias "GetFileVersionInfoSizeA" (ByVal lptstrFilename As String, lpdwHandle As Long) As Long
 Private Declare Function VerQueryValue Lib "Version.dll" Alias "VerQueryValueA" (pBlock As Any, ByVal lpSubBlock As String, lplpBuffer As Any, puLen As Long) As Long
 Private Declare Function GetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal path As String, ByVal cbBytes As Long) As Long
-Private Declare Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest As Any, ByVal Source As Long, ByVal Length As Long)
+Private Declare Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest As Any, ByVal Source As Long, ByVal length As Long)
 Private Declare Function lstrcpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString1 As String, ByVal lpString2 As Long) As Long
 Private Declare Function FindWindow Lib "user32" Alias "FindWindowA" (ByVal lpClassName As String, ByVal lpWindowName As String) As Long
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (hpvDest As Any, hpvSource As Any, ByVal cbCopy As Long)
@@ -129,6 +129,47 @@ Private Declare Function closesocket Lib "ws2_32.dll" (ByVal s As Long) As Long
 Private Declare Function WSAIoctl Lib "ws2_32.dll" (ByVal s As Long, ByVal dwIoControlCode As Long, lpvInBuffer As Any, ByVal cbInBuffer As Long, lpvOutBuffer As Any, ByVal cbOutBuffer As Long, lpcbBytesReturned As Long, lpOverlapped As Long, lpCompletionRoutine As Long) As Long
 Private Declare Sub CopyMemory2 Lib "kernel32" Alias "RtlMoveMemory" (pDst As Any, ByVal pSrc As Long, ByVal ByteLen As Long)
 Private Declare Function WSAStartup Lib "ws2_32.dll" (ByVal wVR As Long, lpWSAD As WSAData) As Long
+
+'Private Type MungeDbl
+'    Value As Currency
+'End Type
+'
+'Private Type Munge2Long
+'    LoValue As Long
+'    HiValue As Long
+'End Type
+'
+'Function x64ToHex(v As Currency) As String
+'    Dim c As MungeDbl
+'    Dim l As Munge2Long
+'    c.Value = v
+'    LSet l = c
+'    If l.HiValue = 0 Then
+'        x64ToHex = Hex(l.LoValue)
+'    Else
+'        x64ToHex = Hex(l.HiValue) & Right("00000000" & Hex(l.LoValue), 8)
+'    End If
+'End Function
+'
+''handles hex strings for 32bit and 64 bit numbers, leading 00's on high part not required, of course they are on lo if there is a high..
+'Function HextoX64(s As String) As Currency
+'    Dim c As MungeDbl
+'    Dim l As Munge2Long
+'
+'    Dim lo As String, hi As String
+'    If Len(s) <= 8 Then
+'        l.LoValue = CLng("&h" & s)
+'    Else
+'        lo = Right(s, 8)
+'        hi = Left(s, Len(s) - 8)
+'        l.LoValue = CLng("&h" & lo)
+'        l.HiValue = CLng("&h" & hi)
+'    End If
+'
+'    LSet c = l
+'    HextoX64 = c.Value
+'
+'End Function
 
 'Function LaunchStrings(data As String, Optional isPath As Boolean = False)
 '

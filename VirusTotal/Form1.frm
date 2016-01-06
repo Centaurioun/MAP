@@ -147,6 +147,9 @@ Begin VB.Form Form1
       Begin VB.Menu mnuUsePrivateKey 
          Caption         =   "Use Private API Key"
       End
+      Begin VB.Menu mnuBulkDownload 
+         Caption         =   "Bulk Download"
+      End
    End
    Begin VB.Menu mnuPopup 
       Caption         =   "mnuPopup"
@@ -366,20 +369,20 @@ Private Sub mnuAddHashs_Click()
     On Error Resume Next
     Dim f As CFile
     
-    X = Clipboard.GetText
-    tmp = Split(X, vbCrLf)
-    For Each X In tmp
-        X = Trim(X)
-        If Len(X) > 0 Then
-            If InStr(X, ",") > 0 Then 'new "hash,path" format
-                Y = Split(X, ",")
+    x = Clipboard.GetText
+    tmp = Split(x, vbCrLf)
+    For Each x In tmp
+        x = Trim(x)
+        If Len(x) > 0 Then
+            If InStr(x, ",") > 0 Then 'new "hash,path" format
+                Y = Split(x, ",")
                 Set f = New CFile
                 f.hash = Y(0)
                 f.path = Y(1)
                 lv.ListItems.Add , , f.hash
                 If fso.FileExists(f.path) Then files.Add f
             Else
-                lv.ListItems.Add , , X
+                lv.ListItems.Add , , x
             End If
         End If
     Next
@@ -421,6 +424,8 @@ Private Sub Form_Load()
     Dim hash_mode As Boolean
     
     mnuUsePrivateKey.Checked = vt.usingPrivateKey
+    mnuBulkDownload.Enabled = vt.usingPrivateKey
+    
     mnuPopup.Visible = False
     Set vt.owner = Me
     txtCacheDir = GetSetting("vt", "settings", "cachedir", "c:\VT_Cache")
@@ -477,6 +482,7 @@ Private Sub Form_Load()
 errorStartup:
     List1.AddItem "Designed to be run from right click menus in explorer."
     List1.AddItem "You can add bulk hash lists to lookup by right click on listview"
+    List1.AddItem "If you have a private api key set, you can use Options->Bulk Download"
     Me.Show
 End Sub
 
@@ -504,10 +510,15 @@ Private Function PathForHash(hash As String) As String
     Next
 End Function
 
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
+
+Private Sub mnuBulkDownload_Click()
+    frmBulkDownload.Show
+    Unload Me
+End Sub
 
 Private Sub mnuClearCache_Click()
     
@@ -775,15 +786,15 @@ Private Sub mnuSubmitSelected_Click()
 End Sub
 
 Private Sub mnuUsePrivateKey_Click()
-    Dim X As String
+    Dim x As String
     
-    X = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
+    x = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
                  "Enter an empty string or hit cancel to clear the private key." & vbCrLf & vbCrLf & "Your key will be stored in the registry.", _
                  "Enter private api key", _
                  vt.ReadPrivateApiKey _
         )
                  
-    vt.SetPrivateApiKey X
+    vt.SetPrivateApiKey x
     mnuUsePrivateKey.Checked = vt.usingPrivateKey
     
     If vt.usingPrivateKey Then

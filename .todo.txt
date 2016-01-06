@@ -1,3 +1,4 @@
 
 virustotal: lower textbox to rtf, highlight all matches yellow on selection
 vt download bulk 
+strings offsets not x64 safe, offset calc not x64 aware..
