@@ -1,4 +1,4 @@
-ÿÿdrag and drop data file here, or double click to paste clipboard
+ÿwdrag and drop data file here, or double click to paste clipboard
 example data input formats:
 
 00401000   CALL DWORD PTR DS:[405100]                KERNEL32.FreeConsole
@@ -7,3 +7,5 @@ example data input formats:
 43434394 >7C91137A  ntdll.RtlDeleteCriticalSection
 000b41bc  7c81473b kernel32!MoveFileExW
 000000018000F000  000007FEFDF3B5A0  ADVAPI32:advapi32_SetSecurityDescriptorDacl
+  dword_414F44 = (int)GetProcAddress(v0, aGetprocesshand);
+  dword_414F48 = (int)GetProcAddress(v0, aGetprocessheap);

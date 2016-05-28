@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
-Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "richtx32.ocx"
 Begin VB.Form frmtlbViewer 
    BackColor       =   &H8000000A&
    Caption         =   "Type Library Viewer"
@@ -22,7 +22,6 @@ Begin VB.Form frmtlbViewer
       _ExtentX        =   11536
       _ExtentY        =   8520
       _Version        =   393217
-      Enabled         =   -1  'True
       ScrollBars      =   3
       TextRTF         =   $"frmTlbViewer.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -143,6 +142,9 @@ Begin VB.Form frmtlbViewer
       End
       Begin VB.Menu mnuFullProtos 
          Caption         =   "Compact Prototypes"
+      End
+      Begin VB.Menu mnuCopyFuncNames 
+         Caption         =   "Copy Names"
       End
    End
 End
@@ -319,6 +321,28 @@ Private Sub mnuCollapseAll_Click()
     tv.Nodes(1).EnsureVisible
 End Sub
 
+Private Sub mnuCopyFuncNames_Click()
+    
+    If ActiveNode Is Nothing Then Exit Sub
+    If TypeName(ActiveNode.Tag) <> "CInterface" Then Exit Sub
+    
+    Dim c As CMember
+    Dim i As CInterface
+    Dim tmp() As String
+    
+    Set i = ActiveNode.Tag
+
+    For Each c In i.mMembers
+        push tmp, c.Name
+    Next
+    
+    Clipboard.Clear
+    Clipboard.SetText Join(tmp, vbCrLf)
+    
+    MsgBox i.mMembers.Count & " names copied.", vbInformation
+
+End Sub
+
 Private Sub mnuExpandAll_Click()
     Dim n As Node
     For Each n In tv.Nodes
@@ -367,6 +391,12 @@ Private Sub text2_Change()
 End Sub
 
 Private Sub tv_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
+    On Error Resume Next
+    mnuCopyFuncNames.Enabled = False
+    If Not ActiveNode Is Nothing Then
+        'If ActiveNode.Children > 0 Then mnuCopyFuncNames.Enabled = True
+        If TypeName(ActiveNode.Tag) = "CInterface" Then mnuCopyFuncNames.Enabled = True
+    End If
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 

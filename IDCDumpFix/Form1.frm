@@ -10,6 +10,22 @@ Begin VB.Form Form1
    ScaleHeight     =   6150
    ScaleWidth      =   8880
    StartUpPosition =   1  'CenterOwner
+   Begin VB.CheckBox chkHeader 
+      Caption         =   "main()"
+      Height          =   285
+      Left            =   1800
+      TabIndex        =   12
+      Top             =   810
+      Width           =   3030
+   End
+   Begin VB.CommandButton cmdPaste 
+      Caption         =   "Paste"
+      Height          =   375
+      Left            =   7695
+      TabIndex        =   11
+      Top             =   135
+      Width           =   1140
+   End
    Begin VB.CommandButton cmdOpen 
       Caption         =   "1"
       BeginProperty Font 
@@ -22,34 +38,34 @@ Begin VB.Form Form1
          Strikethrough   =   0   'False
       EndProperty
       Height          =   360
-      Left            =   4410
+      Left            =   4455
       TabIndex        =   10
       Top             =   135
       Width           =   480
    End
    Begin VB.CheckBox chkshowfails 
       Caption         =   "Show failed lines"
-      Height          =   375
-      Left            =   5310
+      Height          =   330
+      Left            =   45
       TabIndex        =   9
-      Top             =   585
+      Top             =   765
       Width           =   1635
    End
    Begin VB.CheckBox chkUniqueOnly 
       Caption         =   "Unique Only (disable for delphi apps)"
       Height          =   330
-      Left            =   2160
+      Left            =   1845
       TabIndex        =   8
-      Top             =   585
+      Top             =   495
       Value           =   1  'Checked
       Width           =   2940
    End
    Begin VB.CheckBox Check1 
       Caption         =   "Make Unk"
       Height          =   255
-      Left            =   540
+      Left            =   45
       TabIndex        =   7
-      Top             =   630
+      Top             =   495
       Width           =   1335
    End
    Begin VB.CommandButton cmdHelp 
@@ -64,7 +80,7 @@ Begin VB.Form Form1
    Begin VB.CommandButton cmdSave 
       Caption         =   "Save As"
       Height          =   375
-      Left            =   4980
+      Left            =   5025
       TabIndex        =   5
       Top             =   120
       Width           =   1395
@@ -97,10 +113,10 @@ Begin VB.Form Form1
    Begin VB.CommandButton Command2 
       Caption         =   "Copy"
       Height          =   375
-      Left            =   6420
+      Left            =   6435
       TabIndex        =   2
-      Top             =   120
-      Width           =   1095
+      Top             =   135
+      Width           =   1230
    End
    Begin VB.TextBox Text2 
       BeginProperty Font 
@@ -112,22 +128,22 @@ Begin VB.Form Form1
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   5010
+      Height          =   4920
       Left            =   0
       MultiLine       =   -1  'True
       OLEDropMode     =   1  'Manual
       ScrollBars      =   3  'Both
       TabIndex        =   1
       Text            =   "Form1.frx":0000
-      Top             =   1065
+      Top             =   1155
       Width           =   8775
    End
    Begin VB.CommandButton Command1 
       Caption         =   "Generate IDC"
-      Height          =   375
-      Left            =   7560
+      Height          =   420
+      Left            =   7650
       TabIndex        =   0
-      Top             =   120
+      Top             =   585
       Width           =   1215
    End
 End
@@ -176,6 +192,10 @@ Private Sub cmdOpen_Click()
     f = dlg.OpenDialog(AllFiles)
     If Len(f) = 0 Then Exit Sub
     Text2 = fso.ReadFile(f)
+End Sub
+
+Private Sub cmdPaste_Click()
+    Text2 = Clipboard.GetText
 End Sub
 
 Private Sub cmdSave_Click()
@@ -227,6 +247,8 @@ Private Sub Command1_Click()
             PointerTable l, addr, import
         ElseIf isIDAImport(l) Then
             IDAImport l, addr, import
+        ElseIf isHexRaysGetProc(l) Then
+            HexRaysGetProc l, addr, import
         Else
             ' This is to prevent lines that are invalid from producing duplicates later.
             import = ""
@@ -266,10 +288,15 @@ Private Sub Command1_Click()
         
 nextone:
     Next
-    
+
     note = vbCrLf & "// " & hits & " of " & (UBound(f) + 1) & " lines added" & vbCrLf & vbCrLf
     If chkshowfails.Value = 1 Then note = note & "/* failed lines:" & vbCrLf & fails & "*/" & vbCrLf & vbCrLf
-    Text2 = note & header & tmp & "}"
+     
+    If chkHeader.Value Then
+        Text2 = note & header & tmp & "}"
+    Else
+        Text2 = note & Replace(tmp, vbTab, Empty)
+    End If
     
 End Sub
 
@@ -280,6 +307,34 @@ Sub lZeroTrim(l)
     Wend
 hell:
 End Sub
+
+Function isHexRaysGetProc(l) As Boolean
+    
+    If VBA.Left(l, 6) <> "dword_" Then Exit Function
+    If InStr(l, "GetProcAddress") < 1 Then Exit Function
+    isHexRaysGetProc = True
+     
+End Function
+
+Function HexRaysGetProc(fileLine, addrVar, importNameVar)
+    ' dword_414F60 = (int)GetProcAddress(v0, aGettempfilenam);
+    Dim tmp
+    On Error GoTo hell
+    
+    tmp = Replace(fileLine, vbTab, Empty)
+    tmp = Split(Trim(tmp), " ")
+    addrVar = Replace(tmp(0), "dword_", Empty)
+    importNameVar = tmp(UBound(tmp))
+    If Right(importNameVar, 1) = ";" Then importNameVar = Mid(importNameVar, 1, Len(importNameVar) - 1)
+    If Right(importNameVar, 1) = ")" Then importNameVar = Mid(importNameVar, 1, Len(importNameVar) - 1)
+    If VBA.Left(importNameVar, 1) = "a" Then importNameVar = Mid(importNameVar, 2)
+    
+    Exit Function
+hell:
+     ' addrVar = Empty
+     ' importNameVar = Empty
+     
+End Function
 
 Function IDAImport(fileLine, addrVar, importNameVar)
    '000000018000F000  000007FEFDF3B5A0  ADVAPI32:advapi32_SetSecurityDescriptorDacl

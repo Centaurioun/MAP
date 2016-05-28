@@ -9,6 +9,13 @@ Begin VB.Form Form2
    ScaleHeight     =   6345
    ScaleWidth      =   9210
    StartUpPosition =   2  'CenterScreen
+   Begin VB.TextBox txtFilter 
+      Height          =   330
+      Left            =   1395
+      TabIndex        =   10
+      Top             =   2115
+      Width           =   7755
+   End
    Begin VB.CommandButton cmdSubmit 
       Caption         =   "Submit File"
       Height          =   255
@@ -39,12 +46,12 @@ Begin VB.Form Form2
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   4155
+      Height          =   3705
       Left            =   0
       MultiLine       =   -1  'True
       ScrollBars      =   2  'Vertical
       TabIndex        =   5
-      Top             =   2100
+      Top             =   2550
       Width           =   9165
    End
    Begin VB.TextBox txtFile 
@@ -94,6 +101,14 @@ Begin VB.Form Form2
       TabIndex        =   1
       Top             =   480
       Width           =   4635
+   End
+   Begin VB.Label Label3 
+      Caption         =   "CSV Line Filters:"
+      Height          =   240
+      Left            =   45
+      TabIndex        =   9
+      Top             =   2160
+      Width           =   1635
    End
    Begin VB.Label Label4 
       BackColor       =   &H8000000B&
@@ -283,7 +298,7 @@ Private Sub Label4_Click()
     'If Err.Number <> 0 Then MsgBox Err.Description
 End Sub
 
-Private Sub List1_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub List1_MouseUp(Button As Integer, Shift As Integer, x As Single, Y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
@@ -301,3 +316,62 @@ Private Sub mnuViewRawJson_Click()
     On Error Resume Next
     Text1 = scan.RawJson
 End Sub
+
+Private Sub txtFilter_Change()
+    On Error Resume Next
+    
+    If Len(txtFilter.Text) = 0 Then
+        Text1 = scan.GetReport()
+        Exit Sub
+    End If
+    
+    Dim ret(), tmp() As String, x
+    Dim matches() As String, m
+    
+    matches = Split(txtFilter, ",")
+    tmp = Split(scan.GetReport(), vbCrLf)
+    
+    For i = 0 To 4
+        push ret, tmp(i)
+    Next
+    
+    For Each x In tmp
+        For Each m In matches
+            If Len(m) > 0 Then
+                If InStr(1, x, m, vbTextCompare) > 0 Then
+                   push ret, x
+                   Exit For
+                End If
+            End If
+        Next
+    Next
+    
+    If AryIsEmpty(ret) Then
+        Text1 = "No results for " & txtFilter
+    Else
+        Text1 = Join(ret, vbCrLf)
+    End If
+    
+    
+End Sub
+
+
+
+Sub push(ary, value) 'this modifies parent ary object
+    On Error GoTo init
+    x = UBound(ary) '<-throws Error If Not initalized
+    ReDim Preserve ary(UBound(ary) + 1)
+    ary(UBound(ary)) = value
+    Exit Sub
+init:     ReDim ary(0): ary(0) = value
+End Sub
+
+
+
+Function AryIsEmpty(ary) As Boolean
+  On Error GoTo oops
+    i = UBound(ary)  '<- throws error if not initalized
+    AryIsEmpty = False
+  Exit Function
+oops: AryIsEmpty = True
+End Function

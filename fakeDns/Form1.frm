@@ -10,6 +10,14 @@ Begin VB.Form Form1
    ScaleHeight     =   5190
    ScaleWidth      =   9870
    StartUpPosition =   3  'Windows Default
+   Begin VB.CommandButton cmdFlush 
+      Caption         =   "Flush Cache"
+      Height          =   330
+      Left            =   6030
+      TabIndex        =   13
+      Top             =   4815
+      Width           =   1095
+   End
    Begin VB.Frame Frame1 
       BorderStyle     =   0  'None
       Height          =   375
@@ -44,16 +52,16 @@ Begin VB.Form Form1
    End
    Begin VB.CommandButton cmdClear 
       Caption         =   "Clear"
-      Height          =   315
-      Left            =   7680
+      Height          =   330
+      Left            =   7560
       TabIndex        =   8
-      Top             =   4440
+      Top             =   4455
       Width           =   885
    End
    Begin VB.CommandButton cmdCopy 
       Caption         =   "Copy"
-      Height          =   285
-      Left            =   8970
+      Height          =   330
+      Left            =   9000
       TabIndex        =   7
       Top             =   4440
       Width           =   855
@@ -72,7 +80,7 @@ Begin VB.Form Form1
       TabIndex        =   1
       Text            =   "10.10.10.7"
       Top             =   4440
-      Width           =   1515
+      Width           =   1290
    End
    Begin VB.OptionButton Option2 
       Caption         =   "User defined"
@@ -120,12 +128,12 @@ Begin VB.Form Form1
    End
    Begin VB.CommandButton cmdListen 
       Caption         =   "Listen"
-      Height          =   315
-      Left            =   6240
+      Height          =   330
+      Left            =   6030
       TabIndex        =   2
       Tag             =   "0"
       Top             =   4440
-      Width           =   855
+      Width           =   1080
    End
    Begin VB.Label Label2 
       Caption         =   "Redirect DNS Queries to IP:"
@@ -268,6 +276,22 @@ Private Sub cmdCopy_Click()
     Next
     Clipboard.Clear
     Clipboard.SetText tmp
+End Sub
+
+Private Sub cmdFlush_Click()
+    On Error Resume Next
+    Dim tmp() As String, i As Long
+    
+    push tmp(), "ipconfig.exe /flushdns"
+    push tmp(), "net stop dnscache"
+    push tmp(), "net start dnscache"
+        
+    For i = 0 To UBound(tmp)
+        tmp(i) = tmp(i) & ": " & SuperShell(tmp(i), True, SW_HIDE)
+    Next
+    
+    txtLog = Now & vbCrLf & Join(tmp, vbCrLf)
+    
 End Sub
 
 Private Sub cmdListen_Click()

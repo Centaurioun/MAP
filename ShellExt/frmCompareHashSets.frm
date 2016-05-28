@@ -48,6 +48,7 @@ Begin VB.Form frmCompareHashSets
       Height          =   6465
       Left            =   5640
       MultiLine       =   -1  'True
+      OLEDropMode     =   1  'Manual
       ScrollBars      =   2  'Vertical
       TabIndex        =   1
       Top             =   450
@@ -66,6 +67,7 @@ Begin VB.Form frmCompareHashSets
       Height          =   6465
       Left            =   90
       MultiLine       =   -1  'True
+      OLEDropMode     =   1  'Manual
       ScrollBars      =   2  'Vertical
       TabIndex        =   0
       Top             =   420
@@ -205,17 +207,32 @@ Private Sub Command1_Click()
      
 End Sub
 
-Sub push(ary, Value) 'this modifies parent ary object
+Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
-    Dim x As Long
-    x = UBound(ary) '<-throws Error If Not initalized
+    Dim X As Long
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = Value
+    ary(UBound(ary)) = value
     Exit Sub
-init:     ReDim ary(0): ary(0) = Value
+init:     ReDim ary(0): ary(0) = value
 End Sub
 
 
 Private Sub Form_Load()
     Me.Icon = myIcon
 End Sub
+
+Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
+    On Error Resume Next
+    If fso.FileExists(Data.Files(1)) Then
+        Text1 = fso.ReadFile(Data.Files(1))
+    End If
+End Sub
+
+Private Sub Text2_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
+    On Error Resume Next
+    If fso.FileExists(Data.Files(1)) Then
+        Text2 = fso.ReadFile(Data.Files(1))
+    End If
+End Sub
+

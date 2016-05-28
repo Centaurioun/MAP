@@ -53,9 +53,9 @@ End Sub
 
 
 
-Sub glue(ary, value) 'this modifies parent ary object
+Sub glue(ary, value, Optional wSpace As Boolean = True)  'this modifies parent ary object
     On Error GoTo hell
-    ary(UBound(ary)) = ary(UBound(ary)) & " " & value
+    ary(UBound(ary)) = ary(UBound(ary)) & IIf(wSpace, " ", "") & value
 Exit Sub
 hell: push ary, value
       Stop
@@ -80,7 +80,7 @@ Function IsIde() As Boolean
 hell: IsIde = True
 End Function
 
-Sub dbg(msg)
+Sub dbg(Msg)
     'debug.Print msg
 End Sub
 

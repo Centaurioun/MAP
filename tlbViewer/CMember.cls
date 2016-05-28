@@ -144,6 +144,8 @@ Dim isFirst As Boolean
               Next
               
               glue tmp, vbCrLf & ")"
+        Else
+            glue tmp, "()", False
         End If
     End With
 

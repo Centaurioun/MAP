@@ -1,4 +1,16 @@
 
+Scan Date:   2016-01-21 12:32:43
+Hash:        e0f7dd83fade95b56f90b1d48ba807fe
+Detections:  6/53
+---------------------------------------------
+K7GW                Riskware ( 0040eff71 )
+K7AntiVirus         Riskware ( 0040eff71 )
+Avast               Win32:Malware-gen
+VIPRE               Trojan.Win32.Generic!BT
+McAfee-GW-Edition   BehavesLike.Win32.Dropper.vc
+McAfee              Artemis!E0F7DD83FADE
+
+
 fakedns:
 x CAT-QuickHeal       (Suspicious) - DNAScan
 x Avira               TR/Dropper.Gen
