@@ -778,3 +778,9 @@ End Sub
 Function TopLineIndex(x As Object) As Long
     TopLineIndex = SendMessage(x.hwnd, EM_GETFIRSTVISIBLELINE, 0, ByVal 0&) + 1
 End Function
+
+
+Function sizeLvCol(lv As ListView)
+    On Error Resume Next
+    lv.ColumnHeaders(lv.ColumnHeaders.Count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.Count - 1).Left - 100
+End Function

@@ -24,6 +24,7 @@ Module=mPEiDPlugin; mPEiDPlugin.bas
 Object={9A143468-B450-48DD-930D-925078198E4D}#1.1#0; hexed.ocx
 Form=frmHexView.frm
 RelatedDoc=ShellExt.vbc
+Form=frmRecursiveHashFiles.frm
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""

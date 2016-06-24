@@ -19,12 +19,12 @@ Begin VB.Form frmCompareHashSets
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   6465
+      Height          =   6240
       Left            =   11310
       MultiLine       =   -1  'True
       ScrollBars      =   2  'Vertical
       TabIndex        =   3
-      Top             =   450
+      Top             =   675
       Width           =   5985
    End
    Begin VB.CommandButton Command1 
@@ -45,13 +45,13 @@ Begin VB.Form frmCompareHashSets
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   6465
+      Height          =   6240
       Left            =   5640
       MultiLine       =   -1  'True
       OLEDropMode     =   1  'Manual
       ScrollBars      =   2  'Vertical
       TabIndex        =   1
-      Top             =   450
+      Top             =   675
       Width           =   5445
    End
    Begin VB.TextBox Text1 
@@ -64,13 +64,13 @@ Begin VB.Form frmCompareHashSets
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   6465
+      Height          =   6195
       Left            =   90
       MultiLine       =   -1  'True
       OLEDropMode     =   1  'Manual
       ScrollBars      =   2  'Vertical
       TabIndex        =   0
-      Top             =   420
+      Top             =   690
       Width           =   5445
    End
    Begin VB.Label Label3 
@@ -91,7 +91,7 @@ Begin VB.Form frmCompareHashSets
       Width           =   5115
    End
    Begin VB.Label Label2 
-      Caption         =   "Compare hash set ( one entry per line)"
+      Caption         =   "Compare hash set ( one entry per line)  can drop files here"
       BeginProperty Font 
          Name            =   "Courier"
          Size            =   9.75
@@ -101,14 +101,14 @@ Begin VB.Form frmCompareHashSets
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   255
+      Height          =   435
       Left            =   5670
       TabIndex        =   5
       Top             =   120
       Width           =   5115
    End
    Begin VB.Label Label1 
-      Caption         =   "Base Hash Set  ( one entry per line)"
+      Caption         =   "Base Hash Set  ( one entry per line)   can drop files here"
       BeginProperty Font 
          Name            =   "Courier"
          Size            =   9.75
@@ -118,7 +118,7 @@ Begin VB.Form frmCompareHashSets
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   285
+      Height          =   450
       Left            =   120
       TabIndex        =   4
       Top             =   120
@@ -209,8 +209,8 @@ End Sub
 
 Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
-    Dim X As Long
-    X = UBound(ary) '<-throws Error If Not initalized
+    Dim x As Long
+    x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = value
     Exit Sub
@@ -222,14 +222,14 @@ Private Sub Form_Load()
     Me.Icon = myIcon
 End Sub
 
-Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
     On Error Resume Next
     If fso.FileExists(Data.Files(1)) Then
         Text1 = fso.ReadFile(Data.Files(1))
     End If
 End Sub
 
-Private Sub Text2_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub Text2_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
     On Error Resume Next
     If fso.FileExists(Data.Files(1)) Then
         Text2 = fso.ReadFile(Data.Files(1))

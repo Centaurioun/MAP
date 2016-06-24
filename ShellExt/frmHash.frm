@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmHash 
    Caption         =   "Directory File Hasher - Right Click on ListView for Menu Options"
    ClientHeight    =   4080
@@ -108,6 +108,9 @@ Begin VB.Form frmHash
       Begin VB.Menu mnuMakeSubFolders 
          Caption         =   "Make folders for each"
       End
+      Begin VB.Menu mnuRecursiveHash 
+         Caption         =   "Hash all files below"
+      End
       Begin VB.Menu mnuSpacer33 
          Caption         =   "-"
       End
@@ -206,6 +209,10 @@ Private Sub mnuStringsDumpAll_Click()
     
 End Sub
 
+Private Sub mnuRecursiveHash_Click()
+    frmRecursiveHashFiles.RecursiveHashDir path
+End Sub
+
 Private Sub sc_MessageReceived(hwnd As Long, wMsg As Long, wParam As Long, lParam As Long, Cancel As Boolean)
     If wParam = IDM_COMPARE Then frmCompareHashSets.Show
     If wParam = IDM_HASHSEARCH Then
@@ -275,7 +282,7 @@ End Function
 
 Sub setpb(cur, max)
     On Error Resume Next
-    pb.Value = (cur / max) * 100
+    pb.value = (cur / max) * 100
     Me.Refresh
     DoEvents
 End Sub
@@ -304,19 +311,26 @@ Sub HashDir(dPath As String, Optional diffMode As Boolean = False)
     RevertRedir fs
     
     If AryIsEmpty(f) Then
-        MsgBox "No files in this directory", vbInformation
-        GoTo done
+        If MsgBox("No files in this directory, do you want to hash all files within all subfolders?", vbInformation + vbYesNo) = vbNo Then
+            GoTo done
+        Else
+            frmRecursiveHashFiles.RecursiveHashDir dPath
+            RevertRedir fs
+            isComplete = True
+            Unload Me
+            Exit Sub
+        End If
     End If
      
     'MsgBox "Going to scan " & UBound(f) & " files"
-    pb.Value = 0
+    pb.value = 0
     Me.Visible = True
     
     For i = 0 To UBound(f)
          handleFile f(i)
          setpb i, UBound(f)
     Next
-    pb.Value = 0
+    pb.value = 0
     'MsgBox "ready to show"
      
     On Error Resume Next
@@ -352,7 +366,7 @@ Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
     LV_ColumnSort lv, ColumnHeader
 End Sub
 
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
     If Button = vbRightButton Then PopupMenu mnuPopup
 End Sub
 
@@ -449,8 +463,8 @@ Private Sub mnuDeleteDuplicates_Click()
     
     Close
     
-    Const msg As String = "Are you sure you want to DELETE all DUPLICATE files?"
-    If MsgBox(msg, vbYesNo) = vbNo Then Exit Sub
+    Const Msg As String = "Are you sure you want to DELETE all DUPLICATE files?"
+    If MsgBox(Msg, vbYesNo) = vbNo Then Exit Sub
     
     For Each li In lv.ListItems
         h = li.SubItems(2)
@@ -543,8 +557,8 @@ Private Sub mnuDeleteSelected_Click()
     Dim f As String
     On Error Resume Next
     
-    Const msg As String = "Are you sure you want to delete these files?"
-    If MsgBox(msg, vbYesNo + vbInformation) = vbNo Then Exit Sub
+    Const Msg As String = "Are you sure you want to delete these files?"
+    If MsgBox(Msg, vbYesNo + vbInformation) = vbNo Then Exit Sub
     
     
 nextone:

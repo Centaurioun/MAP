@@ -1,6 +1,6 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
-Object = "{9A143468-B450-48DD-930D-925078198E4D}#1.0#0"; "hexed.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{9A143468-B450-48DD-930D-925078198E4D}#1.1#0"; "hexed.ocx"
 Begin VB.Form Form1 
    Caption         =   "PECarve http://sandsprite.com"
    ClientHeight    =   9855
@@ -132,11 +132,15 @@ Private Sub cmdExtract_Click()
     Dim f As Long, f1 As Long
     Dim fp As String
     Dim li2 As ListItem
+    Dim tmp As String
     
     'On Error Resume Next
     lv2.ListItems.Clear
     
-    pf = fso.GetParentFolder(LoadedFile) & "\pecarve"
+    tmp = fso.GetBaseName(LoadedFile)
+    If Len(tmp) > 8 Then tmp = Mid(tmp, 1, 8)
+    
+    pf = fso.GetParentFolder(LoadedFile) & "\" & tmp & "_pecarve"
     If Not fso.FolderExists(pf) Then MkDir pf
     
     f = FreeFile
