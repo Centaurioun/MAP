@@ -13,6 +13,10 @@ Begin VB.Form frmFileHash
    ScaleWidth      =   6270
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
+   Begin VB.Timer Timer1 
+      Left            =   5850
+      Top             =   675
+   End
    Begin VB.PictureBox pictIcon 
       Appearance      =   0  'Flat
       AutoRedraw      =   -1  'True
@@ -24,7 +28,7 @@ Begin VB.Form frmFileHash
       Left            =   5580
       ScaleHeight     =   675
       ScaleWidth      =   675
-      TabIndex        =   5
+      TabIndex        =   4
       Top             =   0
       Visible         =   0   'False
       Width           =   675
@@ -52,19 +56,6 @@ Begin VB.Form frmFileHash
          Top             =   0
          Width           =   1215
       End
-      Begin VB.Label lblMore 
-         Alignment       =   2  'Center
-         Appearance      =   0  'Flat
-         BackColor       =   &H80000005&
-         BorderStyle     =   1  'Fixed Single
-         Caption         =   "More"
-         ForeColor       =   &H80000008&
-         Height          =   255
-         Left            =   60
-         TabIndex        =   4
-         Top             =   60
-         Width           =   615
-      End
    End
    Begin VB.TextBox Text1 
       Appearance      =   0  'Flat
@@ -87,7 +78,7 @@ Begin VB.Form frmFileHash
       Width           =   5775
    End
    Begin VB.Menu mnuPopup 
-      Caption         =   "mnuPopup"
+      Caption         =   "Actions"
       Begin VB.Menu mnuNameMD5 
          Caption         =   "Rename to MD5"
       End
@@ -102,55 +93,71 @@ Begin VB.Form frmFileHash
       End
       Begin VB.Menu mnuSpacer 
          Caption         =   "-"
+         Visible         =   0   'False
       End
-      Begin VB.Menu mnuVt 
-         Caption         =   "Virus Total"
+   End
+   Begin VB.Menu mnuMoreHashs 
+      Caption         =   "InfoLevel"
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "MD5"
+         Index           =   0
+         Visible         =   0   'False
+      End
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "SHA1"
+         Index           =   1
+      End
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "SHA256"
+         Index           =   2
+      End
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "SHA512"
+         Index           =   3
+      End
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "File Properties"
+         Index           =   4
+      End
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "VirusTotal"
+         Index           =   5
+      End
+   End
+   Begin VB.Menu mnuVTParent 
+      Caption         =   "VirusTotal"
+      Begin VB.Menu mnuVT 
+         Caption         =   "View Results"
+      End
+      Begin VB.Menu mnuGotoScan 
+         Caption         =   "Goto Scan Page"
       End
       Begin VB.Menu mnuSubmitToVT 
          Caption         =   "Submit To VirusTotal"
       End
       Begin VB.Menu mnuSpacer2 
          Caption         =   "-"
+         Visible         =   0   'False
       End
-      Begin VB.Menu mnuMoreHashs 
-         Caption         =   "More Hashs"
-         Begin VB.Menu mnuCopyHashMore 
-            Caption         =   "MD5"
-            Index           =   0
-            Visible         =   0   'False
-         End
-         Begin VB.Menu mnuCopyHashMore 
-            Caption         =   "SHA1"
-            Index           =   1
-         End
-         Begin VB.Menu mnuCopyHashMore 
-            Caption         =   "SHA256"
-            Index           =   2
-         End
-         Begin VB.Menu mnuCopyHashMore 
-            Caption         =   "SHA512"
-            Index           =   3
-         End
+   End
+   Begin VB.Menu mnuExternal 
+      Caption         =   "External"
+      Begin VB.Menu mnuKryptoAnalyzer 
+         Caption         =   "Krypto Analyzer"
       End
-      Begin VB.Menu mnuExternal 
-         Caption         =   "External"
-         Begin VB.Menu mnuKryptoAnalyzer 
-            Caption         =   "Krypto Analyzer"
-         End
-         Begin VB.Menu mnuSearchFileName 
-            Caption         =   "Google File Name"
-         End
-         Begin VB.Menu mnuSearchHash 
-            Caption         =   "Google File MD5"
-         End
-         Begin VB.Menu mnuExt 
-            Caption         =   "Edit Cfg"
-            Index           =   0
-         End
-         Begin VB.Menu mnuExt 
-            Caption         =   "-"
-            Index           =   1
-         End
+      Begin VB.Menu mnuSearchFileName 
+         Caption         =   "Google File Name"
+      End
+      Begin VB.Menu mnuSearchHash 
+         Caption         =   "Google File MD5"
+      End
+      Begin VB.Menu mnuExt 
+         Caption         =   "Edit Cfg"
+         Index           =   0
+      End
+      Begin VB.Menu mnuExt 
+         Caption         =   "-"
+         Index           =   1
       End
    End
 End
@@ -162,6 +169,10 @@ Attribute VB_Exposed = False
 Dim myMd5 As String
 Dim LoadedFile As String
 Dim isPE As Boolean
+Dim scan As CScan
+Dim vt As New CVirusTotal
+Dim hashs() 'checked menu names (infolevel)
+
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hInst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
 Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
@@ -263,7 +274,20 @@ Sub ShowFileStats(fPath As String)
             If Len(issuer) > 0 Then push ret(), rpad("Issuer:") & issuer
         End If
     End If
-              
+    
+    If mnuCopyHashMore(5).Checked Then
+       If scan Is Nothing Then
+            Set scan = vt.GetReport(myMd5)
+       End If
+       mnuGotoScan.enabled = (Len(scan.permalink) > 0)
+       mnuVT.enabled = mnuGotoScan.enabled
+       push ret(), scan.BriefReport()
+    End If
+
+    If mnuCopyHashMore(4).Checked Then
+       push ret(), vbCrLf & FileProps.QuickInfo(fPath, False)
+    End If
+        
     mnuFileProps.enabled = isPE
     mnuOffsetCalc.enabled = isPE
     
@@ -272,9 +296,9 @@ Sub ShowFileStats(fPath As String)
     Font = Text1.Font
     Text1.Height = TextHeight(Text1.Text) + 200
     Text1.Width = TextWidth(Text1.Text) + 200
-    Me.Height = Text1.Top + Text1.Height + fraLower.Height + 400
+    Me.Height = Text1.Top + Text1.Height + fraLower.Height + 600
     Me.Width = Text1.Width + Text1.Left + 400
-    fraLower.Top = Me.Height - fraLower.Height - 400
+    fraLower.Top = Me.Height - fraLower.Height - 650
     
     If ShowIcon(fPath, pictIcon.hDC) Then
         'Me.Width = Me.Width + pictIcon.Width '+ 50
@@ -318,10 +342,10 @@ End Sub
 
 Private Sub Form_Load()
     
-    mnuPopup.Visible = False 'IsIde()
     pictIcon.BackColor = &H8000000F
     
     Me.Icon = myIcon
+    vt.TimerObj = Timer1
     
     Dim ext As String
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
@@ -335,8 +359,7 @@ Private Sub Form_Load()
     
     On Error Resume Next
     
-    Dim hashs()
-    hashs = Array("MD5", "SHA1", "SHA256", "SHA512")
+    hashs = Array("MD5", "SHA1", "SHA256", "SHA512", "FileProps", "VirusTotal")
     
     For i = 0 To mnuCopyHashMore.Count - 1
         mnuCopyHashMore(i).Checked = CBool(GetMySetting(hashs(i), IIf(i = 0, True, False)))
@@ -345,9 +368,6 @@ Private Sub Form_Load()
     
 End Sub
 
-Private Sub lblMore_Click()
-    PopupMenu mnuPopup
-End Sub
 
 Private Sub mnuCopyHashMore_Click(index As Integer)
     
@@ -360,10 +380,7 @@ Private Sub mnuCopyHashMore_Click(index As Integer)
 '
 '    Clipboard.Clear
 '    Clipboard.SetText h
-    
-    Dim hashs()
-    hashs = Array("MD5", "SHA1", "SHA256", "SHA512")
-    
+ 
     mnuCopyHashMore(index).Checked = Not mnuCopyHashMore(index).Checked
     SaveMySetting hashs(index), mnuCopyHashMore(index).Checked
     Me.ShowFileStats LoadedFile
@@ -400,6 +417,17 @@ Private Sub mnuFileProps_Click()
     f = fso.GetFreeFileName(Environ("temp"))
     fso.WriteFile f, vbCrLf & vbCrLf & tmp
     Shell "notepad.exe """ & f & """", vbNormalFocus
+End Sub
+
+Private Sub mnuGotoScan_Click()
+    If scan Is Nothing Then
+        Set scan = vt.GetReport(myMd5)
+    End If
+    If scan.HadError Then
+        MsgBox scan.BriefReport
+    Else
+        scan.VisitPage
+    End If
 End Sub
 
 Private Sub mnuKryptoAnalyzer_Click()
@@ -459,7 +487,23 @@ Private Sub mnuSubmitToVT_Click()
 End Sub
 
 Private Sub mnuVt_Click()
-    cmdVT_Click
+    
+    On Error Resume Next
+    
+    If scan Is Nothing Then
+        cmdVT_Click
+        Exit Sub
+    End If
+    
+    If scan.HadError Then
+        MsgBox scan.BriefReport
+    Else
+        Dim tmp As String
+        tmp = fso.GetFreeFileName(Environ("temp"))
+        fso.WriteFile tmp, vbCrLf & scan.GetReport()
+        Shell "notepad.exe """ & tmp & """", vbNormalFocus
+    End If
+    
 End Sub
 
 Sub AddExternal(cmd As String)
@@ -481,5 +525,9 @@ Sub AddExternal(cmd As String)
     mnuExt(i).Caption = Trim(tmp(0))
     mnuExt(i).Visible = True
     mnuExt(i).Tag = Trim(tmp(1))
+    
+End Sub
+
+Private Sub mnuVTBrief_Click()
     
 End Sub

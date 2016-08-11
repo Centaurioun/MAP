@@ -11,6 +11,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
+'8.5.16 - includes first seen date in default report if using private api key
+
 Dim http As XMLHTTP
 
 Const URL_API_BASIS = "http://www.virustotal.com/vtapi/v2/"
@@ -192,7 +194,7 @@ On Error GoTo hell
      
 1    http.Open "POST", URL_API_BASIS & URL_FILE_REPORT, False
 2    http.setRequestHeader "Content-type", "application/x-www-form-urlencoded"
-     If Not doSend("key=" & API_KEY & "&resource=" & hash) Then
+     If Not doSend("key=" & API_KEY & "&resource=" & hash & IIf(usingPrivateKey, "&allinfo=1", "")) Then
         List1.AddItem "Error in Get_Web_Report http.send failed desc: " & Err.Description & " ReadyState: " & http.readyState & " Status: " & http.status
         If repeatOnce Then
             repeatOnce = False

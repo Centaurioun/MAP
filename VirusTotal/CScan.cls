@@ -49,6 +49,7 @@ Public sha256
 Public positives
 Public total
 Public md5
+Public first_seen
 
 Public LocalFilePath 'not part of VT response, we add manually for UI
 
@@ -70,6 +71,8 @@ Public Function GetReport() As String
     Else
 
         tmp = "Scan Date:   " & Me.scan_date & vbCrLf
+        If Len(first_seen) > 0 Then tmp = tmp & "First Seen:  " & first_seen & vbCrLf
+        
         tmp = tmp & "Hash:        " & Me.md5 & vbCrLf
         tmp = tmp & "Detections:  " & Me.positives & "/" & Me.total & vbCrLf
         
@@ -123,6 +126,7 @@ Public Function setbyname(name As Variant, value As Variant)
         Case "positives": positives = value
         Case "total": total = value
         Case "md5": md5 = value
+        Case "first_seen": first_seen = value
     End Select
     
 End Function

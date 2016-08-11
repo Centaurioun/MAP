@@ -261,20 +261,22 @@ Function HexDump(ByVal str, Optional hexOnly = 0, Optional offset As Long = 0) A
     
 End Function
 
-Function QuickInfo(fileName As String)
+Function QuickInfo(fileName As String, Optional showIfBlank = True)
     Dim f As FILEPROPERTIE
+    Dim tmp() As String
     
     f = FileInfo(fileName)
     
-    QuickInfo = "CompanyName      " & f.CompanyName & vbCrLf & _
-                "FileDescription  " & f.FileDescription & vbCrLf & _
-                "FileVersion      " & f.FileVersion & vbCrLf & _
-                "InternalName     " & f.InternalName & vbCrLf & _
-                "LegalCopyright   " & f.LegalCopyright & vbCrLf & _
-                "OriginalFilename " & f.OrigionalFileName & vbCrLf & _
-                "ProductName      " & f.ProductName & vbCrLf & _
-                "ProductVersion   " & FileInfo.ProductVersion
+    If Len(f.CompanyName) > 0 Or showIfBlank Then push tmp, "CompanyName      " & f.CompanyName
+    If Len(f.FileDescription) > 0 Or showIfBlank Then push tmp, "FileDescription  " & f.FileDescription
+    If Len(f.FileVersion) > 0 Or showIfBlank Then push tmp, "FileVersion      " & f.FileVersion
+    If Len(f.InternalName) > 0 Or showIfBlank Then push tmp, "InternalName     " & f.InternalName
+    If Len(f.LegalCopyright) > 0 Or showIfBlank Then push tmp, "LegalCopyright   " & f.LegalCopyright
+    If Len(f.OrigionalFileName) > 0 Or showIfBlank Then push tmp, "OriginalFilename " & f.OrigionalFileName
+    If Len(f.ProductName) > 0 Or showIfBlank Then push tmp, "ProductName      " & f.ProductName
+    If Len(f.ProductVersion) > 0 Or showIfBlank Then push tmp, "ProductVersion   " & f.ProductVersion
                 
+    QuickInfo = Join(tmp, vbCrLf)
 
 End Function
 
@@ -395,14 +397,14 @@ End Function
 
 
 
-Private Sub push(ary, Value) 'this modifies parent ary object
+Private Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
     Dim x As Integer
     x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = Value
+    ary(UBound(ary)) = value
     Exit Sub
-init:     ReDim ary(0): ary(0) = Value
+init:     ReDim ary(0): ary(0) = value
 End Sub
 
  
