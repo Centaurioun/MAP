@@ -13,6 +13,12 @@ Begin VB.Form frmFileHash
    ScaleWidth      =   6270
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
+   Begin VB.Timer Timer2 
+      Enabled         =   0   'False
+      Interval        =   100
+      Left            =   5850
+      Top             =   1110
+   End
    Begin VB.Timer Timer1 
       Left            =   5850
       Top             =   675
@@ -173,16 +179,22 @@ Dim scan As CScan
 Dim vt As New CVirusTotal
 Dim hashs() 'checked menu names (infolevel)
 
-Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
-Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hInst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
-Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
+Dim WithEvents subclass As CSubclass2
+Attribute subclass.VB_VarHelpID = -1
+Dim kanal As Cwindow
 
-Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal Y As Long = 0) As Boolean
+Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
+Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hINst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
+
+Const WM_COMMAND = &H111
+
+Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal X As Long = 0, Optional ByVal Y As Long = 0) As Boolean
     Dim hIcon As Long
     hIcon = ExtractIcon(App.hInstance, fileName, iconIndex)
 
     If hIcon Then
-        DrawIcon hDC, x, Y, hIcon
+        DrawIcon hDC, X, Y, hIcon
         ShowIcon = True
     End If
     
@@ -342,6 +354,7 @@ End Sub
 
 Private Sub Form_Load()
     
+    Set subclass = New CSubclass2
     pictIcon.BackColor = &H8000000F
     
     Me.Icon = myIcon
@@ -352,8 +365,8 @@ Private Sub Form_Load()
     If fso.FileExists(ext) Then
         ext = fso.ReadFile(ext)
         tmp = Split(ext, vbCrLf)
-        For Each x In tmp
-            AddExternal CStr(x)
+        For Each X In tmp
+            AddExternal CStr(X)
         Next
     End If
     
@@ -361,7 +374,7 @@ Private Sub Form_Load()
     
     hashs = Array("MD5", "SHA1", "SHA256", "SHA512", "FileProps", "VirusTotal")
     
-    For i = 0 To mnuCopyHashMore.Count - 1
+    For i = 0 To mnuCopyHashMore.count - 1
         mnuCopyHashMore(i).Checked = CBool(GetMySetting(hashs(i), IIf(i = 0, True, False)))
     Next
     
@@ -431,7 +444,10 @@ Private Sub mnuGotoScan_Click()
 End Sub
 
 Private Sub mnuKryptoAnalyzer_Click()
-    LaunchPeidPlugin "kanal.dll", LoadedFile
+    Set kanal = Nothing
+    Timer2.Tag = 0
+    Timer2.enabled = True
+    LaunchPeidPlugin "kanal.dll", LoadedFile 'this is a modal dialog so we have to enable timer first...
 End Sub
 
 Private Sub mnuNameMD5_Click()
@@ -462,11 +478,11 @@ End Sub
 Private Sub mnuSearchFileName_Click()
     Dim f As String
     f = fso.FileNameFromPath(LoadedFile)
-    Google f, Me.hwnd
+    Google f, Me.hWnd
 End Sub
 
 Private Sub mnuSearchHash_Click()
-    Google myMd5, Me.hwnd
+    Google myMd5, Me.hWnd
 End Sub
 
 Private Sub mnuStrings_Click()
@@ -520,7 +536,7 @@ Sub AddExternal(cmd As String)
         Exit Sub
     End If
     
-    i = mnuExt.Count
+    i = mnuExt.count
     Load mnuExt(i)
     mnuExt(i).Caption = Trim(tmp(0))
     mnuExt(i).Visible = True
@@ -528,6 +544,59 @@ Sub AddExternal(cmd As String)
     
 End Sub
 
-Private Sub mnuVTBrief_Click()
+Private Sub Timer2_Timer()
+        
+    Dim c As Collection
+    Dim w As Cwindow
+    
+    'Debug.Print "Timer2"
+    
+    If Timer2.Tag = 7 Then      ' x attempts...
+        Timer2.enabled = False
+        Exit Sub
+    End If
+    
+    Timer2.Tag = Timer2.Tag + 1
+    
+    Set c = ChildWindows()
+    For Each w In c
+        If VBA.Left(w.Caption, 5) = "KANAL" Then
+            'Debug.Print Now & " - found kanal window attaching to " & w.hwnd & " (" & Hex(w.hwnd) & " )"
+            w.Caption = w.Caption & "+" & Timer2.Tag
+            Set kanal = w
+            subclass.AttachMessage w.hWnd, WM_COMMAND
+            'Debug.Print "Disabling timer now..."
+            Timer2.enabled = False
+            Exit Sub
+        End If
+    Next
     
 End Sub
+
+Private Sub subclass_MessageReceived(hWnd As Long, wMsg As Long, wParam As Long, lParam As Long, Cancel As Boolean)
+        
+        Dim c2 As Collection, wTv As Cwindow, tmp As String
+        
+        'we hooked WM_COMMAND for the kanal window
+        'we are looking for BN_Clicked in the hiword of wParam and our button id (1022) in the low word
+        'since bn_clicked = 0 we are going to take a shortcut and just look for 1022 in wparam
+        
+        'Debug.Print Now & " - received WM_COMMAND message for hwnd " & hwnd & " wParam = " & wParam
+        
+        If wParam = 1022 Then 'our new copy button
+            If kanal Is Nothing Then Exit Sub
+            If kanal.isValid Then
+                Set wTv = kanal.FindChild("SysTreeView32")
+                If wTv.isValid Then
+                     Set c2 = wTv.CopyRemoteTreeView()
+                     tmp = ColToStr(c2)
+                     Clipboard.Clear
+                     Clipboard.SetText tmp
+                     'kanal.CloseWindow
+                     MsgBox "Saved " & Len(tmp) & " bytes!", vbInformation
+                End If
+            End If
+        End If
+
+End Sub
+

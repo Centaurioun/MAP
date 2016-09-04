@@ -1,16 +1,45 @@
 Attribute VB_Name = "mPEiDPlugin"
 'David Zimmer <dzzie@yahoo.com>
 'http://sandsprite.com
+Public ccWindows As Collection
 
 Private Declare Function LoadLibrary Lib "kernel32" Alias "LoadLibraryA" (ByVal lpLibFileName As String) As Long
 Private Declare Sub DebugBreak Lib "kernel32" ()
 Private Declare Function GetProcAddress Lib "kernel32" (ByVal hModule As Long, ByVal lpProcName As String) As Long
-Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal length As Long)
-Private Declare Function CallAsm Lib "user32" Alias "CallWindowProcA" (ByRef lpBytes As Any, ByVal hwnd As Long, ByVal Msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
-Private Declare Function CallAsmAddr Lib "user32" Alias "CallWindowProcA" (ByVal lpCode As Long, ByVal hwnd As Long, ByVal Msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+Private Declare Function CallAsm Lib "user32" Alias "CallWindowProcA" (ByRef lpBytes As Any, ByVal hwnd As Long, ByVal msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Private Declare Function CallAsmAddr Lib "user32" Alias "CallWindowProcA" (ByVal lpCode As Long, ByVal hwnd As Long, ByVal msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
 Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As Long, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
 Private Declare Function VirtualFree Lib "kernel32" (ByVal lpAddress As Long, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
-Private Declare Sub RtlMoveMemory Lib "kernel32" (ByVal Destination As Long, ByVal Source As Long, ByVal length As Long)
+Private Declare Sub RtlMoveMemory Lib "kernel32" (ByVal Destination As Long, ByVal Source As Long, ByVal Length As Long)
+
+Public Declare Function EnumChildWindows Lib "user32" (ByVal hWndParent As Long, ByVal lpEnumFunc As Long, ByVal lParam As Long) As Long
+
+Function ChildWindows(Optional hwnd As Long = 0) As Collection 'of CWindow
+    
+    Set ccWindows = New Collection
+    X = EnumChildWindows(0, AddressOf mPEiDPlugin.EnumChildProc, ByVal 0&)
+    Set ChildWindows = ccWindows
+
+End Function
+
+Public Function EnumChildProc(ByVal hwnd As Long, ByVal lParam As Long) As Long
+    Dim c As New Cwindow
+    c.hwnd = hwnd
+    If Not IsObject(ccWindows) Then Set ccWindows = New Collection
+    ccWindows.Add c 'module level collection object...
+    EnumChildProc = 1  'continue enum
+End Function
+
+Function ColToStr(c As Collection) As String
+    Dim tmp() As String
+    
+    For Each X In c
+        push tmp, X
+    Next
+    
+    ColToStr = Join(tmp, vbCrLf)
+End Function
 
 Function LaunchPeidPlugin(dll As String, fPath As String)
     
@@ -107,16 +136,16 @@ Function CallCdecl(lpfn As Long, ParamArray args()) As Long
 End Function
 
 'endian swap and return spaced out hex string
-Private Function lng2Hex(x As Long) As String
+Private Function lng2Hex(X As Long) As String
     Dim b(1 To 4) As Byte
-    CopyMemory b(1), x, 4
+    CopyMemory b(1), X, 4
     lng2Hex = Hex(b(1)) & " " & Hex(b(2)) & " " & Hex(b(3)) & " " & Hex(b(4))
 End Function
 
 Private Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
-    Dim x As Long
-    x = UBound(ary) '<-throws Error If Not initalized
+    Dim X As Long
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = value
     Exit Sub
@@ -125,12 +154,12 @@ End Sub
 
 'not as efficient I know but cleaner to look at in the code
 'and easier to view/debug/change as a single string..tradeoffs
-Private Function toBytes(x As String) As Byte()
+Private Function toBytes(X As String) As Byte()
     Dim tmp() As String
     Dim fx() As Byte
     Dim i As Long
     
-    tmp = Split(x, " ")
+    tmp = Split(X, " ")
     ReDim fx(UBound(tmp))
     
     For i = 0 To UBound(tmp)
