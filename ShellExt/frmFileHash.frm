@@ -143,7 +143,9 @@ Begin VB.Form frmFileHash
       End
       Begin VB.Menu mnuSpacer2 
          Caption         =   "-"
-         Visible         =   0   'False
+      End
+      Begin VB.Menu mnuVTCache 
+         Caption         =   "Cache Results"
       End
    End
    Begin VB.Menu mnuExternal 
@@ -178,6 +180,7 @@ Dim isPE As Boolean
 Dim scan As CScan
 Dim vt As New CVirusTotal
 Dim hashs() 'checked menu names (infolevel)
+Dim vt_cache As String
 
 Dim WithEvents subclass As CSubclass2
 Attribute subclass.VB_VarHelpID = -1
@@ -357,6 +360,11 @@ Private Sub Form_Load()
     Set subclass = New CSubclass2
     pictIcon.BackColor = &H8000000F
     
+    mnuVTCache.Checked = GetMySetting("mnuVTCache", True)
+    vt_cache = Environ("temp") & "\vt_cache"
+    If Not fso.FolderExists(vt_cache) Then MkDir vt_cache
+    If mnuVTCache.Checked Then vt.report_cache_dir = vt_cache
+        
     Me.Icon = myIcon
     vt.TimerObj = Timer1
     
@@ -542,6 +550,12 @@ Sub AddExternal(cmd As String)
     mnuExt(i).Visible = True
     mnuExt(i).Tag = Trim(tmp(1))
     
+End Sub
+
+Private Sub mnuVTCache_Click()
+    mnuVTCache.Checked = Not mnuVTCache.Checked
+    SaveMySetting "mnuVTCache", mnuVTCache.Checked
+    vt.report_cache_dir = IIf(mnuVTCache.Checked, vt_cache, Empty)
 End Sub
 
 Private Sub Timer2_Timer()
