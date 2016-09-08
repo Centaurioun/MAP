@@ -43,6 +43,7 @@ Source: tlbViewer.exe; DestDir: {app}; Flags: ignoreversion
 Source: map_help.chm; DestDir: {app}
 Source: KANAL.dll; DestDir: {app}
 Source: delphi_filter.txt; DestDir: {app}
+Source: corflags.exe; DestDir: {app}
 
 [Dirs]
 

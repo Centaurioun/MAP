@@ -153,6 +153,9 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuKryptoAnalyzer 
          Caption         =   "Krypto Analyzer"
       End
+      Begin VB.Menu mnuCorFlags 
+         Caption         =   ".NET Force 32Bit"
+      End
       Begin VB.Menu mnuSearchFileName 
          Caption         =   "Google File Name"
       End
@@ -189,6 +192,7 @@ Dim kanal As Cwindow
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hINst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
 Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
+Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Const WM_COMMAND = &H111
 
@@ -267,6 +271,12 @@ Sub ShowFileStats(fPath As String)
     
     If isPE Then
         
+        If InStr(compiled, ".NET") > 0 Then
+            If InStr(compiled, "AnyCPU") > 0 Or InStr(compiled, "64 Bit") > 0 Then
+                mnuCorFlags.enabled = True
+            End If
+        End If
+                
         'If pe.LoadFile(fPath, Sections) Then 'little wasteful to load the pe twice (compile date 1st) but managable..
         '    If Len(Sections) > 0 Then push ret(), "Sections: " & Sections
         'End If
@@ -367,6 +377,7 @@ Private Sub Form_Load()
         
     Me.Icon = myIcon
     vt.TimerObj = Timer1
+    mnuCorFlags.enabled = False
     
     Dim ext As String
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
@@ -405,6 +416,29 @@ Private Sub mnuCopyHashMore_Click(index As Integer)
     mnuCopyHashMore(index).Checked = Not mnuCopyHashMore(index).Checked
     SaveMySetting hashs(index), mnuCopyHashMore(index).Checked
     Me.ShowFileStats LoadedFile
+    
+End Sub
+
+Private Sub mnuCorFlags_Click()
+    Dim exe As String
+    Dim f As String
+    
+    On Error Resume Next
+    
+    exe = App.path & "\CorFlags.exe"
+    If Not fso.FileExists(exe) Then exe = fso.GetParentFolder(App.path) & "\CorFlags.exe"
+    If Not fso.FileExists(exe) Then
+        MsgBox "Corflags.exe not found? " & exe
+        Exit Sub
+    End If
+    
+    f = fso.GetParentFolder(LoadedFile) & "\" & fso.GetBaseName(LoadedFile) & ".32bit"
+    If fso.FileExists(f) Then Kill f
+    FileCopy LoadedFile, f
+    
+    Shell """" & exe & """ """ & f & """ /32Bit+"
+    Sleep 500
+    ShowFileStats f
     
 End Sub
 
