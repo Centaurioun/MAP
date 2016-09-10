@@ -224,7 +224,7 @@ Enum eDATA_DIRECTORY
 End Enum
 
 Private Type MungeCurr
-    value As Double
+    Value As Double
 End Type
 
 Private Type Munge2Long
@@ -255,11 +255,42 @@ Private Type asmRefHeader
     hash As Integer
 End Type
 
+Public OSVersion As String
+Public LinkerVersion As String
+Public ImageVersion As String
+Public SubSysVersion As String
+
+Property Get PEVersionReport() As String
+    Dim tmp() As String
+    push tmp, "OSVersion: " & OSVersion
+    push tmp, "LinkerVersion: " & LinkerVersion
+    push tmp, "ImageVersion: " & ImageVersion
+    push tmp, "SubSysVersion: " & SubSysVersion
+    PEVersionReport = Join(tmp, vbCrLf)
+End Property
+
+Private Sub SetVersions64(ih As IMAGE_OPTIONAL_HEADER_64)
+    With ih
+        LinkerVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        OSVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        ImageVersion = .MajorImageVersion & "." & .MinorImageVersion
+        SubSysVersion = .MajorSubsystemVersion & "." & .MinorSubsystemVersion
+    End With
+End Sub
+
+Private Sub SetVersions(ih As IMAGE_OPTIONAL_HEADER)
+    With ih
+        LinkerVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        OSVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        ImageVersion = .MajorImageVersion & "." & .MinorImageVersion
+        SubSysVersion = .MajorSubsystemVersion & "." & .MinorSubsystemVersion
+    End With
+End Sub
 
 Function x64ToHex(v As Double) As String
     Dim c As MungeCurr
     Dim l As Munge2Long
-    c.value = v
+    c.Value = v
     LSet l = c
     If l.HiValue = 0 Then
         x64ToHex = Hex(l.LoValue)
@@ -301,11 +332,13 @@ Function LoadFile(fPath As String, Optional sections_csv As String) As Boolean
         
         If is64Bit Then
             Get f, , opt64
+            SetVersions64 opt64
             ImageBase64 = opt64.ImageBase
             EntryPoint64 = opt64.AddressOfEntryPoint
             cli = opt64.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
         Else
             Get f, , opt
+            SetVersions opt
             ImageBase = opt.ImageBase
             EntryPoint = opt.AddressOfEntryPoint
             cli = opt.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
@@ -334,6 +367,8 @@ hell:
     End Select
     
 End Function
+
+
 
 'Private Function GetDotNetSystemVersion() As String
 '
@@ -524,7 +559,7 @@ Private Function GetStringTableItem(fHand As Long, tableStartOffset As Long, ind
     
 End Function
 
-Private Function TableSizeByIndex(index As Long, itemCount As Long) As Long
+Private Function TableSizeByIndex(index As Long, ItemCount As Long) As Long
     
     Dim sizes()
     'modules = 10 bytes
@@ -549,7 +584,7 @@ Private Function TableSizeByIndex(index As Long, itemCount As Long) As Long
         Exit Function
     End If
     
-    TableSizeByIndex = sizes(index) * itemCount
+    TableSizeByIndex = sizes(index) * ItemCount
     
         
 End Function
@@ -605,7 +640,7 @@ End Function
  
 Function RvaToOffset(ByVal rva As Long, Optional ByRef VirtualSectionBase As Long, Optional sectName As String)
         
-    If Sections.Count = 0 Then
+    If Sections.count = 0 Then
         MsgBox "No Sections Loaded", vbInformation
         Exit Function
     End If
@@ -633,7 +668,7 @@ End Function
 
 Function OffsetToRVA(ByVal foffset As Long, Optional sectName As String)
     
-    If Sections.Count = 0 Then
+    If Sections.count = 0 Then
         'MsgBox "No Sections Loaded", vbInformation
         Exit Function
     End If
@@ -657,7 +692,7 @@ End Function
 
 Function GetSectionFromRVA(rva As Long) As CSection
       
-    If Sections.Count = 0 Then
+    If Sections.count = 0 Then
         MsgBox "No Sections Loaded", vbInformation
         Exit Function
     End If

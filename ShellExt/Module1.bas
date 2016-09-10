@@ -191,8 +191,8 @@ Public Enum tmMsgs
         EM_SETMARGINS = &HD3
 End Enum
 
-Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
-Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpszOp As String, ByVal lpszFile As String, ByVal lpszParams As String, ByVal LpszDir As String, ByVal FsShowCmd As Long) As Long
+Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpszOp As String, ByVal lpszFile As String, ByVal lpszParams As String, ByVal LpszDir As String, ByVal FsShowCmd As Long) As Long
 
 Private Declare Function Wow64DisableWow64FsRedirection Lib "kernel32.dll" (ByRef old As Long) As Long
 Private Declare Function Wow64RevertWow64FsRedirection Lib "kernel32.dll" (ByRef old As Long) As Long
@@ -262,7 +262,7 @@ End Enum
 Private Type SHELLEXECUTEINFO
         cbSize        As Long
         fMask         As Long
-        hwnd          As Long
+        hWnd          As Long
         lpVerb        As String
         lpFile        As String
         lpParameters  As String
@@ -294,6 +294,47 @@ Public Enum EShellShowConstants
         essSW_SHOWDEFAULT = 10
 End Enum
 
+Public OSVersion As String
+Public LinkerVersion As String
+Public ImageVersion As String
+Public SubSysVersion As String
+
+Function PEVersionReport(Optional compact As Boolean = False) As String
+    Dim tmp() As String
+    
+    If OSVersion = Empty Then Exit Function 'marker that its not set...
+    
+    If compact Then
+        PEVersionReport = "PEVersion:" & "OS:" & OSVersion & " Link:" & LinkerVersion & _
+                                         " Img:" & ImageVersion & " SubSys:" & SubSysVersion
+    Else
+        push tmp, rpad("OSVersion: ", 16) & OSVersion
+        push tmp, rpad("LinkerVersion: ", 16) & LinkerVersion
+        push tmp, rpad("ImageVersion: ", 16) & ImageVersion
+        push tmp, rpad("SubSysVersion: ", 16) & SubSysVersion
+        PEVersionReport = Join(tmp, vbCrLf)
+    End If
+    
+End Function
+
+Private Sub SetVersions64(ih As IMAGE_OPTIONAL_HEADER_64)
+    With ih
+        LinkerVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        OSVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        ImageVersion = .MajorImageVersion & "." & .MinorImageVersion
+        SubSysVersion = .MajorSubsystemVersion & "." & .MinorSubsystemVersion
+    End With
+End Sub
+
+Private Sub SetVersions(ih As IMAGE_OPTIONAL_HEADER)
+    With ih
+        LinkerVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        OSVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        ImageVersion = .MajorImageVersion & "." & .MinorImageVersion
+        SubSysVersion = .MajorSubsystemVersion & "." & .MinorSubsystemVersion
+    End With
+End Sub
+
 Public Function RunElevated(ByVal FilePath As String, Optional ShellShowType As EShellShowConstants = essSW_SHOWNORMAL, Optional ByVal hWndOwner As Long = 0, Optional EXEParameters As String = "") As Boolean
     Dim SEI As SHELLEXECUTEINFO
     Const SEE_MASK_DEFAULT = &H0
@@ -308,7 +349,7 @@ Public Function RunElevated(ByVal FilePath As String, Optional ShellShowType As 
         .nShow = ShellShowType              ' How the program will be displayed
         .lpDirectory = PathGetFolder(FilePath)
         .lpParameters = EXEParameters       ' Each parameter must be separated by space. If the lpFile member specifies a document file, lpParameters should be NULL.
-        .hwnd = hWndOwner                   ' Owner window handle
+        .hWnd = hWndOwner                   ' Owner window handle
         .lpVerb = "runas"
     End With
 
@@ -326,10 +367,10 @@ Private Function PathGetFolder(s) As String
 End Function
 
 Public Function IsVistaPlus() As Boolean
-    Dim osVersion As OSVERSIONINFO
-    osVersion.dwOSVersionInfoSize = Len(osVersion)
-    If GetVersionEx(osVersion) = 0 Then Exit Function
-    If osVersion.dwPlatformId <> VER_PLATFORM_WIN32_NT Or osVersion.dwMajorVersion < 6 Then Exit Function
+    Dim OSVersion As OSVERSIONINFO
+    OSVersion.dwOSVersionInfoSize = Len(OSVersion)
+    If GetVersionEx(OSVersion) = 0 Then Exit Function
+    If OSVersion.dwPlatformId <> VER_PLATFORM_WIN32_NT Or OSVersion.dwMajorVersion < 6 Then Exit Function
     IsVistaPlus = True
 End Function
 
@@ -353,13 +394,13 @@ Public Function IsUserAnAdministrator() As Boolean
     'If we’re on Vista onwards, check for UAC elevation token
     'as we may be an admin but we’re not elevated yet, so the
     'IsUserAnAdmin() function will return false
-    Dim osVersion As OSVERSIONINFO
-    osVersion.dwOSVersionInfoSize = Len(osVersion)
+    Dim OSVersion As OSVERSIONINFO
+    OSVersion.dwOSVersionInfoSize = Len(OSVersion)
     
-    If GetVersionEx(osVersion) = 0 Then Exit Function
+    If GetVersionEx(OSVersion) = 0 Then Exit Function
     
     'If the user is not on Vista or greater, then there’s no UAC, so don’t bother checking.
-    If osVersion.dwPlatformId <> VER_PLATFORM_WIN32_NT Or osVersion.dwMajorVersion < 6 Then Exit Function
+    If OSVersion.dwPlatformId <> VER_PLATFORM_WIN32_NT Or OSVersion.dwMajorVersion < 6 Then Exit Function
    
     hProcessID = GetCurrentProcess() 'get the token for the current process
     If hProcessID = 0 Then Exit Function
@@ -406,10 +447,10 @@ End Function
 
 Function pad(v, Optional l As Long = 8)
     On Error GoTo hell
-    Dim x As Long
-    x = Len(v)
-    If x < l Then
-        pad = String(l - x, " ") & v
+    Dim X As Long
+    X = Len(v)
+    If X < l Then
+        pad = String(l - X, " ") & v
     Else
 hell:
         pad = v
@@ -418,10 +459,10 @@ End Function
 
 Function rpad(v, Optional l As Long = 10)
     On Error GoTo hell
-    Dim x As Long
-    x = Len(v)
-    If x < l Then
-        rpad = v & String(l - x, " ")
+    Dim X As Long
+    X = Len(v)
+    If X < l Then
+        rpad = v & String(l - X, " ")
     Else
 hell:
         rpad = v
@@ -498,23 +539,23 @@ Function RevertRedir(old As Long) As Boolean 'really only reverts firstHandle wh
 End Function
 
 
-Function Google(hash As String, Optional hwnd As Long = 0)
+Function Google(hash As String, Optional hWnd As Long = 0)
     Const u = "http://www.google.com/#hl=en&output=search&q="
-    ShellExecute hwnd, "Open", u & hash, "", "C:\", 1
+    ShellExecute hWnd, "Open", u & hash, "", "C:\", 1
 End Function
 
-Sub push(ary, value) 'this modifies parent ary object
+Sub push(ary, Value) 'this modifies parent ary object
     On Error GoTo init
-    Dim x As Long
-    x = UBound(ary) '<-throws Error If Not initalized
+    Dim X As Long
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = value
+    ary(UBound(ary)) = Value
     Exit Sub
-init:     ReDim ary(0): ary(0) = value
+init:     ReDim ary(0): ary(0) = Value
 End Sub
 
-Sub SaveMySetting(key, value)
-    SaveSetting "iDefense", "ShellExt", key, value
+Sub SaveMySetting(key, Value)
+    SaveSetting "iDefense", "ShellExt", key, Value
 End Sub
 
 Function GetMySetting(key, def)
@@ -582,7 +623,7 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
         Dim i As Long
         Dim f As Long
         Dim buf(20) As Byte
-        Dim sbuf As String
+        Dim sBuf As String
         Dim fs As Long
         
         Dim DOSHEADER As IMAGEDOSHEADER
@@ -592,6 +633,7 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
         Dim isNative As Boolean
         Dim cli As Long
   
+        OSVersion = Empty 'module level
         out_isType = False
         
         fs = DisableRedir()
@@ -605,8 +647,8 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
         If DOSHEADER.e_magic <> &H5A4D Then
             Get f, 1, buf()
             Close f
-            sbuf = StrConv(buf(), vbUnicode, LANG_US)
-            GetCompileDateOrType = DetectFileType(sbuf, fPath)
+            sBuf = StrConv(buf(), vbUnicode, LANG_US)
+            GetCompileDateOrType = DetectFileType(sBuf, fPath)
             out_isType = True
             RevertRedir fs
             Exit Function
@@ -617,8 +659,8 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
         If NTHEADER.Signature <> "PE" & Chr(0) & Chr(0) Then
             Get f, 1, buf()
             Close f
-            sbuf = StrConv(buf(), vbUnicode, LANG_US)
-            GetCompileDateOrType = DetectFileType(sbuf, fPath)
+            sBuf = StrConv(buf(), vbUnicode, LANG_US)
+            GetCompileDateOrType = DetectFileType(sBuf, fPath)
             out_isType = True
             RevertRedir fs
             Exit Function
@@ -629,11 +671,13 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
         
         If is64Bit(NTHEADER.FileHeader.Machine) Then
             Get f, , opt64
+            SetVersions64 opt64
             cli = opt64.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
             If opt64.Subsystem = 1 Then isNative = True
             GetCompileDateOrType = GetCompileDateOrType & " - 64 Bit"
         Else
             Get f, , opt
+            SetVersions opt
             cli = opt.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
             If opt.Subsystem = 1 Then isNative = True
             If is32Bit(NTHEADER.FileHeader.Machine) Then GetCompileDateOrType = GetCompileDateOrType & " - 32 Bit"
@@ -699,7 +743,7 @@ Private Function isExe_orDll(chart As Integer) As String
 End Function
 
 
-Private Function is64Bit(m As Integer) As Boolean
+Function is64Bit(m As Integer) As Boolean
     If m = &H8664 Or m = &H200 Then 'AMD64 or IA64
         is64Bit = True
     End If
@@ -755,9 +799,9 @@ hell: DetectFileType = "Unknown FileType" '<-- subtle error identifier in missin
 End Function
 
 
-Sub ScrollToLine(t As Object, x As Integer)
-     x = x - TopLineIndex(t)
-     ScrollIncremental t, , x
+Sub ScrollToLine(t As Object, X As Integer)
+     X = X - TopLineIndex(t)
+     ScrollIncremental t, , X
 End Sub
 
 Sub ScrollIncremental(t As Object, Optional horz As Integer = 0, Optional vert As Integer = 0)
@@ -771,16 +815,16 @@ Sub ScrollIncremental(t As Object, Optional horz As Integer = 0, Optional vert A
     
     Dim r As Long
     r = CLng(&H10000 * horz) + vert
-    r = SendMessage(t.hwnd, EM_LINESCROLL, 0, ByVal r)
+    r = SendMessage(t.hWnd, EM_LINESCROLL, 0, ByVal r)
 
 End Sub
 
-Function TopLineIndex(x As Object) As Long
-    TopLineIndex = SendMessage(x.hwnd, EM_GETFIRSTVISIBLELINE, 0, ByVal 0&) + 1
+Function TopLineIndex(X As Object) As Long
+    TopLineIndex = SendMessage(X.hWnd, EM_GETFIRSTVISIBLELINE, 0, ByVal 0&) + 1
 End Function
 
 
 Function sizeLvCol(lv As ListView)
     On Error Resume Next
-    lv.ColumnHeaders(lv.ColumnHeaders.Count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.Count - 1).Left - 100
+    lv.ColumnHeaders(lv.ColumnHeaders.count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.count - 1).Left - 100
 End Function

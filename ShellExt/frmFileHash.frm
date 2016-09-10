@@ -97,6 +97,9 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuOffsetCalc 
          Caption         =   "Offset Calculator"
       End
+      Begin VB.Menu mnuPEVerInfo 
+         Caption         =   "PE Version Info"
+      End
       Begin VB.Menu mnuSpacer 
          Caption         =   "-"
          Visible         =   0   'False
@@ -128,6 +131,10 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuCopyHashMore 
          Caption         =   "VirusTotal"
          Index           =   5
+      End
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "PE Version"
+         Index           =   6
       End
    End
    Begin VB.Menu mnuVTParent 
@@ -217,7 +224,6 @@ Sub ShowFileStats(fPath As String)
     Dim fname As String
     Dim mySHA As String
     Dim Sections As String
-    Dim pe As New CPEEditor
     
     LoadedFile = fPath
     fs = DisableRedir()
@@ -227,7 +233,6 @@ Sub ShowFileStats(fPath As String)
         mnuNameMD5.enabled = False
     End If
     
-    'mySHA =
     sz = FileLen(fPath)
     RevertRedir fs
     
@@ -288,7 +293,9 @@ Sub ShowFileStats(fPath As String)
         End If
         
     End If
-        
+    
+    If isPE And mnuCopyHashMore(6).Checked Then push ret(), PEVersionReport(True)
+    
     Dim v As SigResults
     Dim subject As String, issuer As String
     v = VerifyFileSignature(fPath)
@@ -315,7 +322,8 @@ Sub ShowFileStats(fPath As String)
         
     mnuFileProps.enabled = isPE
     mnuOffsetCalc.enabled = isPE
-    
+    mnuPEVerInfo.enabled = isPE
+     
     Text1 = Join(ret, vbCrLf)
     
     Font = Text1.Font
@@ -391,7 +399,7 @@ Private Sub Form_Load()
     
     On Error Resume Next
     
-    hashs = Array("MD5", "SHA1", "SHA256", "SHA512", "FileProps", "VirusTotal")
+    hashs = Array("MD5", "SHA1", "SHA256", "SHA512", "FileProps", "VirusTotal", "PEVersion")
     
     For i = 0 To mnuCopyHashMore.count - 1
         mnuCopyHashMore(i).Checked = CBool(GetMySetting(hashs(i), IIf(i = 0, True, False)))
@@ -402,16 +410,6 @@ End Sub
 
 
 Private Sub mnuCopyHashMore_Click(index As Integer)
-    
-    
-'    Select Case index
-'        Case 0: h = "SHA1: " & hash.HashFile(LoadedFile, SHA)
-'        Case 1: h = "SHA256: " & hash.HashFile(LoadedFile, 256)
-'        Case 2: h = "SHA512: " & hash.HashFile(LoadedFile, 512)
-'    End Select
-'
-'    Clipboard.Clear
-'    Clipboard.SetText h
  
     mnuCopyHashMore(index).Checked = Not mnuCopyHashMore(index).Checked
     SaveMySetting hashs(index), mnuCopyHashMore(index).Checked
@@ -515,6 +513,10 @@ Private Sub mnuOffsetCalc_Click()
     If pe.LoadFile(LoadedFile) Then
         frmOffsets.Initilize pe
     End If
+End Sub
+
+Private Sub mnuPEVerInfo_Click()
+    frmPEVersion.ShowReport LoadedFile
 End Sub
 
 Private Sub mnuSearchFileName_Click()
