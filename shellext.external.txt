@@ -12,3 +12,4 @@ Winhex = C:\tools\winhex\winhex.exe %1
 fuzzy  = D:\_hashing\hash.bat %1 && notepad %1.hash
 Carve  = %app_path%\pecarve.exe %1
 unUPX  = cmd /c upx -d %1 -o %1.unupx & pause
+ilSpy  = D:\_Lilguys\Cracking Tools\dot_net\ILSpy_Master_2.4.0.1963_Binaries\ILSpy.exe "%1"

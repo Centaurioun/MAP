@@ -228,7 +228,7 @@ Sub ShowFileStats(fPath As String)
     LoadedFile = fPath
     fs = DisableRedir()
     myMd5 = hash.HashFile(fPath)
-    
+
     If myMd5 = fso.FileNameFromPath(fPath) Then
         mnuNameMD5.enabled = False
     End If

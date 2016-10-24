@@ -18,6 +18,9 @@ Option Explicit
 '5.4.15
 '       fixed bug for section offsets for pe32+
 '       now loads .net attributes (version, anycpu, isDotNet)
+'
+'9.10.16 - can now determine which .NET runtime is required clarity from Mono.Cecil.PE\ImageReader.cs - ReadMetadata
+
 
 Public Sections As Collection
 Public errMessage As String
@@ -31,7 +34,7 @@ Public is64Bit As Boolean
 Public is32Bit As Boolean
 Public isDotNet As Boolean
 Public isDotNetAnyCpu As Boolean
-Public dotNetVersion As String
+Private m_dotNetVersion As String
 
 Public EntryPoint As Long
 Public EntryPoint64 As Double
@@ -224,7 +227,7 @@ Enum eDATA_DIRECTORY
 End Enum
 
 Private Type MungeCurr
-    Value As Double
+    value As Double
 End Type
 
 Private Type Munge2Long
@@ -260,6 +263,15 @@ Public LinkerVersion As String
 Public ImageVersion As String
 Public SubSysVersion As String
 
+Property Get dotNetVersion(Optional full As Boolean = False) As String
+    On Error Resume Next
+    If full Then
+        dotNetVersion = m_dotNetVersion
+    Else
+        dotNetVersion = Left(m_dotNetVersion, 4)
+    End If
+End Property
+
 Property Get PEVersionReport() As String
     Dim tmp() As String
     push tmp, "OSVersion: " & OSVersion
@@ -272,7 +284,7 @@ End Property
 Private Sub SetVersions64(ih As IMAGE_OPTIONAL_HEADER_64)
     With ih
         LinkerVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
-        OSVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        OSVersion = .MajorOperatingSystemVersion & "." & .MinorOperatingSystemVersion
         ImageVersion = .MajorImageVersion & "." & .MinorImageVersion
         SubSysVersion = .MajorSubsystemVersion & "." & .MinorSubsystemVersion
     End With
@@ -281,7 +293,7 @@ End Sub
 Private Sub SetVersions(ih As IMAGE_OPTIONAL_HEADER)
     With ih
         LinkerVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
-        OSVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        OSVersion = .MajorOperatingSystemVersion & "." & .MinorOperatingSystemVersion
         ImageVersion = .MajorImageVersion & "." & .MinorImageVersion
         SubSysVersion = .MajorSubsystemVersion & "." & .MinorSubsystemVersion
     End With
@@ -290,7 +302,7 @@ End Sub
 Function x64ToHex(v As Double) As String
     Dim c As MungeCurr
     Dim l As Munge2Long
-    c.Value = v
+    c.value = v
     LSet l = c
     If l.HiValue = 0 Then
         x64ToHex = Hex(l.LoValue)
@@ -411,18 +423,13 @@ Private Function GetDotNetAttributes(cli As Long)
     Dim minor As Integer '2 bytes
     Dim flags As Long    '4 bytes
     Dim fs As Long, f As Long
-    Dim b As Byte
     Dim i As Long
     
     Dim metaData_size As Long
     Dim metaData_rva As Long
     Dim foff_metaData As Long
-    Dim streamCount As Integer
     Dim verLen As Long
-    
-    Dim streamOffset() As Long
-    Dim streamSize() As Long
-    Dim streamName() As String
+    Dim b() As Byte
     
     Const COMIMAGE_FLAGS_32BITREQUIRED = 2
     
@@ -447,88 +454,24 @@ Private Function GetDotNetAttributes(cli As Long)
             End If
         End If
 
-'below is a good start, but not complete...not all tables are always present..fu ms for shitty design
-'at least give me an offset table..and type flag per table..why multiplex all into one..needless complexity
-'for literally a dozen bytes?
+        'now we try to determine the target framework it was compiled for...
+        Get f, foff_cli + 8, metaData_rva
+        Get f, foff_cli + 12, metaData_size
 
-'        'now shit gets hairy trying to determine the target
-'        'framework it was compiled for...
-'        Get f, foff_cli + 8, metaData_rva
-'        Get f, foff_cli + 12, metaData_size
-'
-'        foff_metaData = RvaToOffset(metaData_rva)
-'
-'        foff_metaData = foff_metaData + 1
-'        Get f, foff_metaData, fs 'signature = 424A5342
-'        Get f, foff_metaData + 12, verLen
-'        Get f, foff_metaData + 14 + verLen + 4, streamCount
-'
-'        If streamCount > 200 Then Exit Function
-'
-'        ReDim streamOffset(1 To streamCount)
-'        ReDim streamSize(1 To streamCount)
-'        ReDim streamName(1 To streamCount)
-'        Dim curPointer As Long
-'
-'        For i = 1 To streamCount
-'            Get f, , streamOffset(i)
-'            Get f, , streamSize(i)
-'            Get f, , b
-'            Do
-'                If b = 0 Then Exit Do
-'                streamName(i) = streamName(i) & Chr(b)
-'                Get f, , b
-'            Loop
-'            curPointer = Seek(f) - 1
-'            While curPointer Mod 4 <> 0   'REALLY?! offset alignment rather than
-'                Get f, , b                'length prefix or simple null termination
-'                curPointer = curPointer + 1
-'            Wend
-'        Next
-'
-'        For i = 1 To streamCount
-'            If streamName(i) = "#-" Or streamName(i) = "#~" Then Exit For
-'        Next
-'
-'        If i > streamCount Then Exit Function
-'
-'        'goto start of #~ stream, then advance past tables header
-'        Seek f, foff_metaData + streamOffset(i) + 24
-'
-'        Dim tableCounts(1 To 15) As Long
-'        Get f, , tableCounts()
-'
-'        Dim asmRefOffset As Long
-'
-'        'we want the assembly ref table..we need to calc its offset
-'        'based on number of items in each table..fuck you again..
-'        For i = 1 To 13
-'            asmRefOffset = asmRefOffset + TableSizeByIndex(i, tableCounts(i))
-'        Next
-'
-'        Seek f, Seek(f) + asmRefOffset 'fs is now start of asmref table..
-'
-'        Dim aRefObj As asmRefHeader
-'        Dim stringsIndex As Long
-'
-'        For i = 1 To streamCount
-'            If streamName(i) = "#Strings" Then
-'                stringsIndex = i
-'                Exit For
-'            End If
-'        Next
-'
-'        Dim asmrefName As String
-'
-'        For i = 1 To tableCounts(14) 'asmref table count..
-'            Get f, , aRefObj
-'            asmrefName = GetStringTableItem(f, foff_metaData + streamOffset(stringsIndex), aRefObj.name)
-'            If asmrefName = "mscorlib" Then
-'                dotNetVersion = aRefObj.major & "." & aRefObj.minor
-'                Exit For
-'            End If
-'        Next
+        foff_metaData = RvaToOffset(metaData_rva)
+
+        foff_metaData = foff_metaData + 1
+        Get f, foff_metaData, fs
+        If fs <> &H424A5342 Then GoTo cleanup 'signature check
+         
+        Get f, foff_metaData + 12, verLen
         
+        If verLen > 1 And verLen < 20 Then
+            ReDim b(verLen)
+            Get f, , b()
+            m_dotNetVersion = Replace(StrConv(b, vbUnicode), Chr(0), Empty)
+        End If
+   
 cleanup:
         On Error Resume Next
         Close f
@@ -539,55 +482,7 @@ cleanup:
 
 End Function
 
-Private Function GetStringTableItem(fHand As Long, tableStartOffset As Long, index As Integer) As String
-    Dim startFs As Long
-    Dim tmp As String
-    Dim b As Byte
-    
-    startFs = Seek(fHand) 'cache where file point currently is
-    
-    Seek fHand, tableStartOffset + index
-    Do
-        Get fHand, , b
-        If b = 0 Then Exit Do
-        tmp = tmp + Chr(b)
-    Loop
-    
-    GetStringTableItem = tmp
-    
-    Seek fHand, startFs 'restore it..
-    
-End Function
 
-Private Function TableSizeByIndex(index As Long, ItemCount As Long) As Long
-    
-    Dim sizes()
-    'modules = 10 bytes
-    'typeref = 6 bytes
-    'typedef = 14
-    'field=6
-    'method = 14
-    'param = 6
-    'memberref = 6 bytes
-    'customattr = 6 bytes
-    'standalonesig = 2
-    'propertymap = 4
-    'property = 6
-    'methsemantics = 6
-    'assembly = 22
-    'assemblyref = target
-    
-    sizes = Array(0, 10, 6, 14, 6, 14, 6, 6, 6, 2, 4, 6, 6, 22)
-    
-    If index = 0 Or index > UBound(sizes) Then
-        MsgBox "Error in tablesizebyindex"
-        Exit Function
-    End If
-    
-    TableSizeByIndex = sizes(index) * ItemCount
-    
-        
-End Function
 
 Private Sub LoadSections(fHand As Long, numSections As Integer, Optional sections_csv As String)
     
@@ -747,4 +642,191 @@ Private Function getMachineType(m As Integer) As String
     
 End Function
 
+
+'Private Function GetDotNetAttributes(cli As Long)
+'
+'    'ok we are going to need to load it more fully...
+'    Dim tmp As String
+'    Dim foff_cli As Long
+'    Dim major As Integer '2 bytes
+'    Dim minor As Integer '2 bytes
+'    Dim flags As Long    '4 bytes
+'    Dim fs As Long, f As Long
+'    Dim b As Byte
+'    Dim i As Long
+'
+'    Dim metaData_size As Long
+'    Dim metaData_rva As Long
+'    Dim foff_metaData As Long
+'    Dim streamCount As Integer
+'    Dim verLen As Long
+'
+'    Dim streamOffset() As Long
+'    Dim streamSize() As Long
+'    Dim streamName() As String
+'
+'    Const COMIMAGE_FLAGS_32BITREQUIRED = 2
+'
+'    On Error GoTo cleanup
+'
+'    If cli = 0 Then Exit Function
+'
+'    foff_cli = RvaToOffset(cli) + 1
+'
+'    If foff_cli > 1 And foff_cli < FileLen(LoadedFile) Then
+'
+'        isDotNet = True
+'        f = FreeFile
+'        Open LoadedFile For Binary As f
+'
+'        If is32Bit Then 'is it really 32bit or is it AnyCpu?
+'            Get f, foff_cli + 16, flags
+'            If (flags And COMIMAGE_FLAGS_32BITREQUIRED) = COMIMAGE_FLAGS_32BITREQUIRED Then
+'                'its 32bit only so no its not anycpu..
+'            Else
+'                isDotNetAnyCpu = True
+'            End If
+'        End If
+'
+''below is a good start, but not complete...not all tables are always present..fu ms for shitty design
+''at least give me an offset table..and type flag per table..why multiplex all into one..needless complexity
+''for literally a dozen bytes?
+'
+''        'now shit gets hairy trying to determine the target
+''        'framework it was compiled for...
+''        Get f, foff_cli + 8, metaData_rva
+''        Get f, foff_cli + 12, metaData_size
+''
+''        foff_metaData = RvaToOffset(metaData_rva)
+''
+''        foff_metaData = foff_metaData + 1
+''        Get f, foff_metaData, fs 'signature = 424A5342
+''        Get f, foff_metaData + 12, verLen
+''        Get f, foff_metaData + 14 + verLen + 4, streamCount
+''
+''        If streamCount > 200 Then Exit Function
+''
+''        ReDim streamOffset(1 To streamCount)
+''        ReDim streamSize(1 To streamCount)
+''        ReDim streamName(1 To streamCount)
+''        Dim curPointer As Long
+''
+''        For i = 1 To streamCount
+''            Get f, , streamOffset(i)
+''            Get f, , streamSize(i)
+''            Get f, , b
+''            Do
+''                If b = 0 Then Exit Do
+''                streamName(i) = streamName(i) & Chr(b)
+''                Get f, , b
+''            Loop
+''            curPointer = Seek(f) - 1
+''            While curPointer Mod 4 <> 0   'REALLY?! offset alignment rather than
+''                Get f, , b                'length prefix or simple null termination
+''                curPointer = curPointer + 1
+''            Wend
+''        Next
+''
+''        For i = 1 To streamCount
+''            If streamName(i) = "#-" Or streamName(i) = "#~" Then Exit For
+''        Next
+''
+''        If i > streamCount Then Exit Function
+''
+''        'goto start of #~ stream, then advance past tables header
+''        Seek f, foff_metaData + streamOffset(i) + 24
+''
+''        Dim tableCounts(1 To 15) As Long
+''        Get f, , tableCounts()
+''
+''        Dim asmRefOffset As Long
+''
+''        'we want the assembly ref table..we need to calc its offset
+''        'based on number of items in each table..fuck you again..
+''        For i = 1 To 13
+''            asmRefOffset = asmRefOffset + TableSizeByIndex(i, tableCounts(i))
+''        Next
+''
+''        Seek f, Seek(f) + asmRefOffset 'fs is now start of asmref table..
+''
+''        Dim aRefObj As asmRefHeader
+''        Dim stringsIndex As Long
+''
+''        For i = 1 To streamCount
+''            If streamName(i) = "#Strings" Then
+''                stringsIndex = i
+''                Exit For
+''            End If
+''        Next
+''
+''        Dim asmrefName As String
+''
+''        For i = 1 To tableCounts(14) 'asmref table count..
+''            Get f, , aRefObj
+''            asmrefName = GetStringTableItem(f, foff_metaData + streamOffset(stringsIndex), aRefObj.name)
+''            If asmrefName = "mscorlib" Then
+''                dotNetVersion = aRefObj.major & "." & aRefObj.minor
+''                Exit For
+''            End If
+''        Next
+'
+'cleanup:
+'        On Error Resume Next
+'        Close f
+'
+'    End If
+'
+'
+'
+'End Function
+
+'Private Function GetStringTableItem(fHand As Long, tableStartOffset As Long, index As Integer) As String
+'    Dim startFs As Long
+'    Dim tmp As String
+'    Dim b As Byte
+'
+'    startFs = Seek(fHand) 'cache where file point currently is
+'
+'    Seek fHand, tableStartOffset + index
+'    Do
+'        Get fHand, , b
+'        If b = 0 Then Exit Do
+'        tmp = tmp + Chr(b)
+'    Loop
+'
+'    GetStringTableItem = tmp
+'
+'    Seek fHand, startFs 'restore it..
+'
+'End Function
+'
+'Private Function TableSizeByIndex(index As Long, ItemCount As Long) As Long
+'
+'    Dim sizes()
+'    'modules = 10 bytes
+'    'typeref = 6 bytes
+'    'typedef = 14
+'    'field=6
+'    'method = 14
+'    'param = 6
+'    'memberref = 6 bytes
+'    'customattr = 6 bytes
+'    'standalonesig = 2
+'    'propertymap = 4
+'    'property = 6
+'    'methsemantics = 6
+'    'assembly = 22
+'    'assemblyref = target
+'
+'    sizes = Array(0, 10, 6, 14, 6, 14, 6, 6, 6, 2, 4, 6, 6, 22)
+'
+'    If index = 0 Or index > UBound(sizes) Then
+'        MsgBox "Error in tablesizebyindex"
+'        Exit Function
+'    End If
+'
+'    TableSizeByIndex = sizes(index) * ItemCount
+'
+'
+'End Function
 

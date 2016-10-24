@@ -320,7 +320,7 @@ End Function
 Private Sub SetVersions64(ih As IMAGE_OPTIONAL_HEADER_64)
     With ih
         LinkerVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
-        OSVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        OSVersion = .MajorOperatingSystemVersion & "." & .MinorOperatingSystemVersion
         ImageVersion = .MajorImageVersion & "." & .MinorImageVersion
         SubSysVersion = .MajorSubsystemVersion & "." & .MinorSubsystemVersion
     End With
@@ -329,7 +329,7 @@ End Sub
 Private Sub SetVersions(ih As IMAGE_OPTIONAL_HEADER)
     With ih
         LinkerVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
-        OSVersion = .MajorLinkerVersion & "." & .MinorLinkerVersion
+        OSVersion = .MajorOperatingSystemVersion & "." & .MinorOperatingSystemVersion
         ImageVersion = .MajorImageVersion & "." & .MinorImageVersion
         SubSysVersion = .MajorSubsystemVersion & "." & .MinorSubsystemVersion
     End With
@@ -544,18 +544,18 @@ Function Google(hash As String, Optional hWnd As Long = 0)
     ShellExecute hWnd, "Open", u & hash, "", "C:\", 1
 End Function
 
-Sub push(ary, Value) 'this modifies parent ary object
+Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
     Dim X As Long
     X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = Value
+    ary(UBound(ary)) = value
     Exit Sub
-init:     ReDim ary(0): ary(0) = Value
+init:     ReDim ary(0): ary(0) = value
 End Sub
 
-Sub SaveMySetting(key, Value)
-    SaveSetting "iDefense", "ShellExt", key, Value
+Sub SaveMySetting(key, value)
+    SaveSetting "iDefense", "ShellExt", key, value
 End Sub
 
 Function GetMySetting(key, def)
@@ -693,6 +693,8 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
         Else
             GetCompileDateOrType = GetCompileDateOrType & isExe_orDll(NTHEADER.FileHeader.Characteristics)
         End If
+        
+        GetCompileDateOrType = Replace(GetCompileDateOrType, "  ", " ")
         
 Exit Function
 hell:
