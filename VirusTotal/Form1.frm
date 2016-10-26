@@ -1,5 +1,6 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{48E59290-9880-11CF-9754-00AA00C00908}#1.0#0"; "MSINET.OCX"
 Begin VB.Form Form1 
    Caption         =   "Bulk Hash Lookup"
    ClientHeight    =   7770
@@ -10,6 +11,13 @@ Begin VB.Form Form1
    ScaleHeight     =   7770
    ScaleWidth      =   11190
    StartUpPosition =   2  'CenterScreen
+   Begin InetCtlsObjects.Inet Inet1 
+      Left            =   10485
+      Top             =   495
+      _ExtentX        =   1005
+      _ExtentY        =   1005
+      _Version        =   393216
+   End
    Begin VB.CommandButton cmdBrowse 
       Caption         =   "..."
       Height          =   285
@@ -143,12 +151,18 @@ Begin VB.Form Form1
       Width           =   10935
    End
    Begin VB.Menu mnuOptions 
-      Caption         =   "Options"
-      Begin VB.Menu mnuUsePrivateKey 
-         Caption         =   "Use Private API Key"
-      End
+      Caption         =   "Tools"
       Begin VB.Menu mnuBulkDownload 
          Caption         =   "Bulk Download"
+      End
+      Begin VB.Menu mnuSearchVT 
+         Caption         =   "Search VT"
+      End
+      Begin VB.Menu mnuSpacer 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuUsePrivateKey 
+         Caption         =   "Use Private API Key"
       End
    End
    Begin VB.Menu mnuPopup 
@@ -222,14 +236,13 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Dim vt As New CVirusTotal
 Dim selli As ListItem
-Public abort As Boolean
 Dim dlg As New clsCmnDlg
 Dim fso As New CFileSystem2
 
 Dim files As New Collection
 
 Private Sub cmdAbort_Click()
-    abort = True
+    vt.abort = True
 End Sub
 
 Private Sub cmdClear_Click()
@@ -257,20 +270,20 @@ Private Sub cmdQuery_Click()
     
     On Error Resume Next
     
-    If lv.ListItems.Count = 0 Then
+    If lv.ListItems.count = 0 Then
         MsgBox "Load hashs first!"
         Exit Sub
     End If
     
     vt.report_cache_dir = Empty
     
-    If chkCache.value = 1 Then        'currently sets cache_dir to exist or not once at start of sub, cant change during operation..
+    If chkCache.Value = 1 Then        'currently sets cache_dir to exist or not once at start of sub, cant change during operation..
         If Len(txtCacheDir) = 0 Then
-            chkCache.value = 0
+            chkCache.Value = 0
         Else
             If Not fso.FolderExists(txtCacheDir) Then
                 If Not fso.buildPath(txtCacheDir) Then
-                    chkCache.value = 0
+                    chkCache.Value = 0
                 End If
             End If
         End If
@@ -278,32 +291,32 @@ Private Sub cmdQuery_Click()
     End If
         
     
-    abort = False
+    vt.abort = False
     
-    pb.Max = lv.ListItems.Count
+    pb.Max = lv.ListItems.count
     vt.delayInterval = IIf(pb.Max < 5, 2500, 17300) 'cant exceed 4 requests per minute...
     List1.AddItem "Max: " & pb.Max & " Interval: " & vt.delayInterval
     
     For Each li In lv.ListItems
     
-        If abort Then Exit For
+        If vt.abort Then Exit For
         
         If Len(Trim(li.Text)) = 0 Then GoTo nextone
         
-        Set scan = vt.GetReport(li.Text, List1, tmrDelay)
+        Set scan = vt.GetReport(li.Text)
         
         pth = PathForHash(li.Text)
         If Len(pth) > 0 Then scan.LocalFilePath = pth
     
         If Not scan.HadError Then
-            li.SubItems(1) = scan.positives
-            li.SubItems(2) = scan.scan_date
-            li.SubItems(3) = scan.verbose_msg
+            li.subItems(1) = scan.positives
+            li.subItems(2) = scan.scan_date
+            li.subItems(3) = scan.verbose_msg
             Set li.Tag = scan
         Else
-            li.SubItems(1) = "Failure"
-            li.SubItems(2) = Empty
-            li.SubItems(3) = Empty
+            li.subItems(1) = "Failure"
+            li.subItems(2) = Empty
+            li.subItems(3) = Empty
             Set li.Tag = Nothing
             Set vt = New CVirusTotal
         End If
@@ -311,14 +324,14 @@ Private Sub cmdQuery_Click()
         li.EnsureVisible
         DoEvents
         Me.Refresh
-        pb.value = pb.value + 1
+        pb.Value = pb.Value + 1
         
-        If pb.value = lv.ListItems.Count Then GoTo nextone
+        If pb.Value = lv.ListItems.count Then GoTo nextone
         
 nextone:
     Next
     
-    pb.value = 0
+    pb.Value = 0
     MsgBox "Queries Complete" & vbCrLf & vbcrllf & "Click on an item to view report.", vbInformation
  
  
@@ -362,7 +375,7 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
     abort = True
     SaveSetting "vt", "settings", "cachedir", txtCacheDir.Text
-    SaveSetting "vt", "settings", "usecache", chkCache.value
+    SaveSetting "vt", "settings", "usecache", chkCache.Value
 End Sub
 
 Private Sub mnuAddHashs_Click()
@@ -375,10 +388,10 @@ Private Sub mnuAddHashs_Click()
         x = Trim(x)
         If Len(x) > 0 Then
             If InStr(x, ",") > 0 Then 'new "hash,path" format
-                Y = Split(x, ",")
+                y = Split(x, ",")
                 Set f = New CFile
-                f.hash = Y(0)
-                f.path = Y(1)
+                f.hash = y(0)
+                f.path = y(1)
                 lv.ListItems.Add , , f.hash
                 If fso.FileExists(f.path) Then files.Add f
             Else
@@ -401,8 +414,8 @@ End Sub
 Public Sub LV_ColumnSort(ListViewControl As ListView, Column As ColumnHeader)
      On Error Resume Next
     With ListViewControl
-       If .SortKey <> Column.Index - 1 Then
-             .SortKey = Column.Index - 1
+       If .SortKey <> Column.index - 1 Then
+             .SortKey = Column.index - 1
              .SortOrder = lvwAscending
        Else
              If .SortOrder = lvwAscending Then
@@ -425,11 +438,16 @@ Private Sub Form_Load()
     
     mnuUsePrivateKey.Checked = vt.usingPrivateKey
     mnuBulkDownload.Enabled = vt.usingPrivateKey
+    mnuSearchVT.Enabled = vt.usingPrivateKey
     
     mnuPopup.Visible = False
-    Set vt.owner = Me
+    
+    vt.TimerObj = tmrDelay
+    Set vt.winInet = Inet1
+    Set vt.debugLog = List1
+    
     txtCacheDir = GetSetting("vt", "settings", "cachedir", "c:\VT_Cache")
-    chkCache.value = GetSetting("vt", "settings", "usecache", 0)
+    chkCache.Value = GetSetting("vt", "settings", "usecache", 0)
     
     lv.ColumnHeaders(4).Width = lv.Width - lv.ColumnHeaders(4).Left - 150
     
@@ -510,7 +528,7 @@ Private Function PathForHash(hash As String) As String
     Next
 End Function
 
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
@@ -547,9 +565,9 @@ Private Sub mnuClearSelectedFromCache_Click()
             If li.Selected Then
                 fpath = txtCacheDir & "\" & li.Text & ".txt"
                 If fso.FileExists(fpath) Then fso.DeleteFile fpath
-                li.SubItems(1) = Empty
-                li.SubItems(2) = Empty
-                li.SubItems(3) = Empty
+                li.subItems(1) = Empty
+                li.subItems(2) = Empty
+                li.subItems(3) = Empty
             End If
         Next
     End If
@@ -564,7 +582,7 @@ Private Sub mnuCopyAll_Click()
     On Error Resume Next
     
     For Each li In lv.ListItems
-        r = r & li.Text & "  Detections: " & li.SubItems(1) & "  ScanDate: " & li.SubItems(2) & vbCrLf
+        r = r & li.Text & "  Detections: " & li.subItems(1) & "  ScanDate: " & li.subItems(2) & vbCrLf
     Next
     
     r = r & vbCrLf & vbCrLf
@@ -596,7 +614,7 @@ On Error Resume Next
     Dim scan As CScan
     Set scan = selli.Tag
     
-    r = selli.Text & "  Detections: " & selli.SubItems(1) & "  ScanDate: " & li.SubItems(2) & vbCrLf & String(50, "-") & vbCrLf & scan.GetReport()
+    r = selli.Text & "  Detections: " & selli.subItems(1) & "  ScanDate: " & li.subItems(2) & vbCrLf & String(50, "-") & vbCrLf & scan.GetReport()
     Clipboard.Clear
     Clipboard.SetText r
     MsgBox Len(r) & " bytes copied to clipboard"
@@ -612,7 +630,7 @@ On Error Resume Next
     Dim s As CScan
     
     For Each li In lv.ListItems
-        r = r & li.Text & "  Detections: " & li.SubItems(1) & "  ScanDate: " & li.SubItems(2)
+        r = r & li.Text & "  Detections: " & li.subItems(1) & "  ScanDate: " & li.subItems(2)
             
         Set s = li.Tag
         If Not s Is Nothing Then
@@ -633,16 +651,16 @@ End Sub
 Private Sub mnuPrune_Click()
     Dim li As ListItem
     On Error Resume Next
-    For i = lv.ListItems.Count To 1 Step -1
+    For i = lv.ListItems.count To 1 Step -1
         Set li = lv.ListItems(i)
-        If li.SubItems(1) = "0" Then lv.ListItems.Remove i
+        If li.subItems(1) = "0" Then lv.ListItems.Remove i
     Next
 End Sub
 
 Private Sub mnuRemoveSelected_Click()
     On Error Resume Next
     
-    For i = lv.ListItems.Count To 1 Step -1
+    For i = lv.ListItems.count To 1 Step -1
         If lv.ListItems(i).Selected Then lv.ListItems.Remove i
     Next
     
@@ -651,7 +669,7 @@ End Sub
 Private Sub mnuRemoveUnsel_Click()
  On Error Resume Next
     
-    For i = lv.ListItems.Count To 1 Step -1
+    For i = lv.ListItems.count To 1 Step -1
         If Not lv.ListItems(i).Selected Then lv.ListItems.Remove i
     Next
     
@@ -666,20 +684,20 @@ Private Sub mnuRescanSelected_Click()
         If li.Selected Then
             If Len(Trim(li.Text)) > 0 Then
             
-                Set scan = vt.GetReport(li.Text, List1, tmrDelay)
+                Set scan = vt.GetReport(li.Text)
                 
                 pth = PathForHash(li.Text)
                 If Len(pth) > 0 Then scan.LocalFilePath = pth
                 
                 If Not scan.HadError Then
-                    li.SubItems(1) = scan.positives
-                    li.SubItems(2) = scan.scan_date
-                    li.SubItems(3) = scan.verbose_msg
+                    li.subItems(1) = scan.positives
+                    li.subItems(2) = scan.scan_date
+                    li.subItems(3) = scan.verbose_msg
                     Set li.Tag = scan
                 Else
-                    li.SubItems(1) = "Failure"
-                    li.SubItems(2) = Empty
-                    li.SubItems(3) = Empty
+                    li.subItems(1) = "Failure"
+                    li.subItems(2) = Empty
+                    li.subItems(3) = Empty
                     Set li.Tag = Nothing
                     Set vt = New CVirusTotal
                 End If
@@ -710,8 +728,8 @@ Private Sub mnuSaveReports_Click()
         Set scan = li.Tag
         
         report = "Hash: " & li.Text & vbCrLf & _
-                 "Detections: " & li.SubItems(1) & vbCrLf & _
-                 "ScanDate: " & li.SubItems(2) & vbCrLf & _
+                 "Detections: " & li.subItems(1) & vbCrLf & _
+                 "ScanDate: " & li.subItems(2) & vbCrLf & _
                  String(50, "-") & vbCrLf & vbCrLf & _
                  scan.GetReport()
                  
@@ -752,6 +770,10 @@ Private Sub mnuSearch_Click()
     
 End Sub
 
+Private Sub mnuSearchVT_Click()
+    frmSearch.Show
+End Sub
+
 Private Sub mnuSubmitSelected_Click()
 
     Dim li As ListItem
@@ -768,9 +790,9 @@ Private Sub mnuSubmitSelected_Click()
             
                 pth = PathForHash(li.Text)
                 If Len(pth) > 0 Then
-                    Set scan = vt.SubmitFile(pth, List1, tmrDelay)
+                    Set scan = vt.SubmitFile(pth)
                     scan.response_code = 2 'manually overridden for getreport() display purposes..
-                    li.SubItems(1) = scan.verbose_msg
+                    li.subItems(1) = scan.verbose_msg
                     Set li.Tag = scan
                 Else
                     List1.AddItem "No file path found for " & li.Text

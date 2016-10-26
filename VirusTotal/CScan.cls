@@ -8,7 +8,7 @@ BEGIN
 END
 Attribute VB_Name = "CScan"
 Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = True
+Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 'scans{} block can come first or last...
@@ -56,6 +56,7 @@ Public LocalFilePath 'not part of VT response, we add manually for UI
 Public RawJson As String
 Public HTTP_ResponseCode As Long
 Public HTTP_StatusMessage As String
+Public HTTP_HEADERS As String
 
 Public results As New Collection
 Public HadError As Boolean
@@ -95,6 +96,28 @@ Public Function GetReport() As String
     
 End Function
 
+Public Function BriefReport() As String
+    Dim tmp As String
+    
+    If response_code <> 1 Then
+        tmp = verbose_msg
+    Else
+        tmp = "Scan Date:   " & Me.scan_date & vbCrLf
+        If Len(first_seen) > 0 Then tmp = tmp & "First Seen:  " & first_seen & vbCrLf
+        tmp = tmp & "Detections:  " & Me.positives & "/" & Me.total
+    End If
+    
+    BriefReport = tmp
+    
+End Function
+
+Public Sub VisitPage()
+    On Error Resume Next
+    If Len(permalink) > 0 And LCase(VBA.Left(permalink, 4)) = "http" Then
+        Shell "cmd /c start " & permalink, vbHide
+    End If
+End Sub
+
 Private Function FileNameFromPath(fullpath) As String
     If InStr(fullpath, "\") > 0 Then
         tmp = Split(fullpath, "\")
@@ -104,38 +127,38 @@ Private Function FileNameFromPath(fullpath) As String
     End If
 End Function
 
-Public Function setbyname(name As Variant, value As Variant)
+Private Function setbyname(name As Variant, Value As Variant)
     
     If InStr(name, "{") > 0 Then name = Replace(name, "{", Empty)
     If InStr(name, "}") > 0 Then name = Replace(name, "}", Empty)
     name = Trim(Replace(name, """", Empty))
-    value = Trim(Replace(value, """", Empty))
-    value = Replace(value, "\\", Chr(5))
-    value = Replace(value, "\", Empty)
-    value = Replace(value, Chr(5), "\\")
+    Value = Trim(Replace(Value, """", Empty))
+    Value = Replace(Value, "\\", Chr(5))
+    Value = Replace(Value, "\", Empty)
+    Value = Replace(Value, Chr(5), "\\")
     
     Select Case LCase(name)
-        Case "permalink": permalink = value
-        Case "sha1": sha1 = value
-        Case "resource": resource = value
-        Case "response_code": response_code = value
-        Case "scan_date": scan_date = value
-        Case "scan_id": scan_id = value
-        Case "verbose_msg": verbose_msg = value
-        Case "sha256": sha256 = value
-        Case "positives": positives = value
-        Case "total": total = value
-        Case "md5": md5 = value
-        Case "first_seen": first_seen = value
+        Case "permalink": permalink = Value
+        Case "sha1": sha1 = Value
+        Case "resource": resource = Value
+        Case "response_code": response_code = Value
+        Case "scan_date": scan_date = Value
+        Case "scan_id": scan_id = Value
+        Case "verbose_msg": verbose_msg = Value
+        Case "sha256": sha256 = Value
+        Case "positives": positives = Value
+        Case "total": total = Value
+        Case "md5": md5 = Value
+        Case "first_seen": first_seen = Value
     End Select
     
 End Function
 
-Public Sub ParseResponse(json As String)
+Friend Sub ParseResponse(json As String)
 
     On Error Resume Next
     Dim a As Long, b As Long
-    Dim main As String, name As String, value As String, scans As String
+    Dim main As String, name As String, Value As String, scans As String
     
     json = Replace(json, vbCr, Empty)
     json = Replace(json, vbLf, Empty)
@@ -159,8 +182,8 @@ Public Sub ParseResponse(json As String)
         b = InStr(1, entry, ":")
         If b < 2 Then GoTo nextone
         name = Mid(entry, 1, b - 1)
-        value = Mid(entry, b + 1)
-        CallByName Me, "setbyname", VbMethod, name, value
+        Value = Mid(entry, b + 1)
+        setbyname name, Value
 nextone:
     Next
     

@@ -1,4 +1,5 @@
 VERSION 5.00
+Object = "{48E59290-9880-11CF-9754-00AA00C00908}#1.0#0"; "MSINET.OCX"
 Begin VB.Form Form2 
    Caption         =   "Virus Total Sample Lookup"
    ClientHeight    =   6345
@@ -9,6 +10,13 @@ Begin VB.Form Form2
    ScaleHeight     =   6345
    ScaleWidth      =   9210
    StartUpPosition =   2  'CenterScreen
+   Begin InetCtlsObjects.Inet Inet1 
+      Left            =   6660
+      Top             =   360
+      _ExtentX        =   1005
+      _ExtentY        =   1005
+      _Version        =   393216
+   End
    Begin VB.TextBox txtFilter 
       Height          =   330
       Left            =   1395
@@ -186,7 +194,6 @@ Attribute VB_Exposed = False
 Dim md5 As New MD5Hash
 Dim vt As New CVirusTotal
 Dim scan As CScan
-Public abort As Boolean
 
 Public Function StartFromFile(fpath As String)
 
@@ -202,7 +209,7 @@ Public Function StartFromFile(fpath As String)
     
     Me.Show
     txtHash = md5.HashFile(fpath)
-    Set scan = vt.GetReport(txtHash, List1, Timer1)
+    Set scan = vt.GetReport(txtHash)
     Text1 = scan.GetReport()
 
 End Function
@@ -226,7 +233,7 @@ Public Function StartFromHash(hash As String)
     
     Me.Show
     txtHash = hash
-    Set scan = vt.GetReport(hash, List1, Timer1)
+    Set scan = vt.GetReport(hash)
     Text1 = scan.GetReport()
     
 End Function
@@ -251,7 +258,7 @@ Private Sub cmdSaveReport_Click()
     If Len(bn) = 0 Then bn = Mid(txtHash, 1, 5)
     bn = "VT_" & bn & ".txt"
     
-    path = dlg.SaveDialog(AllFiles, pf, "Save As", , Me.hWnd, bn)
+    path = dlg.SaveDialog(bn, pf, "Save As")
     If Len(path) = 0 Then Exit Sub
     fso.writeFile path, Text1
     
@@ -265,7 +272,7 @@ Private Sub cmdSubmit_Click()
         Exit Sub
     End If
     
-    Set scan = vt.SubmitFile(txtFile, List1, Timer1)
+    Set scan = vt.SubmitFile(txtFile)
     scan.response_code = 2 'manually overridden for getreport() display purposes..
     Text1 = scan.GetReport()
 
@@ -274,7 +281,9 @@ Private Sub cmdSubmit_Click()
 Private Sub Form_Load()
     Me.Show
     mnuPopup.Visible = False
-    Set vt.owner = Me
+    vt.TimerObj = Timer1
+    Set vt.winInet = Inet1
+    Set vt.debugLog = List1
 End Sub
 
 Private Sub Form_Resize()
@@ -298,7 +307,7 @@ Private Sub Label4_Click()
     'If Err.Number <> 0 Then MsgBox Err.Description
 End Sub
 
-Private Sub List1_MouseUp(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub List1_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
@@ -306,7 +315,7 @@ Private Sub mnuCopyTable_Click()
     On Error Resume Next
     Dim r
     For i = 0 To List1.ListCount
-        r = r & List1.list(i) & vbCrLf
+        r = r & List1.List(i) & vbCrLf
     Next
     Clipboard.Clear
     Clipboard.SetText r
@@ -357,13 +366,13 @@ End Sub
 
 
 
-Sub push(ary, value) 'this modifies parent ary object
+Sub push(ary, Value) 'this modifies parent ary object
     On Error GoTo init
     x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = value
+    ary(UBound(ary)) = Value
     Exit Sub
-init:     ReDim ary(0): ary(0) = value
+init:     ReDim ary(0): ary(0) = Value
 End Sub
 
 

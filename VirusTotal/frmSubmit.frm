@@ -1,5 +1,6 @@
 VERSION 5.00
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{48E59290-9880-11CF-9754-00AA00C00908}#1.0#0"; "MSINET.OCX"
 Begin VB.Form frmSubmit 
    Caption         =   "VT Submit"
    ClientHeight    =   3225
@@ -10,6 +11,13 @@ Begin VB.Form frmSubmit
    ScaleHeight     =   3225
    ScaleWidth      =   9825
    StartUpPosition =   2  'CenterScreen
+   Begin InetCtlsObjects.Inet Inet1 
+      Left            =   7290
+      Top             =   2160
+      _ExtentX        =   1005
+      _ExtentY        =   1005
+      _Version        =   393216
+   End
    Begin MSComctlLib.ProgressBar pb 
       Height          =   375
       Left            =   60
@@ -60,12 +68,11 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Dim vt As New CVirusTotal
-Dim abort As Boolean
 
 Public Sub SubmitFile(fpath As String)
     Dim s As CScan
     Me.Show
-    Set s = vt.SubmitFile(fpath, List1, tmrDelay)
+    Set s = vt.SubmitFile(fpath)
     List1.AddItem s.verbose_msg
     List1.ListIndex = List1.ListCount - 1
     Me.Refresh
@@ -78,31 +85,31 @@ Public Sub SubmitBulk()
     Dim files As New Collection
     Dim s As CScan
     
-    X = Clipboard.GetText
-    tmp = Split(X, vbCrLf)
-    For Each X In tmp
-        X = Trim(X)
-        If Len(X) > 0 Then
-            If fso.FileExists(CStr(X)) Then files.Add X
+    x = Clipboard.GetText
+    tmp = Split(x, vbCrLf)
+    For Each x In tmp
+        x = Trim(x)
+        If Len(x) > 0 Then
+            If fso.FileExists(CStr(x)) Then files.Add x
         End If
     Next
     
     Me.Show
-    List1.AddItem "Loaded " & files.Count & " file paths from clipboard.."
-    pb.value = 0
-    pb.Max = files.Count
+    List1.AddItem "Loaded " & files.count & " file paths from clipboard.."
+    pb.Value = 0
+    pb.Max = files.count
     
-    For Each X In files
-        If abort Then Exit For
-        Set s = vt.SubmitFile(CStr(X), List1, tmrDelay)
+    For Each x In files
+        If vt.abort Then Exit For
+        Set s = vt.SubmitFile(CStr(x))
         List1.AddItem s.verbose_msg
         List1.ListIndex = List1.ListCount - 1
-        pb.value = pb.value + 1
+        pb.Value = pb.Value + 1
         Me.Refresh
         DoEvents
     Next
     
-    pb.value = 0
+    pb.Value = 0
     List1.AddItem "Complete"
     List1.ListIndex = List1.ListCount - 1
     Me.Refresh
@@ -111,6 +118,9 @@ Public Sub SubmitBulk()
 End Sub
 
 Private Sub cmdAbort_Click()
-    abort = True
+    vt.abort = True
 End Sub
 
+Private Sub Form_Load()
+    vt.TimerObj = tmrDelay
+End Sub

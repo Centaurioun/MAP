@@ -21,3 +21,6 @@
 *setup.exe
 options.dat
 *.rar
+*/VT_Search_Cache/*
+*/VirusTotal/VT_Search_Cache/*
+*hc.dat

@@ -11,12 +11,13 @@ OutputDir=./
 
 [Files]
 Source: ./dependancies\vbDevKit.dll; DestDir: {win}; Flags: regserver
-Source: ./dependancies\spSubclass2.dll; DestDir: {win}; Flags: regserver
+Source: ./dependancies\spSubclass2.dll; DestDir: {sys}; Flags: regserver
 Source: ./dependancies\libVT.dll; DestDir: {win}; Flags: regserver
-Source: ./dependancies\MSWINSCK.OCX; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
-Source: ./dependancies\mscomctl.ocx; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
-Source: ./dependancies\RICHTX32.OCX; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
-Source: ./dependancies\TLBINF32.DLL; DestDir: {win}; Flags: uninsneveruninstall regserver promptifolder
+Source: ./dependancies\MSWINSCK.OCX; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
+Source: ./dependancies\mscomctl.ocx; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
+Source: ./dependancies\RICHTX32.OCX; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
+Source: ./dependancies\MSINET.OCX; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
+Source: ./dependancies\TLBINF32.DLL; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\hexed.ocx; DestDir: {win}; Flags: regserver
 ;Source: ./sc_log\bin\sclog.exe; DestDir: {app}   //carries AV warnings these days...
 Source: gdiprocs.exe; DestDir: {app}

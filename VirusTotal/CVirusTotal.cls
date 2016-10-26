@@ -13,7 +13,14 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '8.5.16 - includes first seen date in default report if using private api key
 
-Dim http As XMLHTTP
+'todo switch to something threaded and async for DownloadFile...
+
+
+Public WithEvents winInet As Inet
+Attribute winInet.VB_VarHelpID = -1
+
+'still used for file submit
+Private http As New XMLHTTP
 
 Const URL_API_BASIS = "http://www.virustotal.com/vtapi/v2/"
 Const URL_SCAN_FILE = "file/scan"
@@ -21,10 +28,19 @@ Const URL_FILE_REPORT = "file/report"
 Const URL_SCAN_URL = "url/scan"
 Const URL_URL_REPORT = "url/report"
 Const URL_MAKE_COMMENT = "comments/put"
-Public API_KEY As String
+Const URL_SEARCH = "file/search"
 
+Private API_KEY As String
 Const PUBLIC_API_KEY = "a949ea9c64e7145a065b0e562673a66216a132712e958168c8c00ee5f451485b"
-Public usingPrivateKey As Boolean
+
+Public report_cache_dir As String 'if this is set it will cache the results here in case looked up again.
+Public debugLog As Object         'set to a listbox for live logging, or it will default to a collection
+Private m_Abort As Boolean
+Public KeepLog As Boolean
+
+Private WithEvents Timer1 As Timer 'we cant make this public it will switch to object type in typelib
+Attribute Timer1.VB_VarHelpID = -1
+Private m_usingPrivateKey As Boolean
 
 Private Declare Function URLDownloadToFile Lib "urlmon" Alias _
     "URLDownloadToFileA" (ByVal pCaller As Long, _
@@ -33,21 +49,37 @@ Private Declare Function URLDownloadToFile Lib "urlmon" Alias _
     ByVal dwReserved As Long, _
     ByVal lpfnCB As Long) As Long
 
-Private List1 As ListBox 'for logging...
-Private WithEvents Timer1 As Timer
-Attribute Timer1.VB_VarHelpID = -1
-
 Private NeedsDelay As Boolean
 Private LastQueryTime As Long
 Private m_delayInterval As Long
 
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function GetTickCount Lib "kernel32" () As Long
+Private Declare Function SendMessage Lib "user32.dll" Alias "SendMessageA" (ByVal hwnd As Long, ByVal msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Private Const LB_GETCOUNT = &H18B
+Private Const LB_SETTOPINDEX = &H197
 
-Public report_cache_dir As String 'if this is set it will cache the results here in case looked up again.
 Dim repeatOnce As Boolean
-Public owner As Form
 Const LANG_US = &H409
+
+Property Get abort() As Boolean
+    abort = m_Abort
+End Property
+
+Property Let abort(v As Boolean)
+    m_Abort = v
+    If v Then winInet.Cancel
+End Property
+
+Property Get usingPrivateKey() As Boolean
+    usingPrivateKey = m_usingPrivateKey
+End Property
+
+'MUST BE SET!
+Property Let TimerObj(tmr As Object)
+    On Error Resume Next
+    Set Timer1 = tmr
+End Property
 
 Public Function RawDownloadFile(URL, LocalFilename) As Boolean
     Dim lngRetVal As Long
@@ -65,9 +97,42 @@ Property Let delayInterval(x As Long)
     End If
 End Property
 
+Private Sub debugLogger(msg)
+    
+    On Error Resume Next
+    
+    If debugLog Is Nothing Then
+        Set debugLog = New Collection
+    End If
+    
+    If TypeName(debugLog) = "ListBox" Then
+        debugLog.AddItem msg
+        LB_ScrollTo debugLog.hwnd
+        debugLog.Refresh
+    ElseIf TypeName(debugLog) = "Collection" Then
+        debugLog.Add msg
+    End If
+        
+End Sub
+
+Private Sub clearDebugLog()
+
+    On Error Resume Next
+    
+    If debugLog Is Nothing Then
+        Set debugLog = New Collection
+    ElseIf TypeName(debugLog) = "ListBox" Then
+        If Not KeepLog Then debugLog.Clear
+    ElseIf TypeName(debugLog) = "Collection" Then
+        If Not KeepLog Then Set debugLog = New Collection
+    End If
+    
+End Sub
 
 Public Function DownloadFile(hash As String, toDir As String) As Boolean
-
+    
+    On Error GoTo hell
+        
     If Len(API_KEY) = 0 Then Class_Initialize
     If Not usingPrivateKey Then Exit Function
     If Not FolderExists(toDir) Then Exit Function
@@ -76,10 +141,64 @@ Public Function DownloadFile(hash As String, toDir As String) As Boolean
 '  apikey
 '  hash    The md5/sha1/sha256 hash of the file you want to download.
 
+    
     Dim URL As String
+    Dim b() As Byte
+    Dim hFile As Long
+    Dim path As String
+    Dim fSize As Long
+    
     URL = "https://www.virustotal.com/vtapi/v2/file/download?apikey=" & API_KEY & "&hash=" & hash
-    DownloadFile = RawDownloadFile(URL, toDir & "\" & hash)
+    path = toDir & "\" & hash
+    
+    If FileExists(path) Then
+        DownloadFile = True
+        Exit Function
+    End If
+    
+    With winInet
+        .Execute URL, "GET"
+     
+        While .StillExecuting
+           DoEvents
+        Wend
+        
+        b() = .GetChunk(1024, icByteArray)
+        'If Err.Number = 0 Then
+            If UBound(b) <> -1 Then
+                hFile = FreeFile
+                Open path For Binary As hFile
+                Put hFile, , b()
+                
+                Do
+                    b() = .GetChunk(1024, icByteArray)
+                    'If Err.Number <> 0 Then Exit Do
+                    If UBound(b) = -1 Then Exit Do
+                    Put hFile, , b()
+                Loop
+                fSize = LOF(hFile) - 1
+                Close hFile
+            End If
+        'End If
+            
+        If Not FileExists(path) Then Exit Function
+        
+        If fSize = 0 Then
+            delFile path
+            Exit Function
+        End If
+        
+        DownloadFile = True
+        
+    End With
+    
+    Exit Function
+hell: DownloadFile = False
+End Function
 
+Private Function delFile(f)
+    On Error Resume Next
+    Kill f
 End Function
 
 'this class supports a couple nice things..
@@ -90,29 +209,31 @@ End Function
 '3) since vb doesnt support json, a CScan object is always passed back with details of the scan. parsing
 '    was just done in VB and is VT json specific and maybe a bit shady as it was done quickly..
 
-Private Function testAbort() As Boolean
-    On Error Resume Next
-    If Not (owner Is Nothing) Then testAbort = owner.abort
-    If Err.Number <> 0 Then testAbort = False
-End Function
 
-Function GetReport(hash As String, list As ListBox, tmr As Timer) As CScan
+Function GetReport(hash As String) As CScan
 
     On Error Resume Next
     
     Dim scan As New CScan
-   
     Dim my_json As String
     Dim sStatus As String
     Dim status As Long
     Dim curtime As Long
     Dim success As Boolean
     Dim errorMsg As String
+    Dim headers As String
     
+    abort = False
+
     If Len(API_KEY) = 0 Then Class_Initialize
     
-    Set List1 = list
-    Set Timer1 = tmr
+    If Timer1 Is Nothing Then
+        MsgBox "Must set Timer1 reference before using GetReport!"
+        Exit Function
+    End If
+    
+    
+    clearDebugLog
     Timer1.Enabled = False
     Timer1.Interval = m_delayInterval
 
@@ -125,7 +246,7 @@ Function GetReport(hash As String, list As ListBox, tmr As Timer) As CScan
         
     If FolderExists(report_cache_dir) Then
         If FileExists(report_cache_dir & "\" & hash & ".txt") Then
-            List1.AddItem "Cached report found for " & hash
+            debugLogger "Cached report found for " & hash
             my_json = ReadFile(report_cache_dir & "\" & hash & ".txt")
             GoTo parse_json
         End If
@@ -133,24 +254,24 @@ Function GetReport(hash As String, list As ListBox, tmr As Timer) As CScan
             
     DelayIfNeeded
     
-    List1.Clear
-    List1.AddItem "Connecting to VirusTotal to query report for " & hash
+    debugLogger "Connecting to VirusTotal to query report for " & hash
     
     DoEvents
     
     NeedsDelay = True 'need 4 second delay for next if using public api key
     
     LastQueryTime = GetTickCount
-    success = Get_Web_Report(hash, my_json, sStatus, status)
+    success = Get_Web_Report(hash, my_json, sStatus, status, headers)
     scan.HTTP_ResponseCode = status
     scan.HTTP_StatusMessage = sStatus
+    scan.HTTP_HEADERS = headers
     
     If Not success Then
         errorMsg = "Web request failure - status code: " & status & " " & sStatus
         GoTo errorExit
     End If
    
-    List1.AddItem "Query successful for hash: " & hash
+    debugLogger "Query successful for hash: " & hash
          
     If FolderExists(report_cache_dir) Then
         writeFile report_cache_dir & "\" & hash & ".txt", my_json
@@ -160,14 +281,15 @@ parse_json:
     scan.ParseResponse my_json
     Set GetReport = scan
     
-    List1.AddItem "Detections: " & scan.positives & " Response Code: " & scan.response_code
-    If scan.HadError Then List1.AddItem "Had JSON Parsing error..."
+    debugLogger "Detections: " & scan.positives & " Response Code: " & scan.response_code
+    If scan.HadError Then debugLogger "Had JSON Parsing error..."
+     
     
 Exit Function
 
 errorExit:
 
-    List1.AddItem errorMsg
+    debugLogger errorMsg
     scan.Errors.Add errorMsg
     scan.HadError = True
     Set GetReport = scan
@@ -175,112 +297,297 @@ errorExit:
 End Function
 
 
+'search results are returned in blocks of 300 and contain only sha256 hashs...
+Function Search(ByVal criteria, Optional ByVal limit As Long = 300) As CSearchResult
+    
+    Dim cs As CSearchResult
+    Dim cs2 As CSearchResult
+        
+    
+    abort = False
+    debugLogger "Starting search for: " & criteria & " Limit: " & limit
+    Set cs = Search_internal(criteria)
+    Set Search = cs
 
-Private Function Get_Web_Report(hash, out_response As String, out_status As String, out_statusCode As Long) As Boolean
+    If Not cs.HadError Then
+        Do While cs.results.count < limit
+            If abort Then Exit Do
+            DoEvents
+            debugLogger "Loading next block of search results current count: " & cs.results.count & " Limit: " & limit
+            DoEvents
+            If Len(cs.lastOffset) = 0 Then Exit Do             'no more results...
+            Set cs2 = Search_internal(criteria, cs.lastOffset)
+            If cs2.HadError Then Exit Do
+            cs.CopyAndAppend cs2
+        Loop
+    End If
+    
+    If cs.results.count > limit Then cs.TruncateResults limit
+    
+    
+End Function
+
+Private Function Search_internal(ByVal criteria As String, Optional ByVal offset As String) As CSearchResult
+
+    On Error Resume Next
+    Dim my_json As String
+    Dim sStatus As String
+    Dim status As Long
+    Dim curtime As Long
+    Dim success As Boolean
+    Dim errorMsg As String
+    Dim headers As String
+    
+    Dim csr As New CSearchResult
+    
+    csr.criteria = criteria
+    Set Search_internal = csr
+    abort = False
+    If Len(API_KEY) = 0 Then Class_Initialize
+    If Len(Trim(criteria)) = 0 Then Exit Function
+    
+    If Not m_usingPrivateKey Then
+        errorMsg = "Search requires a private API key"
+        GoTo errorExit
+    End If
+    
+    If Timer1 Is Nothing Then
+        MsgBox "Must set Timer1 reference before using GetReport!"
+        Exit Function
+    End If
+    
+    clearDebugLog
+    Timer1.Enabled = False
+    Timer1.Interval = m_delayInterval
+    
+    debugLogger "Connecting to VirusTotal to search for '" & criteria & "'"
+    NeedsDelay = False  'this is private api only
+    LastQueryTime = GetTickCount
+    
+    success = DoWebSearch(criteria, my_json, sStatus, status, headers, offset)
+    csr.HTTP_ResponseCode = status
+    csr.HTTP_StatusMessage = sStatus
+    csr.HTTP_HEADERS = headers
+    
+    If Not success Then
+        errorMsg = "Web request failure - status code: " & status & " " & sStatus
+        GoTo errorExit
+    End If
+   
+    debugLogger "Search successful for criteria: " & criteria
+         
+parse_json:
+    csr.ParseSearchResults my_json
+    
+    debugLogger "Parsed Results: " & csr.results.count
+    'If scan.HadError Then debugLogger "Had JSON Parsing error..."
+    
+Exit Function
+
+errorExit:
+    debugLogger errorMsg
+    
+End Function
+
+Private Function DoWebSearch(criteria, out_response As String, out_status As String, out_statusCode As Long, outHeaders As String, Optional ByVal offset As String) As Boolean
     
     Err.Clear
         
     Dim x As Variant
+    Dim s As String
+    
     out_status = Empty
     out_response = Empty
+    outHeaders = False
     repeatOnce = True
     
 tryAgain:
 
 On Error GoTo hell
 
-     Set http = Nothing
-     Set http = New XMLHTTP
+    Dim strUrl As String, strFormData As String
+    Dim var_data As Variant, str_data As String
      
-1    http.Open "POST", URL_API_BASIS & URL_FILE_REPORT, False
-2    http.setRequestHeader "Content-type", "application/x-www-form-urlencoded"
-     If Not doSend("key=" & API_KEY & "&resource=" & hash & IIf(usingPrivateKey, "&allinfo=1", "")) Then
-        List1.AddItem "Error in Get_Web_Report http.send failed desc: " & Err.Description & " ReadyState: " & http.readyState & " Status: " & http.status
-        If repeatOnce Then
-            repeatOnce = False
-            List1.AddItem "Failure Must delay for " & m_delayInterval & " milliseconds"
-            Timer1.Interval = m_delayInterval
-            Timer1.Enabled = True
-            While Timer1.Enabled
-                DoEvents
-                Sleep 20
-                If testAbort Then Exit Function
-            Wend
-            GoTo tryAgain
-        End If
-     End If
-        
-     DoEvents
+    strUrl = URL_API_BASIS & URL_SEARCH
+    s = "key=" & API_KEY & "&query=" & criteria
+    If Len(offset) > 0 Then s = s & "&offset=" & offset
+    strFormData = s
+    
+    'winInet.RequestTimeout = 3000
+    winInet.Execute strUrl, "POST", strFormData, "Content-Type: application/x-www-form-urlencoded"
+    
+    While winInet.StillExecuting
+        DoEvents
+    Wend
+    
+    'wininet.responsecode doesnt always work?
+    outHeaders = winInet.GetHeader
+    ParseHeader outHeaders, out_status, out_statusCode
+    
+    var_data = winInet.GetChunk(1024, icString)
+    str_data = str_data & var_data
+
+    Do
+        DoEvents
+        var_data = winInet.GetChunk(1024, icString)
+        If Len(var_data) = 0 Then Exit Do
+        str_data = str_data & var_data
+    Loop
      
-5    out_status = http.statusText
-6    out_statusCode = http.status
-7    out_response = http.responseText
-     If out_status = "OK" Then Get_Web_Report = True
-     repeatOnce = True
+    out_response = str_data
+    If out_statusCode = 200 Then DoWebSearch = True
+    repeatOnce = True
      
 hell:
     DoEvents
     If Err.Number <> 0 Then
-        List1.AddItem "Error in Get_Web_Report Line: " & Erl & " desc: " & Err.Description & " ReadyState: " & http.readyState & " Status: " & http.status
+        debugLogger "Error in DoWebSearch Line: " & Erl & " desc: " & Err.Description & " Status: " & out_statusCode
     End If
     
 End Function
 
-'status code of 1223 and drop all response headers if the server returns a HTTP/204 No Content
-Function doSend(s As String) As Boolean
+Private Function ParseHeader(ByVal h As String, ByRef out_status As String, ByRef out_statusCode As Long)
+    
     On Error Resume Next
-    http.send s
-    doSend = IIf(Err.Number = 0, True, False)
+    
+    Dim a As Long, b As Long, tmp As String
+    a = InStr(h, vbLf)
+    If a > 1 Then
+        h = Mid(h, 1, a - 1)
+        If Right(h, 1) = vbCr Then h = Mid(h, 1, Len(h) - 1)
+        a = InStr(h, " ")
+        If a > 0 Then
+            a = a + 1
+            b = InStr(a, h, " ")
+            If b > 0 Then
+                tmp = Trim(Mid(h, a, b - a))
+                out_statusCode = CLng(tmp)
+                out_status = Trim(Mid(h, b))
+            End If
+        End If
+    End If
+                
 End Function
 
-
-Sub Closeit()
-    On Error Resume Next
-    http.abort
-End Sub
-
-Function AddComment(hash, comment, out_response As String, out_status As String, out_statusCode As Long) As Boolean
-    
-    If Len(API_KEY) = 0 Then Class_Initialize
+Private Function Get_Web_Report(hash, out_response As String, out_status As String, out_statusCode As Long, outHeaders As String) As Boolean
     
     Err.Clear
-    On Error GoTo hell
-    
+        
     Dim x As Variant
     out_status = Empty
     out_response = Empty
+    outHeaders = Empty
+    repeatOnce = True
     
-1    http.Open "POST", URL_API_BASIS & URL_MAKE_COMMENT, False
-2    http.setRequestHeader "Content-type", "application/x-www-form-urlencoded"
-3    http.send "key=" & API_KEY & "&resource=" & hash & "&comment=" & comment
-    
-     DoEvents
+tryAgain:
+
+On Error GoTo hell
+
+    Dim strUrl As String, strFormData As String
+    Dim var_data As Variant, str_data As String
      
-5    out_status = http.statusText
-6    out_statusCode = http.status
-7    out_response = http.responseText
-     If out_status = "OK" Then AddComment = True
+    strUrl = URL_API_BASIS & URL_FILE_REPORT
+    s = "key=" & API_KEY & "&resource=" & hash & IIf(usingPrivateKey, "&allinfo=1", "")
+    If Len(offset) > 0 Then s = s & "&offset=" & offset
+    strFormData = s
+    
+    'winInet.RequestTimeout = 3000
+    winInet.Execute strUrl, "POST", strFormData, "Content-Type: application/x-www-form-urlencoded"
+    
+    While winInet.StillExecuting
+        DoEvents
+    Wend
+    
+    'wininet.responsecode doesnt always work?
+    outHeaders = winInet.GetHeader
+    ParseHeader outHeaders, out_status, out_statusCode
+    
+    var_data = winInet.GetChunk(1024, icString)
+    str_data = str_data & var_data
+
+    Do
+        DoEvents
+        var_data = winInet.GetChunk(1024, icString)
+        If Len(var_data) = 0 Then Exit Do
+        str_data = str_data & var_data
+    Loop
+     
+    out_response = str_data
+    If out_statusCode = 200 Then Get_Web_Report = True
     
 hell:
     DoEvents
     If Err.Number <> 0 Then
-        List1.AddItem "Error in AddComment Line: " & Erl & " desc: " & Err.Description
+        debugLogger "Error in Get_Web_Report Line: " & Erl & " desc: " & Err.Description & " Status: " & out_status
     End If
     
 End Function
 
-Function FolderExists(path) As Boolean
+Function AddComment(hash, comment, out_response As String, out_status As String, out_statusCode As Long, out_headers As String) As Boolean
+    
+    abort = False
+    If Len(API_KEY) = 0 Then Class_Initialize
+
+    Err.Clear
+    On Error GoTo hell
+
+    Dim x As Variant
+    out_status = Empty
+    out_response = Empty
+    out_statusCode = Empty
+    out_headers = Empty
+    
+    Dim strUrl As String, strFormData As String
+    Dim var_data As Variant, str_data As String
+     
+    strUrl = URL_API_BASIS & URL_MAKE_COMMENT
+    s = "key=" & API_KEY & "&resource=" & hash & "&comment=" & comment
+    strFormData = s
+    
+    'winInet.RequestTimeout = 3000
+    winInet.Execute strUrl, "POST", strFormData, "Content-Type: application/x-www-form-urlencoded"
+    
+    While winInet.StillExecuting
+        DoEvents
+    Wend
+    
+    'wininet.responsecode doesnt always work?
+    out_headers = winInet.GetHeader
+    ParseHeader out_headers, out_status, out_statusCode
+    
+    var_data = winInet.GetChunk(1024, icString)
+    str_data = str_data & var_data
+
+    Do
+        DoEvents
+        var_data = winInet.GetChunk(1024, icString)
+        If Len(var_data) = 0 Then Exit Do
+        str_data = str_data & var_data
+    Loop
+     
+    out_response = str_data
+    If out_statusCode = 200 Then AddComment = True
+    
+hell:
+    DoEvents
+    If Err.Number <> 0 Then
+        debugLogger "Error in AddComment Line: " & Erl & " desc: " & Err.Description
+    End If
+    
+End Function
+
+Private Function FolderExists(path) As Boolean
   If Len(path) = 0 Then Exit Function
   If Dir(path, vbDirectory) <> "" Then FolderExists = True _
   Else FolderExists = False
 End Function
 
-Function FileExists(p) As Boolean
+Private Function FileExists(p) As Boolean
     If Len(p) = 0 Then Exit Function
     If Dir(p, vbNormal Or vbHidden Or vbReadOnly Or vbSystem) <> "" Then FileExists = True
 End Function
 
-Function ReadFile(filename) As String 'this one should be binary safe...
+Private Function ReadFile(filename) As String 'this one should be binary safe...
   On Error GoTo hell
   f = FreeFile
   Dim b() As Byte
@@ -293,7 +600,7 @@ Function ReadFile(filename) As String 'this one should be binary safe...
 hell:   ReadFile = ""
 End Function
 
-Function writeFile(path, it) As Boolean 'this one should be binary safe...
+Private Function writeFile(path, it) As Boolean 'this one should be binary safe...
     On Error GoTo hell
     Dim b() As Byte
     If FileExists(path) Then Kill path
@@ -318,11 +625,11 @@ Function SetPrivateApiKey(ByVal key As String)
     If Len(key) > 0 Then
         API_KEY = key
         m_delayInterval = 0
-        usingPrivateKey = True
+        m_usingPrivateKey = True
     Else
         API_KEY = PUBLIC_API_KEY
-        m_delayInterval = 17000 '4 requests per minute max
-        usingPrivateKey = False
+        m_delayInterval = 17300 '4 requests per minute max
+        m_usingPrivateKey = False
     End If
     
 End Function
@@ -353,13 +660,13 @@ Private Function DelayIfNeeded()
             Interval = curtime - LastQueryTime
             If Interval < m_delayInterval Then
                 Interval = m_delayInterval - Interval
-                List1.AddItem "Must delay for " & Interval & " milliseconds"
+                debugLogger "Must delay for " & Interval & " milliseconds"
                 Timer1.Interval = Interval
                 Timer1.Enabled = True
                 While Timer1.Enabled
                     DoEvents
                     Sleep 20
-                    If testAbort Then Timer1.Enabled = False
+                    If abort Then Timer1.Enabled = False
                 Wend
                 NeedsDelay = False
                 LastQueryTime = curtime
@@ -372,7 +679,8 @@ Private Function DelayIfNeeded()
     
 End Function
 
-Function SubmitFile(fpath As String, list As ListBox, tmr As Timer) As CScan
+'uses timer but not wininet, still uses xmlhttp
+Function SubmitFile(fpath As String) As CScan
 
     'base example from: http://wqweto.wordpress.com/2011/07/12/vb6-using-wininet-to-post-binary-file/
     Const STR_BOUNDARY  As String = "3fbd04f5-b1ed-4060-99b9-fca7ff59c113"
@@ -382,6 +690,7 @@ Function SubmitFile(fpath As String, list As ListBox, tmr As Timer) As CScan
     
     On Error Resume Next
     
+    abort = False
     If Len(API_KEY) = 0 Then Class_Initialize
     
     Dim scan As New CScan
@@ -394,11 +703,15 @@ Function SubmitFile(fpath As String, list As ListBox, tmr As Timer) As CScan
     Dim success As Boolean
     Dim errorMsg As String
     
-    Set List1 = list
-    Set Timer1 = tmr
+    If Timer1 Is Nothing Then
+        MsgBox "Must set Timer1 reference before using SubmitFile!"
+        Exit Function
+    End If
+    
+    
+    clearDebugLog
     Timer1.Enabled = False
     Timer1.Interval = m_delayInterval
-    'List1.Clear
     
     If Not FileExists(fpath) Then
         errorMsg = "Upload file does not exist: " & fpath
@@ -428,7 +741,7 @@ Function SubmitFile(fpath As String, list As ListBox, tmr As Timer) As CScan
     
     DelayIfNeeded
     
-    List1.AddItem "Connecting to VirusTotal to submit file: " & fName
+    debugLogger "Connecting to VirusTotal to submit file: " & fName
     NeedsDelay = True 'need 4 second delay for next
     DoEvents
     LastQueryTime = GetTickCount
@@ -450,13 +763,13 @@ Function SubmitFile(fpath As String, list As ListBox, tmr As Timer) As CScan
     ' -2: resource is currently being analyzed.
     ' -1: you do not have the required privileges (wrong API key?).
      
-    List1.AddItem "Result: " & scan.verbose_msg & " Response Code: " & scan.response_code
-    
+    debugLogger "Result: " & scan.verbose_msg & " Response Code: " & scan.response_code
+      
     Exit Function
 
 errorExit:
 
-    List1.AddItem errorMsg
+    debugLogger errorMsg
     scan.Errors.Add errorMsg
     scan.HadError = True
     Set SubmitFile = scan
@@ -468,5 +781,14 @@ End Function
 Private Function pvToByteArray(sText As String) As Byte()
     pvToByteArray = StrConv(sText, vbFromUnicode, LANG_US)
 End Function
+
+Private Function LB_Count(hListBox As Long) As Long
+   LB_Count = SendMessage(hListBox, LB_GETCOUNT, ByVal CLng(0), ByVal CLng(0))
+End Function
+
+Private Sub LB_ScrollTo(hListBox As Long, Optional ByVal index As Long = -1)
+    If index = -1 Then index = LB_Count(hListBox)
+    SendMessage hListBox, LB_SETTOPINDEX, ByVal index - 1, ByVal 0
+End Sub
 
 

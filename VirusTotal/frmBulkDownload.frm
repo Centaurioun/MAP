@@ -1,5 +1,6 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{48E59290-9880-11CF-9754-00AA00C00908}#1.0#0"; "MSINET.OCX"
 Begin VB.Form frmBulkDownload 
    Caption         =   "Bulk Download"
    ClientHeight    =   6000
@@ -10,6 +11,13 @@ Begin VB.Form frmBulkDownload
    ScaleHeight     =   6000
    ScaleWidth      =   10410
    StartUpPosition =   2  'CenterScreen
+   Begin InetCtlsObjects.Inet Inet1 
+      Left            =   9720
+      Top             =   1080
+      _ExtentX        =   1005
+      _ExtentY        =   1005
+      _Version        =   393216
+   End
    Begin MSComctlLib.ProgressBar pb 
       Height          =   285
       Left            =   4005
@@ -99,7 +107,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-Public abort As Boolean
+
 Dim dlg As New clsCmnDlg
 Dim fso As New CFileSystem2
 Dim vt As New CVirusTotal
@@ -108,7 +116,7 @@ Dim vt As New CVirusTotal
 
 Private Sub cmdBrowse_Click()
     Dim x As String
-    x = dlg.FolderDialog(, Me.hWnd)
+    x = dlg.FolderDialog(, Me.hwnd)
     If Len(x) = 0 Then Exit Sub
     txtDir = x
 End Sub
@@ -130,7 +138,7 @@ Private Sub cmdDownload_Click()
     txtHash = Trim(Replace(txtHash, vbCrLf & vbCrLf, vbCrLf))
     
     lv.ListItems.Clear
-    pb.value = 0
+    pb.Value = 0
     
     tmp = Split(txtHash, vbCrLf)
     pb.Max = UBound(tmp) + 1
@@ -141,26 +149,27 @@ Private Sub cmdDownload_Click()
             Set li = lv.ListItems.Add(, , x)
             lv.Refresh
             If fso.FileExists(txtDir & "\" & x) Then
-                li.SubItems(1) = "Exists"
+                li.subItems(1) = "Exists"
             Else
-                li.SubItems(1) = vt.DownloadFile(CStr(x), txtDir)
+                li.subItems(1) = vt.DownloadFile(CStr(x), txtDir)
             End If
             lv.Refresh
         End If
         DoEvents
         Me.Refresh
-        pb.value = pb.value + 1
+        pb.Value = pb.Value + 1
     Next
     
-    pb.value = 0
+    pb.Value = 0
         
 End Sub
 
 Private Sub Form_Load()
-    Set vt.owner = Me
+    vt.TimerObj = Timer1
+    Set vt.winInet = Inet1
 End Sub
 
-Private Sub txtDir_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, xx As Single, Y As Single)
+Private Sub txtDir_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, xx As Single, y As Single)
     On Error Resume Next
     Dim x As String
     x = Data.files(1)
