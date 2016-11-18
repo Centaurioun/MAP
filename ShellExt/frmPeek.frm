@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmStrings 
    Caption         =   "Strings"
    ClientHeight    =   5340
@@ -126,6 +126,7 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
+      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -209,6 +210,9 @@ Begin VB.Form frmStrings
       Begin VB.Menu mnuDelphiFIlter 
          Caption         =   "Delphi Filter"
       End
+      Begin VB.Menu mnuStringMatch 
+         Caption         =   "Find String Matches"
+      End
    End
 End
 Attribute VB_Name = "frmStrings"
@@ -255,9 +259,9 @@ Private Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) 
 
 Option Compare Binary
 
-Sub DisplayList(Data As String)
+Sub DisplayList(data As String)
     
-    rtf.Text = Data
+    rtf.Text = data
     Me.Show 1
     
 End Sub
@@ -298,7 +302,7 @@ Private Sub cmdFindAll_Click()
     If Len(Text1) = 0 Then Exit Sub
     tmp = Split(rtf.Text, vbCrLf)
     
-    pb.Value = 0
+    pb.value = 0
     For Each x In tmp
          i = i + 1
         If InStr(Text1, "*") > 0 Then
@@ -312,7 +316,7 @@ Private Sub cmdFindAll_Click()
         End If
         If i Mod 5 = 0 Then setpb i, UBound(tmp)
     Next
-    pb.Value = 0
+    pb.value = 0
     
     x = UBound(ret)
     If x < 0 Then
@@ -320,10 +324,10 @@ Private Sub cmdFindAll_Click()
         Exit Sub
     End If
     
-    Dim Data As String
-    Data = Join(ret, vbCrLf)
+    Dim data As String
+    data = Join(ret, vbCrLf)
     
-    If Len(Data) = 0 Then
+    If Len(data) = 0 Then
         Me.Caption = "Search for: " & Text1 & " 0 hits"
         Exit Sub
     Else
@@ -331,7 +335,7 @@ Private Sub cmdFindAll_Click()
     End If
     
     f = fso.GetFreeFileName(Environ("temp"))
-    fso.WriteFile f, Data
+    fso.WriteFile f, data
     Shell "notepad.exe """ & f & """", vbNormalFocus
     
 End Sub
@@ -383,7 +387,7 @@ Private Sub Command3_Click()
     def = fso.GetBaseName(curFile)
     If Len(def) > 12 Then def = VBA.Left(def, 5)
     def = "str_" & def & ".txt"
-    f = dlg.SaveDialog(textFiles, pf, "Save Report as", , Me.hwnd, def)
+    f = dlg.SaveDialog(textFiles, pf, "Save Report as", , Me.hWnd, def)
     If Len(f) = 0 Then Exit Sub
     fso.WriteFile f, rtf.Text
 End Sub
@@ -393,14 +397,14 @@ Private Sub Form_Load()
     sSearch = -1
     txtMinLen = minStrLen 'global
     pb.max = 100
-    pb.Value = 0
+    pb.value = 0
     RestoreFormSizeAnPosition Me
     Me.Visible = True
-    chkShowOffsets.Value = GetMySetting("offsests", 1)
+    chkShowOffsets.value = GetMySetting("offsests", 1)
    ' mnuHiddenStrings.Checked = IIf(GetMySetting("hiddenstrings", 0) = 0, False, True)
-    chkFilter.Value = GetMySetting("Filter", 0)
-    optRaw.Value = IIf(GetMySetting("Raw", 1) = 1, True, False)
-    If Not optRaw.Value Then optVa.Value = True
+    chkFilter.value = GetMySetting("Filter", 0)
+    optRaw.value = IIf(GetMySetting("Raw", 1) = 1, True, False)
+    If Not optRaw.value Then optVa.value = True
     mnuMore.Visible = False
     formLoaded = True
 End Sub
@@ -408,9 +412,9 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
    abort = True
    SaveFormSizeAnPosition Me
-   SaveMySetting "offsests", chkShowOffsets.Value
-   SaveMySetting "Filter", chkFilter.Value
-   SaveMySetting "Raw", IIf(optRaw.Value, 1, 0)
+   SaveMySetting "offsests", chkShowOffsets.value
+   SaveMySetting "Filter", chkFilter.value
+   SaveMySetting "Raw", IIf(optRaw.value, 1, 0)
    'SaveMySetting "hiddenstrings", IIf(mnuHiddenStrings.Checked, 1, 0)
    'End
 End Sub
@@ -423,7 +427,7 @@ End Sub
  
  Sub setpb(cur, max)
     On Error Resume Next
-    pb.Value = (cur / max) * 100
+    pb.value = (cur / max) * 100
     Me.Refresh
     DoEvents
  End Sub
@@ -481,7 +485,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     ReDim buf(9000)
     Open fPath For Binary Access Read As f
     
-    pb.Value = 0
+    pb.value = 0
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
@@ -510,7 +514,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     pointer = 1
     Seek f, 1
     
-    pb.Value = 0
+    pb.value = 0
     Do While pointer < LOF(f)
         If abort Then GoTo aborting
         pointer = Seek(f)
@@ -521,7 +525,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
         search buf, pointer
         setpb pointer, LOF(f)
     Loop
-    pb.Value = 0
+    pb.value = 0
     
     Close f
      
@@ -529,7 +533,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     Dim topLine As Integer
     
     lines = lines + UBound(ret)
-    LockWindowUpdate rtf.hwnd 'try to make it not jump when we add more...
+    LockWindowUpdate rtf.hWnd 'try to make it not jump when we add more...
     topLine = TopLineIndex(rtf)
     rtf.Text = rtf.Text & vbCrLf & vbCrLf & Join(ret, vbCrLf)
     ScrollToLine rtf, topLine
@@ -539,10 +543,11 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     Me.Caption = lines & " matches found..."
     Me.Show 1
    
-    If chkFilter.Value = 1 Then
+    If chkFilter.value = 1 Then
         Me.Caption = Me.Caption & "  ( " & UBound(filtered) & " results filtered)"
     End If
     
+    Me.Caption = Me.Caption & "  -  " & fPath
     running = False
     RevertRedir fs
     
@@ -560,7 +565,7 @@ aborting:
       RevertRedir fs
       running = False
       abort = False
-      pb.Value = 0
+      pb.value = 0
       
 End Sub
 
@@ -574,8 +579,8 @@ Private Sub search(buf() As Byte, offset As Long)
     For Each m In mc
         DoEvents
         If abort Then Exit Sub
-        If chkFilter.Value = 1 Then
-            If Not Filter(m.Value) Then AddResult m, offset
+        If chkFilter.value = 1 Then
+            If Not Filter(m.value) Then AddResult m, offset
         Else
             AddResult m, offset
         End If
@@ -587,9 +592,9 @@ End Sub
 Function AddResult(m As match, offset As Long)
     Dim x As Long, xx As Double, sect As String, o As String
     
-    If chkShowOffsets.Value = 1 Then
+    If chkShowOffsets.value = 1 Then
         x = m.FirstIndex + offset - 1
-        If optVa.Value And pe.isLoaded = True Then
+        If optVa.value And pe.isLoaded = True Then
             xx = pe.OffsetToVA(x, sect)
             If xx = 0 Then
                 o = pad(x) & "  "
@@ -601,7 +606,7 @@ Function AddResult(m As match, offset As Long)
         End If
     End If
     
-    push ret(), o & Replace(m.Value, Chr(0), Empty)
+    push ret(), o & Replace(m.value, Chr(0), Empty)
     
 End Function
 
@@ -803,7 +808,7 @@ Private Sub mnuDelphiFIlter_Click()
     
     Me.Caption = "Filter contains: " & UBound(filt)
     pb.max = 100
-    pb.Value = 0
+    pb.value = 0
     i = 0
     
     tmp = rtf.Text
@@ -811,7 +816,7 @@ Private Sub mnuDelphiFIlter_Click()
     For i = 0 To UBound(filt)
         tmp = Replace(tmp, filt(i), "-[dtd]-")
         If i Mod 100 = 0 Then
-            pb.Value = i / UBound(txt) * 100
+            pb.value = i / UBound(txt) * 100
             DoEvents
         End If
         If abort Then Exit Sub
@@ -819,7 +824,7 @@ Private Sub mnuDelphiFIlter_Click()
     
     Erase filt
     txt = Split(tmp, vbCrLf)
-    pb.Value = 0
+    pb.value = 0
     
     For i = 0 To UBound(txt)
         
@@ -830,7 +835,7 @@ Private Sub mnuDelphiFIlter_Click()
         End If
         
         If i Mod 100 = 0 Then
-            pb.Value = i / UBound(txt) * 100
+            pb.value = i / UBound(txt) * 100
             DoEvents
         End If
         
@@ -838,20 +843,48 @@ Private Sub mnuDelphiFIlter_Click()
     Next
     
     Me.Caption = UBound(filt) & " results shown  (" & removed & " removed by Delphi Filter)"
-    pb.Value = 0
+    pb.value = 0
     
     rtf.Text = Join(filt, vbCrLf)
     
 End Sub
 
+Private Sub mnuStringMatch_Click()
+    
+    Dim f2 As String
+    Dim c1 As New CollectionEx
+    Dim c2 As New CollectionEx
+    Dim matches As CollectionEx
+    Dim tmp As String
+    
+    On Error Resume Next
+    
+    f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hWnd)
+    If Len(f2) = 0 Then Exit Sub
+    
+    c1.fromArray Split(rtf.Text, vbCrLf), , True, True
+    c2.fromTextFile f2, , True
+    
+    Set matches = c1.findMatches(c2)
+    
+    If matches.Count = 0 Then
+        MsgBox "No matches found"
+    Else
+        tmp = fso.GetFreeFileName(Environ("temp"))
+        matches.toTextFile tmp, "Matches in both " & fso.FileNameFromPath(curFile) & " - " & fso.FileNameFromPath(f2) & " - " & Now
+        Shell "notepad.exe """ & tmp & """", vbNormalFocus
+    End If
+    
+End Sub
+
 Private Sub optRaw_Click()
     If Not formLoaded Then Exit Sub
-    If chkShowOffsets.Value = 1 Then ParseFile curFile, True
+    If chkShowOffsets.value = 1 Then ParseFile curFile, True
 End Sub
 
 Private Sub optVa_Click()
     If Not formLoaded Then Exit Sub
-    If chkShowOffsets.Value = 1 Then ParseFile curFile, True
+    If chkShowOffsets.value = 1 Then ParseFile curFile, True
 End Sub
 
 Private Sub tmrReRun_Timer()

@@ -29,6 +29,7 @@ Form=frmRecursiveHashFiles.frm
 Class=CWindow; CWindow.cls
 Module=modTreeview; modTreeview.bas
 Form=frmPEVersion.frm
+Class=CollectionEx; CollectionEx.cls
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""
