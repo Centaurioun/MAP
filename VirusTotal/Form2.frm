@@ -11,8 +11,8 @@ Begin VB.Form Form2
    ScaleWidth      =   9210
    StartUpPosition =   2  'CenterScreen
    Begin InetCtlsObjects.Inet Inet1 
-      Left            =   6660
-      Top             =   360
+      Left            =   8520
+      Top             =   870
       _ExtentX        =   1005
       _ExtentY        =   1005
       _Version        =   393216
@@ -41,8 +41,8 @@ Begin VB.Form Form2
       Width           =   1215
    End
    Begin VB.Timer Timer1 
-      Left            =   7320
-      Top             =   390
+      Left            =   7350
+      Top             =   420
    End
    Begin VB.TextBox Text1 
       BeginProperty Font 
@@ -184,6 +184,9 @@ Begin VB.Form Form2
       Begin VB.Menu mnuViewRawJson 
          Caption         =   "View Raw Json"
       End
+      Begin VB.Menu mnuGotoPage 
+         Caption         =   "Goto Page"
+      End
    End
 End
 Attribute VB_Name = "Form2"
@@ -319,6 +322,14 @@ Private Sub mnuCopyTable_Click()
     Next
     Clipboard.Clear
     Clipboard.SetText r
+End Sub
+
+Private Sub mnuGotoPage_Click()
+    On Error Resume Next
+    If Len(scan.permalink) > 0 Then
+        Shell "cmd /c start " & scan.permalink
+        'MsgBox scan.permalink
+    End If
 End Sub
 
 Private Sub mnuViewRawJson_Click()

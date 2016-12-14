@@ -300,7 +300,7 @@ Private Sub Form_Load()
     Set vt.winInet = Inet1
     vt.TimerObj = Timer1
     
-    mnuSetPrivateKey.Checked = vt.usingPrivateKey
+    'mnuSetPrivateKey.Checked = vt.usingPrivateKey
     
     txtCacheDir = App.path & "\..\VT_Search_Cache"
     If Not fso.FolderExists(txtCacheDir) Then
