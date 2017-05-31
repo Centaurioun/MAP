@@ -122,5 +122,5 @@ Private Sub cmdAbort_Click()
 End Sub
 
 Private Sub Form_Load()
-    vt.TimerObj = tmrDelay
+   Set vt.Timer1 = tmrDelay
 End Sub

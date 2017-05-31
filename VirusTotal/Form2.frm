@@ -188,6 +188,21 @@ Begin VB.Form Form2
          Caption         =   "Goto Page"
       End
    End
+   Begin VB.Menu mnuTools 
+      Caption         =   "Tools"
+      Begin VB.Menu mnuBulkDl 
+         Caption         =   "Bulk Download"
+      End
+      Begin VB.Menu mnuSearch 
+         Caption         =   "Search"
+      End
+      Begin VB.Menu mnuSpacer 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuUsePrivKey 
+         Caption         =   "Use Private Api Key"
+      End
+   End
 End
 Attribute VB_Name = "Form2"
 Attribute VB_GlobalNameSpace = False
@@ -284,9 +299,12 @@ Private Sub cmdSubmit_Click()
 Private Sub Form_Load()
     Me.Show
     mnuPopup.Visible = False
-    vt.TimerObj = Timer1
+    Set vt.Timer1 = Timer1
     Set vt.winInet = Inet1
     Set vt.debugLog = List1
+    mnuUsePrivKey.Checked = vt.usingPrivateKey
+    mnuBulkDl.Enabled = vt.usingPrivateKey
+    mnuSearch.Enabled = vt.usingPrivateKey
 End Sub
 
 Private Sub Form_Resize()
@@ -314,6 +332,10 @@ Private Sub List1_MouseUp(Button As Integer, Shift As Integer, x As Single, y As
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
+Private Sub mnuBulkDl_Click()
+    frmBulkDownload.Show
+End Sub
+
 Private Sub mnuCopyTable_Click()
     On Error Resume Next
     Dim r
@@ -330,6 +352,34 @@ Private Sub mnuGotoPage_Click()
         Shell "cmd /c start " & scan.permalink
         'MsgBox scan.permalink
     End If
+End Sub
+
+Private Sub mnuSearch_Click()
+    frmSearch.Show
+End Sub
+
+Private Sub mnuUsePrivKey_Click()
+    Dim x As String
+    
+    x = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
+                 "Enter an empty string or hit cancel to clear the private key." & vbCrLf & vbCrLf & "Your key will be stored in the registry.", _
+                 "Enter private api key", _
+                 vt.ReadPrivateApiKey _
+        )
+                 
+    vt.SetPrivateApiKey x
+    mnuUsePrivKey.Checked = vt.usingPrivateKey
+    
+    If vt.usingPrivateKey Then
+        MsgBox "Private key successfull set", vbInformation
+        mnuBulkDl.Enabled = True
+        mnuSearch.Enabled = True
+    Else
+        MsgBox "You are now using the default public key which is rate limited and free for non-commercial use. " & vbCrLf & vbCrLf & "Please see the VirusTotal terms of service.", vbInformation
+        mnuBulkDl.Enabled = False
+        mnuSearch.Enabled = False
+    End If
+    
 End Sub
 
 Private Sub mnuViewRawJson_Click()

@@ -281,6 +281,7 @@ Private Sub Command1_Click()
         If Err.Number = 0 Then
             import = Replace(import, "-", "_") 'some chars are reserved for IDA names
             If Check1.Value Then tmp = tmp & vbTab & "MakeUnkn(0x" & addr & ",1);" & vbCrLf 'MakeName(0X4010E8,  "THISISMYSUB_2");
+            If Check1.Value Then tmp = tmp & vbTab & "MakeDword(0x" & addr & ");" & vbCrLf
             tmp = tmp & vbTab & "MakeName(0x" & addr & ",""" & import & """);" & vbCrLf
             hits = hits + 1
         End If

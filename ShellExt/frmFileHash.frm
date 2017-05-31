@@ -484,9 +484,9 @@ Private Sub mnuGotoScan_Click()
 End Sub
 
 Private Sub mnuKryptoAnalyzer_Click()
-    Set kanal = Nothing
-    Timer2.Tag = 0
-    Timer2.enabled = True
+    'Set kanal = Nothing
+    'Timer2.Tag = 0
+    'Timer2.enabled = True
     LaunchPeidPlugin "kanal.dll", LoadedFile 'this is a modal dialog so we have to enable timer first...
 End Sub
 
@@ -569,7 +569,7 @@ End Sub
 Sub AddExternal(cmd As String)
      
     Dim i As Integer
-    cmd = Trim(cmd)
+    cmd = trim(cmd)
     If Len(cmd) = 0 Then Exit Sub
     If VBA.Left(cmd, 1) = "#" Then Exit Sub
     
@@ -582,9 +582,9 @@ Sub AddExternal(cmd As String)
     
     i = mnuExt.count
     Load mnuExt(i)
-    mnuExt(i).Caption = Trim(tmp(0))
+    mnuExt(i).Caption = trim(tmp(0))
     mnuExt(i).Visible = True
-    mnuExt(i).Tag = Trim(tmp(1))
+    mnuExt(i).Tag = trim(tmp(1))
     
 End Sub
 
@@ -594,59 +594,59 @@ Private Sub mnuVTCache_Click()
     vt.report_cache_dir = IIf(mnuVTCache.Checked, vt_cache, Empty)
 End Sub
 
-Private Sub Timer2_Timer()
-        
-    Dim c As Collection
-    Dim w As Cwindow
-    
-    'Debug.Print "Timer2"
-    
-    If Timer2.Tag = 7 Then      ' x attempts...
-        Timer2.enabled = False
-        Exit Sub
-    End If
-    
-    Timer2.Tag = Timer2.Tag + 1
-    
-    Set c = ChildWindows()
-    For Each w In c
-        If VBA.Left(w.Caption, 5) = "KANAL" Then
-            'Debug.Print Now & " - found kanal window attaching to " & w.hwnd & " (" & Hex(w.hwnd) & " )"
-            w.Caption = w.Caption & "+" & Timer2.Tag
-            Set kanal = w
-            subclass.AttachMessage w.hWnd, WM_COMMAND
-            'Debug.Print "Disabling timer now..."
-            Timer2.enabled = False
-            Exit Sub
-        End If
-    Next
-    
-End Sub
-
-Private Sub subclass_MessageReceived(hWnd As Long, wMsg As Long, wParam As Long, lParam As Long, Cancel As Boolean)
-        
-        Dim c2 As Collection, wTv As Cwindow, tmp As String
-        
-        'we hooked WM_COMMAND for the kanal window
-        'we are looking for BN_Clicked in the hiword of wParam and our button id (1022) in the low word
-        'since bn_clicked = 0 we are going to take a shortcut and just look for 1022 in wparam
-        
-        'Debug.Print Now & " - received WM_COMMAND message for hwnd " & hwnd & " wParam = " & wParam
-        
-        If wParam = 1022 Then 'our new copy button
-            If kanal Is Nothing Then Exit Sub
-            If kanal.isValid Then
-                Set wTv = kanal.FindChild("SysTreeView32")
-                If wTv.isValid Then
-                     Set c2 = wTv.CopyRemoteTreeView()
-                     tmp = ColToStr(c2)
-                     Clipboard.Clear
-                     Clipboard.SetText tmp
-                     'kanal.CloseWindow
-                     MsgBox "Saved " & Len(tmp) & " bytes!", vbInformation
-                End If
-            End If
-        End If
-
-End Sub
+'Private Sub Timer2_Timer()
+'
+'    Dim c As Collection
+'    Dim w As Cwindow
+'
+'    'Debug.Print "Timer2"
+'
+'    If Timer2.Tag = 7 Then      ' x attempts...
+'        Timer2.enabled = False
+'        Exit Sub
+'    End If
+'
+'    Timer2.Tag = Timer2.Tag + 1
+'
+'    Set c = ChildWindows()
+'    For Each w In c
+'        If VBA.Left(w.Caption, 5) = "KANAL" Then
+'            'Debug.Print Now & " - found kanal window attaching to " & w.hwnd & " (" & Hex(w.hwnd) & " )"
+'            w.Caption = w.Caption & "+" & Timer2.Tag
+'            Set kanal = w
+'            subclass.AttachMessage w.hWnd, WM_COMMAND
+'            'Debug.Print "Disabling timer now..."
+'            Timer2.enabled = False
+'            Exit Sub
+'        End If
+'    Next
+'
+'End Sub
+'
+'Private Sub subclass_MessageReceived(hWnd As Long, wMsg As Long, wParam As Long, lParam As Long, Cancel As Boolean)
+'
+'        Dim c2 As Collection, wTv As Cwindow, tmp As String
+'
+'        'we hooked WM_COMMAND for the kanal window
+'        'we are looking for BN_Clicked in the hiword of wParam and our button id (1022) in the low word
+'        'since bn_clicked = 0 we are going to take a shortcut and just look for 1022 in wparam
+'
+'        'Debug.Print Now & " - received WM_COMMAND message for hwnd " & hwnd & " wParam = " & wParam
+'
+'        If wParam = 1022 Then 'our new copy button
+'            If kanal Is Nothing Then Exit Sub
+'            If kanal.isValid Then
+'                Set wTv = kanal.FindChild("SysTreeView32")
+'                If wTv.isValid Then
+'                     Set c2 = wTv.CopyRemoteTreeView()
+'                     tmp = ColToStr(c2)
+'                     Clipboard.Clear
+'                     Clipboard.SetText tmp
+'                     'kanal.CloseWindow
+'                     MsgBox "Saved " & Len(tmp) & " bytes!", vbInformation
+'                End If
+'            End If
+'        End If
+'
+'End Sub
 

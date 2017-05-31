@@ -1,3 +1,11 @@
 
+shellext.md5: add PEiD info level (code in sysanalyzer), maybe trID too code somewhere..in php something..
+shellext.md5: look at debug directory and see if we can extract pdb name 
+shellext.virustotal: do not cache no results found
 virustotal: lower textbox to rtf, highlight all matches yellow on selection
 strings offsets not x64 safe, offset calc not x64 aware..
+
+extract pdb path
+report mode with scrollable textbox and more info
+exports report
+pe rich header?

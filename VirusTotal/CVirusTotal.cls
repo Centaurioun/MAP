@@ -38,7 +38,7 @@ Public debugLog As Object         'set to a listbox for live logging, or it will
 Private m_Abort As Boolean
 Public KeepLog As Boolean
 
-Private WithEvents Timer1 As Timer 'we cant make this public it will switch to object type in typelib
+Public WithEvents Timer1 As Timer 'we cant make this public it will switch to object type in typelib
 Attribute Timer1.VB_VarHelpID = -1
 Private m_usingPrivateKey As Boolean
 
@@ -76,10 +76,10 @@ Property Get usingPrivateKey() As Boolean
 End Property
 
 'MUST BE SET!
-Property Let TimerObj(tmr As Object)
-    On Error Resume Next
-    Set Timer1 = tmr
-End Property
+'Property Set TimerObj(tmr As Timer)
+'    On Error Resume Next
+'    Set Timer1 = tmr
+'End Property
 
 Public Function RawDownloadFile(URL, LocalFilename) As Boolean
     Dim lngRetVal As Long

@@ -298,7 +298,7 @@ Private Sub Form_Load()
     vt.KeepLog = True
     Set vt.debugLog = List1
     Set vt.winInet = Inet1
-    vt.TimerObj = Timer1
+    Set vt.Timer1 = Timer1
     
     'mnuSetPrivateKey.Checked = vt.usingPrivateKey
     

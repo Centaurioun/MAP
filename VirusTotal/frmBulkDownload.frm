@@ -11,6 +11,10 @@ Begin VB.Form frmBulkDownload
    ScaleHeight     =   6000
    ScaleWidth      =   10410
    StartUpPosition =   2  'CenterScreen
+   Begin VB.Timer Timer1 
+      Left            =   4560
+      Top             =   2760
+   End
    Begin InetCtlsObjects.Inet Inet1 
       Left            =   9720
       Top             =   1080
@@ -165,7 +169,7 @@ Private Sub cmdDownload_Click()
 End Sub
 
 Private Sub Form_Load()
-    vt.TimerObj = Timer1
+    Set vt.Timer1 = Timer1
     Set vt.winInet = Inet1
 End Sub
 

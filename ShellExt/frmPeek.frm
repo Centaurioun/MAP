@@ -126,7 +126,6 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
-      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -212,6 +211,9 @@ Begin VB.Form frmStrings
       End
       Begin VB.Menu mnuStringMatch 
          Caption         =   "Find String Matches"
+      End
+      Begin VB.Menu mnuStringDiff 
+         Caption         =   "String Diff"
       End
    End
 End
@@ -846,6 +848,41 @@ Private Sub mnuDelphiFIlter_Click()
     pb.value = 0
     
     rtf.Text = Join(filt, vbCrLf)
+    
+End Sub
+
+Private Sub mnuStringDiff_Click()
+    
+    Dim f2 As String
+    Dim c1 As New CollectionEx
+    Dim c2 As New CollectionEx
+    Dim dif1 As CollectionEx
+    Dim dif2 As CollectionEx
+    Dim tmp As String
+    Dim dat() As String
+    
+    On Error Resume Next
+    
+    f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hWnd)
+    If Len(f2) = 0 Then Exit Sub
+    
+    c1.fromArray Split(rtf.Text, vbCrLf), , True, True
+    c2.fromTextFile f2, , True
+    
+    Set dif1 = c1.diff(c2)
+    Set dif2 = c2.diff(c1)
+     
+    tmp = fso.GetFreeFileName(Environ("temp"))
+    
+    push dat, "Strings not found in File1: " & fso.FileNameFromPath(curFile) & " - " & Now
+    push dat, dif1.toString()
+    push dat, String(50, "-")
+    push dat, "Strings not found in File2: " & fso.FileNameFromPath(f2) & " - " & Now
+    push dat, dif2.toString()
+    
+    fso.WriteFile tmp, Join(dat, vbCrLf)
+    Shell "notepad.exe """ & tmp & """", vbNormalFocus
+    
     
 End Sub
 

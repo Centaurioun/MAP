@@ -318,7 +318,10 @@ Private Sub cmdQuery_Click()
             li.subItems(2) = Empty
             li.subItems(3) = Empty
             Set li.Tag = Nothing
-            Set vt = New CVirusTotal
+'            Set vt = New CVirusTotal
+'            Set vt.Timer1 = tmrDelay
+'            Set vt.winInet = Inet1
+'            Set vt.debugLog = List1
         End If
         
         li.EnsureVisible
@@ -442,7 +445,7 @@ Private Sub Form_Load()
     
     mnuPopup.Visible = False
     
-    vt.TimerObj = tmrDelay
+    Set vt.Timer1 = tmrDelay
     Set vt.winInet = Inet1
     Set vt.debugLog = List1
     
@@ -821,8 +824,12 @@ Private Sub mnuUsePrivateKey_Click()
     
     If vt.usingPrivateKey Then
         MsgBox "Private key successfull set", vbInformation
+        mnuBulkDownload.Enabled = True
+        mnuSearchVT.Enabled = True
     Else
         MsgBox "You are now using the default public key which is rate limited and free for non-commercial use. " & vbCrLf & vbCrLf & "Please see the VirusTotal terms of service.", vbInformation
+        mnuBulkDownload.Enabled = False
+        mnuSearchVT.Enabled = False
     End If
     
 End Sub
