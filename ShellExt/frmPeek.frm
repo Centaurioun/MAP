@@ -215,6 +215,9 @@ Begin VB.Form frmStrings
       Begin VB.Menu mnuStringDiff 
          Caption         =   "String Diff"
       End
+      Begin VB.Menu mnuChangeFont 
+         Caption         =   "Change Font"
+      End
    End
 End
 Attribute VB_Name = "frmStrings"
@@ -256,14 +259,14 @@ Dim running As Boolean
 Dim ranHidden As Boolean
 
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-Private Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) As Long
+Private Declare Function LockWindowUpdate Lib "USER32" (ByVal hwndLock As Long) As Long
 
 
 Option Compare Binary
 
-Sub DisplayList(data As String)
+Sub DisplayList(Data As String)
     
-    rtf.Text = data
+    rtf.Text = Data
     Me.Show 1
     
 End Sub
@@ -326,10 +329,10 @@ Private Sub cmdFindAll_Click()
         Exit Sub
     End If
     
-    Dim data As String
-    data = Join(ret, vbCrLf)
+    Dim Data As String
+    Data = Join(ret, vbCrLf)
     
-    If Len(data) = 0 Then
+    If Len(Data) = 0 Then
         Me.Caption = "Search for: " & Text1 & " 0 hits"
         Exit Sub
     Else
@@ -337,7 +340,7 @@ Private Sub cmdFindAll_Click()
     End If
     
     f = fso.GetFreeFileName(Environ("temp"))
-    fso.WriteFile f, data
+    fso.WriteFile f, Data
     Shell "notepad.exe """ & f & """", vbNormalFocus
     
 End Sub
@@ -395,6 +398,7 @@ Private Sub Command3_Click()
 End Sub
 
 Private Sub Form_Load()
+    On Error Resume Next
     Me.Icon = myIcon
     sSearch = -1
     txtMinLen = minStrLen 'global
@@ -407,11 +411,14 @@ Private Sub Form_Load()
     chkFilter.value = GetMySetting("Filter", 0)
     optRaw.value = IIf(GetMySetting("Raw", 1) = 1, True, False)
     If Not optRaw.value Then optVa.value = True
+    rtf.Font.name = GetMySetting("strings.font.name", "Courier New")
+    rtf.Font.size = GetMySetting("strings.font.size", 11)
+    rtf.Font.Bold = GetMySetting("strings.font.bold", False)
     mnuMore.Visible = False
     formLoaded = True
 End Sub
 
-Private Sub Form_Unload(Cancel As Integer)
+Private Sub Form_Unload(cancel As Integer)
    abort = True
    SaveFormSizeAnPosition Me
    SaveMySetting "offsests", chkShowOffsets.value
@@ -788,8 +795,23 @@ Private Sub Label3_Click()
     End If
 End Sub
 
-Private Sub lblMore_MouseUp(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub lblMore_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
    PopupMenu mnuMore
+End Sub
+
+Private Sub mnuChangeFont_Click()
+    Dim f As CFont
+    On Error Resume Next
+    Set f = dlg.ChooseFont(rtf)
+    If Not f.selected Then Exit Sub
+    rtf.Font.name = f.name
+    rtf.Font.size = f.size
+    rtf.Font.Bold = f.Bold
+    If Err.Number = 0 Then
+        SaveMySetting "strings.font.name", f.name
+        SaveMySetting "strings.font.size", f.size
+        SaveMySetting "strings.font.bold", f.Bold
+    End If
 End Sub
 
 Private Sub mnuDelphiFIlter_Click()
