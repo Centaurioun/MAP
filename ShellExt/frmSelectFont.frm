@@ -157,7 +157,15 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 ' based on a psc submission by www.computing.iscute.com
 
-Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Integer, ByVal lParam As Any) As Long
+'we use a wait loop and topmost instead of a modal show because modal show can
+'cause problems if used from another modal form and we will put a version of this in a dll for multiuse latter...
+
+Option Explicit
+
+Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Integer, ByVal lParam As Any) As Long
+Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
+Private Const HWND_TOPMOST = -1
 
 'constants for searching the ListBox
 Private Const LB_FINDSTRINGEXACT = &H1A2
@@ -167,6 +175,7 @@ Private Const LB_FINDSTRING = &H18F
 Dim loaded As Boolean
 Dim abort As Boolean
 Dim dlg As CCmnDlg
+Dim readToReturn As Boolean
 
 Private Sub Check1_Click()
     lblFont.FontBold = IIf(Check1.value = 1, True, False)
@@ -191,75 +200,29 @@ End Sub
 Function SelectFont(cmndlg As CCmnDlg, Optional obj As Object) As CFont
     On Error Resume Next
     
-    Dim isBold As Boolean
-    Dim isItalic As Boolean
-    Dim isUnderLine As Boolean
-    Dim isStrike As Boolean
-    Dim Color As Long
-    Dim Name As String
-    Dim size As Long
+    Dim x As Long
     Dim f As New CFont
     
     Set dlg = cmndlg
     Set SelectFont = f
-    If Not loaded Then Form_Load
+    If List1.ListCount < 1 Then Form_Load
     
     If Not obj Is Nothing Then
-        isBold = obj.FontBold
-        If Err.Number <> 0 Then
-            isBold = obj.Font.Bold
-            Err.Clear
-        End If
-        If isBold Then Check1.value = 1
-        
-        isItalic = obj.FontItalic
-        If Err.Number <> 0 Then
-            isItalic = obj.Font.Italic
-            Err.Clear
-        End If
-        If isItalic Then Check2.value = 1
-        
-        isUnderLine = obj.FontUnderline
-        If Err.Number <> 0 Then
-            isUnderLine = obj.Font.UnderLine
-            Err.Clear
-        End If
-        If isUnderLine Then Check3.value = 1
     
-        isStrike = obj.FontStrikethru
-        If Err.Number <> 0 Then
-            isStrike = obj.Font.Strikethru
-            Err.Clear
-        End If
-        If isStrike Then Check4.value = 1
-    
-        Color = obj.ForeColor
-        If Err.Number <> 0 Then
-            Color = obj.Font.ForeColor
-            Err.Clear
-        End If
-        
-        Name = obj.fontname
-        If Err.Number <> 0 Then
-            Name = obj.Font.Name
-            Err.Clear
-        End If
-        
-        size = obj.FontSize
-        If Err.Number <> 0 Then
-            size = obj.Font.size
-            Err.Clear
+        f.LoadFromObj obj
+        If f.Bold Then Check1.value = 1
+        If f.Italic Then Check2.value = 1
+        If f.Underline Then Check3.value = 1
+        If f.Strikethrough Then Check4.value = 1
+        If Len(f.Name) > 0 Then txtFont = f.Name
+        If f.size <> 0 Then Text1 = f.size
+        If f.color <> 0 Then
+            Label3.BackColor = f.color
+            lblFont.ForeColor = f.color
         End If
     
-        If Len(Name) > 0 Then txtFont = Name
-        If size <> 0 Then Text1 = size
-        If Color <> 0 Then
-            Label3.BackColor = obj.ForeColor
-            lblFont.ForeColor = obj.ForeColor
-        End If
-        
         For x = 0 To List2.ListCount - 1
-            If size = val(List2.List(x)) Then
+            If f.size = val(List2.List(x)) Then
                 List2.ListIndex = x
                 lblFont.FontSize = val(List2.List(x))
                 Text1.Text = List2.List(x)
@@ -270,21 +233,28 @@ Function SelectFont(cmndlg As CCmnDlg, Optional obj As Object) As CFont
     End If
     
     abort = False
-    Me.Show 1
+    readToReturn = False
+    Me.Visible = True
+    SetWindowTopMost Me
     
-    If abort Then
-        Unload Me
-        Exit Function
-    End If
+    Do While Not readToReturn
+        DoEvents
+        Sleep 10
+        If abort Then
+            f.Clear
+            Unload Me
+            Exit Function
+        End If
+    Loop
     
     With f
         .Bold = lblFont.FontBold
         .Italic = lblFont.FontItalic
-        .UnderLine = lblFont.FontUnderline
+        .Underline = lblFont.FontUnderline
         .Strikethrough = lblFont.FontStrikethru
         .Name = lblFont.fontname
         .size = lblFont.FontSize
-        .Color = lblFont.ForeColor
+        .color = lblFont.ForeColor
     End With
     
     Unload Me
@@ -292,16 +262,16 @@ Function SelectFont(cmndlg As CCmnDlg, Optional obj As Object) As CFont
 End Function
 
 Private Sub Command1_Click()
-    Me.Visible = False
+    readToReturn = True
 End Sub
 
 Private Sub Command2_Click()
     abort = True
-    Unload Me
 End Sub
 
 Private Sub Form_Load()
-
+    Dim x As Long
+    
     If List1.ListCount > 0 Then Exit Sub
       
     For x = 0 To Screen.FontCount - 1
@@ -316,7 +286,7 @@ End Sub
 
 Private Sub Label3_Click()
     Dim h As Long
-    h = dlg.ColorDialog(Me.hWnd)
+    h = dlg.ColorDialog(Me.hwnd)
     If h <> 0 Then
         Label3.BackColor = h
         lblFont.ForeColor = h
@@ -325,7 +295,7 @@ End Sub
 
 Private Sub List1_Click()
     On Error Resume Next
-    Dim c As Collection
+    Dim c As Collection, x
     List2.Clear
     lblFont.fontname = List1.List(List1.ListIndex)
     Set c = EnumFontSizes(lblFont.fontname)
@@ -342,6 +312,7 @@ Private Sub List2_Click()
 End Sub
 
 Private Sub Text1_Change()
+    Dim x As Long
     
     On Error Resume Next
     
@@ -359,16 +330,16 @@ End Sub
 
 Private Sub txtFont_Change()
     On Error Resume Next
-    List1.ListIndex = GetListBoxIndex(List1.hWnd, txtFont.Text)
+    List1.ListIndex = GetListBoxIndex(List1.hwnd, txtFont.Text)
 End Sub
 
 'function to get find an item in the Listbox
-Public Function GetListBoxIndex(hWnd As Long, SearchKey As String, Optional FindExactMatch As Boolean = False) As Long
+Public Function GetListBoxIndex(hwnd As Long, SearchKey As String, Optional FindExactMatch As Boolean = False) As Long
 
     If FindExactMatch Then
-        GetListBoxIndex = SendMessage(hWnd, LB_FINDSTRINGEXACT, -1, ByVal SearchKey)
+        GetListBoxIndex = SendMessage(hwnd, LB_FINDSTRINGEXACT, -1, ByVal SearchKey)
     Else
-        GetListBoxIndex = SendMessage(hWnd, LB_FINDSTRING, -1, ByVal SearchKey)
+        GetListBoxIndex = SendMessage(hwnd, LB_FINDSTRING, -1, ByVal SearchKey)
     End If
 
 End Function
@@ -398,3 +369,64 @@ Function center()
     End With
     
 End Function
+
+
+Private Sub SetWindowTopMost(f As Form)
+   SetWindowPos f.hwnd, HWND_TOPMOST, f.Left / 15, f.Top / 15, f.Width / 15, f.Height / 15, Empty
+End Sub
+
+
+'If Not obj Is Nothing Then
+'        isBold = obj.FontBold
+'        If Err.Number <> 0 Then
+'            isBold = obj.Font.Bold
+'            Err.Clear
+'        End If
+'        If isBold Then Check1.value = 1
+'
+'        isItalic = obj.FontItalic
+'        If Err.Number <> 0 Then
+'            isItalic = obj.Font.Italic
+'            Err.Clear
+'        End If
+'        If isItalic Then Check2.value = 1
+'
+'        isUnderLine = obj.FontUnderline
+'        If Err.Number <> 0 Then
+'            isUnderLine = obj.Font.Underline
+'            Err.Clear
+'        End If
+'        If isUnderLine Then Check3.value = 1
+'
+'        isStrike = obj.FontStrikethru
+'        If Err.Number <> 0 Then
+'            isStrike = obj.Font.Strikethru
+'            Err.Clear
+'        End If
+'        If isStrike Then Check4.value = 1
+'
+'        color = obj.ForeColor
+'        If Err.Number <> 0 Then
+'            color = obj.Font.ForeColor
+'            Err.Clear
+'        End If
+'
+'        Name = obj.fontname
+'        If Err.Number <> 0 Then
+'            Name = obj.Font.Name
+'            Err.Clear
+'        End If
+'
+'        size = obj.FontSize
+'        If Err.Number <> 0 Then
+'            size = obj.Font.size
+'            Err.Clear
+'        End If
+'
+'        If Len(Name) > 0 Then txtFont = Name
+'        If size <> 0 Then Text1 = size
+'        If color <> 0 Then
+'            Label3.BackColor = obj.ForeColor
+'            lblFont.ForeColor = obj.ForeColor
+'        End If
+'
