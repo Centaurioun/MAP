@@ -136,6 +136,14 @@ Begin VB.Form frmFileHash
          Caption         =   "PE Version"
          Index           =   6
       End
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "Entropy"
+         Index           =   7
+      End
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "Detect It Easy"
+         Index           =   8
+      End
    End
    Begin VB.Menu mnuVTParent 
       Caption         =   "VirusTotal"
@@ -194,21 +202,21 @@ Dim vt_cache As String
 
 Dim WithEvents subclass As CSubclass2
 Attribute subclass.VB_VarHelpID = -1
-Dim kanal As Cwindow
+Dim kanal As CWindow
 
-Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
+Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hINst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
-Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal y As Long, ByVal hIcon As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Const WM_COMMAND = &H111
 
-Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal X As Long = 0, Optional ByVal Y As Long = 0) As Boolean
+Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal y As Long = 0) As Boolean
     Dim hIcon As Long
     hIcon = ExtractIcon(App.hInstance, fileName, iconIndex)
 
     If hIcon Then
-        DrawIcon hDC, X, Y, hIcon
+        DrawIcon hDC, x, y, hIcon
         ShowIcon = True
     End If
     
@@ -224,11 +232,17 @@ Sub ShowFileStats(fPath As String)
     Dim fname As String
     Dim mySHA As String
     Dim Sections As String
+    Dim entropy As String
+    Dim DiESigScan As String
     
     LoadedFile = fPath
     fs = DisableRedir()
     myMd5 = hash.HashFile(fPath)
 
+    If mnuCopyHashMore(7).Checked Or mnuCopyHashMore(8).Checked Then
+        DiESigScan = DiEScan(fPath, entropy)
+    End If
+    
     If myMd5 = fso.FileNameFromPath(fPath) Then
         mnuNameMD5.enabled = False
     End If
@@ -247,6 +261,7 @@ Sub ShowFileStats(fPath As String)
     End If
     
     push ret(), rpad("Size:") & sz
+    If mnuCopyHashMore(7).Checked Then push ret, "Entropy:  " & entropy
     push ret(), rpad("MD5:") & myMd5
     
     If mnuCopyHashMore(1).Checked Then
@@ -295,6 +310,7 @@ Sub ShowFileStats(fPath As String)
     End If
     
     If isPE And mnuCopyHashMore(6).Checked Then push ret(), PEVersionReport(True)
+    If mnuCopyHashMore(8).Checked Then push ret(), "DiE:      " & DiESigScan
     
     Dim v As SigResults
     Dim subject As String, issuer As String
@@ -392,16 +408,16 @@ Private Sub Form_Load()
     If fso.FileExists(ext) Then
         ext = fso.ReadFile(ext)
         tmp = Split(ext, vbCrLf)
-        For Each X In tmp
-            AddExternal CStr(X)
+        For Each x In tmp
+            AddExternal CStr(x)
         Next
     End If
     
     On Error Resume Next
     
-    hashs = Array("MD5", "SHA1", "SHA256", "SHA512", "FileProps", "VirusTotal", "PEVersion")
+    hashs = Array("MD5", "SHA1", "SHA256", "SHA512", "FileProps", "VirusTotal", "PEVersion", "Entropy", "DiE")
     
-    For i = 0 To mnuCopyHashMore.count - 1
+    For i = 0 To mnuCopyHashMore.Count - 1
         mnuCopyHashMore(i).Checked = CBool(GetMySetting(hashs(i), IIf(i = 0, True, False)))
     Next
     
@@ -522,11 +538,11 @@ End Sub
 Private Sub mnuSearchFileName_Click()
     Dim f As String
     f = fso.FileNameFromPath(LoadedFile)
-    Google f, Me.hWnd
+    Google f, Me.hwnd
 End Sub
 
 Private Sub mnuSearchHash_Click()
-    Google myMd5, Me.hWnd
+    Google myMd5, Me.hwnd
 End Sub
 
 Private Sub mnuStrings_Click()
@@ -580,7 +596,7 @@ Sub AddExternal(cmd As String)
         Exit Sub
     End If
     
-    i = mnuExt.count
+    i = mnuExt.Count
     Load mnuExt(i)
     mnuExt(i).Caption = trim(tmp(0))
     mnuExt(i).Visible = True

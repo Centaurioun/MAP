@@ -32,7 +32,7 @@ Private Declare Function GetFileVersionInfo Lib "Version.dll" Alias "GetFileVers
 Private Declare Function GetFileVersionInfoSize Lib "Version.dll" Alias "GetFileVersionInfoSizeA" (ByVal lptstrFilename As String, lpdwHandle As Long) As Long
 Private Declare Function VerQueryValue Lib "Version.dll" Alias "VerQueryValueA" (pBlock As Any, ByVal lpSubBlock As String, lplpBuffer As Any, puLen As Long) As Long
 Private Declare Function GetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal path As String, ByVal cbBytes As Long) As Long
-Private Declare Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest As Any, ByVal Source As Long, ByVal length As Long)
+Private Declare Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest As Any, ByVal Source As Long, ByVal Length As Long)
 Private Declare Function lstrcpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString1 As String, ByVal lpString2 As Long) As Long
 Private Declare Function FindWindow Lib "user32" Alias "FindWindowA" (ByVal lpClassName As String, ByVal lpWindowName As String) As Long
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (hpvDest As Any, hpvSource As Any, ByVal cbCopy As Long)
@@ -130,6 +130,23 @@ Private Declare Function WSAIoctl Lib "ws2_32.dll" (ByVal s As Long, ByVal dwIoC
 Private Declare Sub CopyMemory2 Lib "kernel32" Alias "RtlMoveMemory" (pDst As Any, ByVal pSrc As Long, ByVal ByteLen As Long)
 Private Declare Function WSAStartup Lib "ws2_32.dll" (ByVal wVR As Long, lpWSAD As WSAData) As Long
 
+'DiE Detect it Easy signature scanner: http://ntinfo.biz/
+Private hDieDll As Long
+Private Const DIE_SHOWERRORS = &H1
+Private Const DIE_SHOWOPTIONS = &H2
+Private Const DIE_SHOWVERSION = &H4
+Private Const DIE_SHOWENTROPY = &H8
+Private Const DIE_SINGLELINEOUTPUT = &H10
+Private Const DIE_SHOWFILEFORMATONCE = &H20
+Private Declare Function DiEScanA Lib "diedll.dll" Alias "_DIE_scanA@16" (ByVal fileName As String, ByVal buf As String, ByVal bufSz As Long, ByVal flags As Long) As Long
+Private Declare Function dieScanEx Lib "diedll.dll" Alias "_DIE_scanExA@20" (ByVal fileName As String, ByVal buf As String, ByVal bufSz As Long, ByVal flags As Long, ByVal dbPath As String) As Long
+Private Declare Function dieVer Lib "diedll.dll" Alias "_DIE_versionA@0" () As Long
+Private Declare Function SetDllDirectory Lib "kernel32" Alias "SetDllDirectoryA" (ByVal path As String) As Long
+
+'Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+Private Declare Function lstrlenA Lib "kernel32" (ByVal lpString As Long) As Long
+
+
 'Private Type MungeDbl
 '    Value As Currency
 'End Type
@@ -206,8 +223,71 @@ Private Declare Function WSAStartup Lib "ws2_32.dll" (ByVal wVR As Long, lpWSAD 
 '
 'End Function
  
+Private Function LoadDie() As Boolean
+    Dim p As String
+    
+    If hDieDll = 0 Then
+        p = App.path & IIf(IsIde(), "\..", "") & "\die\diedll.dll"
+        If fso.FileExists(p) Then
+            SetDllDirectory fso.GetParentFolder(p)
+            hDieDll = LoadLibrary(p)
+        End If
+    End If
+    
+    LoadDie = (hDieDll <> 0)
+    
+End Function
 
- 
+Function DieVersion() As String
+    Dim addr As Long, leng As Long, b() As Byte
+    
+    If Not LoadDie Then Exit Function
+    
+    addr = dieVer()
+    If addr Then
+        leng = lstrlenA(addr)
+        If leng > 0 Then
+            ReDim b(1 To leng)
+            CopyMemory ByVal VarPtr(b(1)), ByVal addr, leng
+            DieVersion = StrConv(b, vbUnicode, &H409)
+        End If
+    End If
+    
+End Function
+
+Function DiEScan(fPath As String, Optional ByRef entropy As String)
+    Dim v As Long
+    Dim buf As String
+    Dim flags As Long
+    Dim a As Long
+    Dim tmp() As String
+    Dim x
+    Const et = "Entropy"
+    
+    If Not LoadDie Then Exit Function
+    
+    flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SHOWENTROPY Or DIE_SINGLELINEOUTPUT
+    buf = String(1000, Chr(0))
+    v = DiEScanA(fPath, buf, Len(buf), flags)
+    
+    a = InStr(buf, Chr(0))
+    If a > 0 Then buf = Left(buf, a - 1)
+    buf = Replace(buf, vbLf, vbCrLf)
+    tmp = Split(buf, ";")
+    
+    For i = 0 To UBound(tmp)
+        tmp(i) = trim(tmp(i))
+        If Left(tmp(i), Len(et)) = et Then
+            entropy = trim(Mid(tmp(i), Len(et) + 2))
+            tmp(i) = Empty
+            Exit For
+        End If
+    Next
+    
+    DiEScan = Join(tmp, ";")
+    
+End Function
+
 
 Function HexDump(ByVal str, Optional hexOnly = 0, Optional offset As Long = 0) As String
     Dim s() As String, chars As String, tmp As String
@@ -369,7 +449,7 @@ Public Function FileInfo(Optional ByVal PathWithFilename As String) As FILEPROPE
                    If n > 0 Then
                         strBuffer = Mid$(strBuffer, 1, n)
                         strBuffer = Replace(strBuffer, Chr(0), Empty)
-                        strVersionInfo(intTemp) = Trim(strBuffer)
+                        strVersionInfo(intTemp) = trim(strBuffer)
                    End If
                  Else
                    ' property not found
@@ -436,14 +516,14 @@ Function GetAllElements(lv As ListView, Optional selOnly As Boolean = False) As 
         tmp = Empty
         
         If selOnly Then
-            If li.Selected Then tmp = li.Text & vbTab
+            If li.selected Then tmp = li.Text & vbTab
         Else
             tmp = li.Text & vbTab
         End If
         
         For i = 1 To lv.ColumnHeaders.Count - 1
             If selOnly Then
-                If li.Selected Then tmp = tmp & li.SubItems(i) & vbTab
+                If li.selected Then tmp = tmp & li.SubItems(i) & vbTab
             Else
                 tmp = tmp & li.SubItems(i) & vbTab
             End If
