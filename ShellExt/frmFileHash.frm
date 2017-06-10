@@ -1,4 +1,5 @@
 VERSION 5.00
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
 Begin VB.Form frmFileHash 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "File Hash"
@@ -34,7 +35,7 @@ Begin VB.Form frmFileHash
       Left            =   5580
       ScaleHeight     =   675
       ScaleWidth      =   675
-      TabIndex        =   4
+      TabIndex        =   3
       Top             =   0
       Visible         =   0   'False
       Width           =   675
@@ -43,14 +44,14 @@ Begin VB.Form frmFileHash
       BorderStyle     =   0  'None
       Height          =   435
       Left            =   60
-      TabIndex        =   1
+      TabIndex        =   0
       Top             =   1260
       Width           =   5835
       Begin VB.CommandButton cmdCopyHash 
          Caption         =   "Copy Hash"
          Height          =   345
          Left            =   3060
-         TabIndex        =   3
+         TabIndex        =   2
          Top             =   0
          Width           =   1125
       End
@@ -58,16 +59,26 @@ Begin VB.Form frmFileHash
          Caption         =   "Copy All"
          Height          =   345
          Left            =   4560
-         TabIndex        =   2
+         TabIndex        =   1
          Top             =   0
          Width           =   1215
       End
    End
-   Begin VB.TextBox Text1 
-      Appearance      =   0  'Flat
-      BackColor       =   &H80000004&
-      BorderStyle     =   0  'None
-      BeginProperty Font 
+   Begin RichTextLib.RichTextBox Text1 
+      Height          =   1095
+      Left            =   60
+      TabIndex        =   4
+      Top             =   60
+      Width           =   5775
+      _ExtentX        =   10186
+      _ExtentY        =   1931
+      _Version        =   393217
+      BackColor       =   -2147483638
+      BorderStyle     =   0
+      Enabled         =   -1  'True
+      Appearance      =   0
+      TextRTF         =   $"frmFileHash.frx":0000
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
          Name            =   "Courier"
          Size            =   9.75
          Charset         =   0
@@ -76,12 +87,6 @@ Begin VB.Form frmFileHash
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   1065
-      Left            =   120
-      MultiLine       =   -1  'True
-      TabIndex        =   0
-      Top             =   120
-      Width           =   5775
    End
    Begin VB.Menu mnuPopup 
       Caption         =   "Actions"
@@ -144,6 +149,10 @@ Begin VB.Form frmFileHash
          Caption         =   "Detect It Easy"
          Index           =   8
       End
+      Begin VB.Menu mnuCopyHashMore 
+         Caption         =   "imphash"
+         Index           =   9
+      End
    End
    Begin VB.Menu mnuVTParent 
       Caption         =   "VirusTotal"
@@ -192,6 +201,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
+'note: diescan wont work on xpsp0 because of msvcr100.dll dependancies, known ok on xpsp3
+
 Dim myMd5 As String
 Dim LoadedFile As String
 Dim isPE As Boolean
@@ -199,24 +211,113 @@ Dim scan As CScan
 Dim vt As New CVirusTotal
 Dim hashs() 'checked menu names (infolevel)
 Dim vt_cache As String
+Dim pe As New CPEEditor
 
-Dim WithEvents subclass As CSubclass2
-Attribute subclass.VB_VarHelpID = -1
-Dim kanal As CWindow
+'Dim WithEvents subclass As CSubclass2
+'Dim kanal As CWindow
 
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hINst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
-Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal y As Long, ByVal hIcon As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Const WM_COMMAND = &H111
 
-Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal y As Long = 0) As Boolean
+Dim lastX As Long
+Dim lastY As Long
+Dim curWord As String
+Dim startPos As Long
+Dim links()
+
+Enum opts
+    oMD5 = 0
+    oSHA1
+    oSHA256
+    oSHA512
+    oFileProps
+    oVT
+    oPEVer
+    oEntropy
+    oDiE
+    oImpHash
+End Enum
+
+Private Sub Text1_Click()
+    
+    Dim marker As String
+    Dim i As Long
+    Dim resHackPath As String
+    
+    marker = vbCrLf & "   "
+    
+    If Screen.MousePointer = vbArrow Then
+         
+         If curWord = "Exports:" Then
+            If pe.isLoaded Then
+                frmPEVersion.ShowReport LoadedFile, "Exports: " & marker & c2s(pe.Exports.dumpNames, marker)
+            End If
+         End If
+         
+         If curWord = "Resources:" Then
+         
+            'internal editor not ready for prime time yet..
+            'If IsIde And pe.isLoaded Then frmResViewer.ShowResources pe
+            
+            For i = 0 To mnuExt.Count
+                If InStr(1, mnuExt(i).Caption, "reshack", vbTextCompare) > 0 Then
+                    resHackPath = mnuExt(i).Tag
+                    Exit For
+                End If
+            Next
+            
+            If InStr(1, resHackPath, "%app_path%", vbTextCompare) > 0 Then
+                resHackPath = Replace(resHackPath, "%app_path%", App.path)
+            End If
+            
+            If Len(resHackPath) = 0 Then
+                MsgBox "If you add reshack to your external apps entry this will start it for you on click"
+            ElseIf fso.FileExists(trim(Replace(resHackPath, "%1", Empty))) Then
+                resHackPath = Replace(resHackPath, "%1", """" & LoadedFile & """")
+                Shell resHackPath, vbNormalFocus
+            Else
+                MsgBox "ResHack external app path is not a valid file path on this system" & vbCrLf & _
+                        "choose external -> edit cfg to edit it"
+            End If
+            
+         End If
+         
+         If curWord = "Scan_Date:" Then mnuGotoScan_Click
+         If curWord = "Detections:" Then mnuVt_Click
+         
+         Screen.MousePointer = vbNormal
+    End If
+    
+End Sub
+
+Function hilite_keywords()
+    On Error Resume Next
+    Dim z
+    For Each z In links
+        a = InStr(1, Text1.text, z)
+        If a > 0 Then
+            Text1.SelStart = a - 1
+            Text1.SelLength = Len(z) - 1
+            'Text1.SelColor = &HC0C0C0C0
+            Text1.SelUnderline = True
+        End If
+    Next
+End Function
+
+Private Function isOpt(o As opts) As Boolean
+    isOpt = mnuCopyHashMore(o).Checked
+End Function
+
+Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal Y As Long = 0) As Boolean
     Dim hIcon As Long
     hIcon = ExtractIcon(App.hInstance, fileName, iconIndex)
 
     If hIcon Then
-        DrawIcon hDC, x, y, hIcon
+        DrawIcon hDC, x, Y, hIcon
         ShowIcon = True
     End If
     
@@ -232,19 +333,17 @@ Sub ShowFileStats(fPath As String)
     Dim fname As String
     Dim mySHA As String
     Dim Sections As String
-    Dim entropy As String
-    Dim DiESigScan As String
     
+    cmdExports.Visible = False
+    cmdRes.Visible = False
+        
     LoadedFile = fPath
     fs = DisableRedir()
     myMd5 = hash.HashFile(fPath)
-
-    If mnuCopyHashMore(7).Checked Or mnuCopyHashMore(8).Checked Then
-        DiESigScan = DiEScan(fPath, entropy)
-    End If
+    pe.LoadFile fPath
     
     If myMd5 = fso.FileNameFromPath(fPath) Then
-        mnuNameMD5.enabled = False
+        mnuNameMD5.Enabled = False
     End If
     
     sz = FileLen(fPath)
@@ -261,20 +360,19 @@ Sub ShowFileStats(fPath As String)
     End If
     
     push ret(), rpad("Size:") & sz
-    If mnuCopyHashMore(7).Checked Then push ret, "Entropy:  " & entropy
     push ret(), rpad("MD5:") & myMd5
     
-    If mnuCopyHashMore(1).Checked Then
+    If isOpt(oSHA1) Then
         push ret(), rpad("SHA1:") & hash.HashFile(fPath, SHA, HexFormat)
     End If
     
-    If mnuCopyHashMore(2).Checked Then
+    If isOpt(oSHA256) Then
         tmp = hash.HashFile(fPath, 256, HexFormat)
         If Len(tmp) = 0 Then tmp = "must update vbdevkit.dll"
         push ret(), rpad("SHA256:") & tmp
     End If
     
-    If mnuCopyHashMore(3).Checked Then
+    If isOpt(oSHA512) Then
         tmp = hash.HashFile(fPath, 512, HexFormat)
         If Len(tmp) > 0 Then
             a = Mid(tmp, 1, 64)
@@ -288,12 +386,15 @@ Sub ShowFileStats(fPath As String)
     
     compiled = GetCompileDateOrType(fPath, istype, isPE)
     push ret(), IIf(istype, rpad("FileType: "), rpad("Compiled:")) & compiled
+    push ret(), Empty
+    
+    
     
     If isPE Then
         
         If InStr(compiled, ".NET") > 0 Then
             If InStr(compiled, "AnyCPU") > 0 Or InStr(compiled, "64 Bit") > 0 Then
-                mnuCorFlags.enabled = True
+                mnuCorFlags.Enabled = True
             End If
         End If
                 
@@ -309,9 +410,19 @@ Sub ShowFileStats(fPath As String)
         
     End If
     
-    If isPE And mnuCopyHashMore(6).Checked Then push ret(), PEVersionReport(True)
-    If mnuCopyHashMore(8).Checked Then push ret(), "DiE:      " & DiESigScan
+    If isOpt(oEntropy) Then push ret, "Entropy:  " & fileEntropy(fPath)
     
+    If pe.isLoaded Then
+        If pe.Exports.functions.Count > 0 Then push ret(), "Exports:  " & pe.Exports.functions.Count
+        If pe.Resources.Entries.Count > 0 Then push ret(), "Resources: " & pe.Resources.Entries.Count & " - " & pe.Resources.size & " bytes"
+    End If
+    
+    If isPE And isOpt(oPEVer) Then push ret(), PEVersionReport(True)
+    If pe.isLoaded And isOpt(oImpHash) Then push ret(), "ImpHash:  " & LCase(pe.impHash())
+    
+    If isOpt(oDiE) Then push ret(), "DiE:      " & DiEScan(fPath)
+    
+
     Dim v As SigResults
     Dim subject As String, issuer As String
     v = VerifyFileSignature(fPath)
@@ -323,31 +434,33 @@ Sub ShowFileStats(fPath As String)
         End If
     End If
     
-    If mnuCopyHashMore(5).Checked Then
+    If isOpt(oVT) Then
        If scan Is Nothing Then
             Set scan = vt.GetReport(myMd5)
        End If
-       mnuGotoScan.enabled = (Len(scan.permalink) > 0)
-       mnuVT.enabled = mnuGotoScan.enabled
-       push ret(), scan.BriefReport()
+       mnuGotoScan.Enabled = (Len(scan.permalink) > 0)
+       mnuVT.Enabled = mnuGotoScan.Enabled
+       push ret(), Replace(scan.BriefReport(), "Scan Date", "Scan_Date")
     End If
 
-    If mnuCopyHashMore(4).Checked Then
+    If isOpt(oFileProps) Then
        push ret(), vbCrLf & FileProps.QuickInfo(fPath, False)
     End If
         
-    mnuFileProps.enabled = isPE
-    mnuOffsetCalc.enabled = isPE
-    mnuPEVerInfo.enabled = isPE
+    mnuFileProps.Enabled = isPE
+    mnuOffsetCalc.Enabled = isPE
+    mnuPEVerInfo.Enabled = isPE
      
     Text1 = Join(ret, vbCrLf)
     
-    Font = Text1.Font
-    Text1.Height = TextHeight(Text1.Text) + 200
-    Text1.Width = TextWidth(Text1.Text) + 200
-    Me.Height = Text1.Top + Text1.Height + fraLower.Height + 600
+    hilite_keywords
+    Me.fontname = Text1.Font.Name
+    Me.FontSize = Text1.Font.size
+    Text1.Height = TextHeight(Text1.text) + 200
+    Text1.Width = TextWidth(Text1.text) + 200
+    Me.Height = Text1.top + Text1.Height + fraLower.Height + 600
     Me.Width = Text1.Width + Text1.Left + 400
-    fraLower.Top = Me.Height - fraLower.Height - 650
+    fraLower.top = Me.Height - fraLower.Height - 650
     
     If ShowIcon(fPath, pictIcon.hDC) Then
         'Me.Width = Me.Width + pictIcon.Width '+ 50
@@ -363,9 +476,23 @@ Sub ShowFileStats(fPath As String)
         
 End Sub
 
+Function c2a(c As Collection) As Variant()
+    Dim tmp(), x
+    For Each x In c
+        push tmp, x
+    Next
+    c2a = tmp
+End Function
+
+Function c2s(c As Collection, Optional delimiter = ",") As String
+    Dim tmp()
+    tmp = c2a(c)
+    c2s = Join(tmp, delimiter)
+End Function
+
 Private Sub cmdCopyAll_Click()
     Clipboard.Clear
-    Clipboard.SetText Text1
+    Clipboard.SetText Text1.text
     Unload Me
     End
 End Sub
@@ -401,7 +528,7 @@ Private Sub Form_Load()
         
     Me.Icon = myIcon
     vt.TimerObj = Timer1
-    mnuCorFlags.enabled = False
+    mnuCorFlags.Enabled = False
     
     Dim ext As String
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
@@ -415,7 +542,8 @@ Private Sub Form_Load()
     
     On Error Resume Next
     
-    hashs = Array("MD5", "SHA1", "SHA256", "SHA512", "FileProps", "VirusTotal", "PEVersion", "Entropy", "DiE")
+    hashs = Array("MD5", "SHA1", "SHA256", "SHA512", "FileProps", "VirusTotal", "PEVersion", "Entropy", "DiE", "imphash")
+    links = Array("Exports:", "Resources:", "Scan_Date:", "Detections:")
     
     For i = 0 To mnuCopyHashMore.Count - 1
         mnuCopyHashMore(i).Checked = CBool(GetMySetting(hashs(i), IIf(i = 0, True, False)))
@@ -423,6 +551,7 @@ Private Sub Form_Load()
     
     
 End Sub
+
 
 
 Private Sub mnuCopyHashMore_Click(index As Integer)
@@ -565,6 +694,8 @@ End Sub
 Private Sub mnuVt_Click()
     
     On Error Resume Next
+    Dim tmp As String
+    Dim a As Long
     
     If scan Is Nothing Then
         cmdVT_Click
@@ -574,10 +705,10 @@ Private Sub mnuVt_Click()
     If scan.HadError Then
         MsgBox scan.BriefReport
     Else
-        Dim tmp As String
-        tmp = fso.GetFreeFileName(Environ("temp"))
-        fso.WriteFile tmp, vbCrLf & scan.GetReport()
-        Shell "notepad.exe """ & tmp & """", vbNormalFocus
+        tmp = Text1.text
+        a = InStr(tmp, "Scan_Date")
+        If a > 3 Then tmp = Mid(tmp, 1, a - 3)
+        frmPEVersion.ShowReport LoadedFile, tmp & vbCrLf & vbCrLf & scan.GetReport()
     End If
     
 End Sub
@@ -609,6 +740,8 @@ Private Sub mnuVTCache_Click()
     SaveMySetting "mnuVTCache", mnuVTCache.Checked
     vt.report_cache_dir = IIf(mnuVTCache.Checked, vt_cache, Empty)
 End Sub
+
+
 
 'Private Sub Timer2_Timer()
 '
@@ -666,3 +799,24 @@ End Sub
 '
 'End Sub
 
+Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, Y As Single)
+    Dim z
+    On Error Resume Next
+    
+    lastX = x
+    lastY = Y
+    
+    'this code below is a little processor heavy but what else are we doing...
+    curWord = WordUnderCursor(Text1, x, Y, startPos)
+    'Debug.Print curWord
+    
+    For Each z In links
+        If z = curWord Then
+            Screen.MousePointer = vbArrow
+            Exit Sub
+        End If
+    Next
+    
+    Screen.MousePointer = vbNormal
+        
+End Sub

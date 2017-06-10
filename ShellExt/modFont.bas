@@ -106,6 +106,13 @@ Private Type TEXTMETRIC
   tmCharSet As Byte
 End Type
 
+Private Type POINTAPI
+    x As Long
+    y As Long
+End Type
+
+Const EM_CHARFROMPOS& = &HD7
+
 'Private Declare Function ChooseFont Lib "comdlg32.dll" Alias "ChooseFontA" (pChoosefont As FONTSTRUC) As Long
 'Private Declare Function GlobalLock Lib "kernel32" (ByVal hMem As Long) As Long
 'Private Declare Function GlobalAlloc Lib "kernel32" (ByVal wFlags As Long, ByVal dwBytes As Long) As Long
@@ -114,6 +121,8 @@ Private Declare Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIn
 Private Declare Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
 Private Declare Function EnumFontFamiliesEx Lib "gdi32" Alias "EnumFontFamiliesExA" (ByVal hDC As Long, lpLogFont As LOGFONT, ByVal lpEnumFontProc As Long, ByVal lParam As Long, ByVal dw As Long) As Long
 Private Declare Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hDC As Long) As Long
+Public Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
 
 Private Const ANSI_CHARSET = 0
 Private Const DEFAULT_PITCH = 0
@@ -122,9 +131,15 @@ Private Const FIXED_PITCH = 1
 Private Const FF_DONTCARE = 0
 Private Const TRUETYPE_FONTTYPE = &H4
 Private Const DEFAULT_CHARSET = 1
+Private Const HWND_TOPMOST = -1
 
 Private sizes As Collection
 Private hDC As Long
+
+Sub SetWindowTopMost(f As Form, Optional top As Boolean = True)
+   SetWindowPos f.hwnd, IIf(top, HWND_TOPMOST, 1), f.Left / 15, f.top / 15, f.Width / 15, f.Height / 15, Empty
+End Sub
+
 
 Function EnumFontSizes(fontname As String) As Collection
     Dim lf As LOGFONT
@@ -185,5 +200,71 @@ Private Function MulDiv(In1 As Long, In2 As Long, In3 As Long) As Long
 MulDiv_err:
   lngTemp = -1
   Resume MulDiv_err
+End Function
+
+Function WordUnderCursor(MyRTB As RichTextBox, x As Single, y As Single, startPos As Long) As String
+    Dim MyPoint As POINTAPI
+    Dim MyPos As Integer
+    Dim MyStartPos As Integer
+    Dim MyEndPos As Integer
+    Dim MyCharacter As Integer
+    Dim TextLength As Integer
+    Dim MyText As String
+    
+    On Error Resume Next
+    MyPoint.x = x \ Screen.TwipsPerPixelX
+    MyPoint.y = y \ Screen.TwipsPerPixelY
+    MyPos = SendMessage(MyRTB.hwnd, EM_CHARFROMPOS, 0&, MyPoint)
+    
+    If MyPos <= 0 Then Exit Function
+    
+    MyText = MyRTB.text
+    
+    For MyStartPos = MyPos To 1 Step -1
+        MyCharacter = Asc(Mid$(MyRTB.text, MyStartPos, 1))
+        If Not isAlpha(MyCharacter) Then Exit For
+           
+    Next
+    
+    MyStartPos = MyStartPos + 1
+    TextLength = Len(MyText)
+    
+    For MyEndPos = MyPos To TextLength
+        MyCharacter = Asc(Mid$(MyText, MyEndPos, 1))
+        If Not isAlpha(MyCharacter) Then Exit For
+    Next
+    
+    MyEndPos = MyEndPos - 1
+    If MyStartPos <= MyEndPos Then
+        startPos = MyStartPos - 1
+        WordUnderCursor = Mid$(MyText, MyStartPos, MyEndPos - MyStartPos + 1)
+    End If
+        
+End Function
+
+Function isAlpha(c As Integer) As Boolean
+
+    If c >= Asc("a") And c <= Asc("z") Then
+        isAlpha = True
+        Exit Function
+    End If
+    
+    If c >= Asc("A") And c <= Asc("Z") Then
+        isAlpha = True
+        Exit Function
+    End If
+    
+    If c >= Asc("0") And c <= Asc("9") Then
+        isAlpha = True
+        Exit Function
+    End If
+    
+    If c = Asc(":") Or c = Asc("_") Then
+        isAlpha = True
+        Exit Function
+    End If
+    
+    
+    
 End Function
 

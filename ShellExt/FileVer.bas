@@ -229,8 +229,8 @@ Private Function LoadDie() As Boolean
     If hDieDll = 0 Then
         p = App.path & IIf(IsIde(), "\..", "") & "\die\diedll.dll"
         If fso.FileExists(p) Then
-            SetDllDirectory fso.GetParentFolder(p)
-            hDieDll = LoadLibrary(p)
+            SetDllDirectory fso.GetParentFolder(p) 'requires: xp sp1 which is fine
+            hDieDll = LoadLibrary(p)               'msvcr100.dll actually wont load on xpsp0 anyway...
         End If
     End If
     
@@ -255,7 +255,7 @@ Function DieVersion() As String
     
 End Function
 
-Function DiEScan(fPath As String, Optional ByRef entropy As String)
+Function DiEScan(fPath As String)
     Dim v As Long
     Dim buf As String
     Dim flags As Long
@@ -264,28 +264,35 @@ Function DiEScan(fPath As String, Optional ByRef entropy As String)
     Dim x
     Const et = "Entropy"
     
+    On Error GoTo hell
+    
     If Not LoadDie Then Exit Function
     
-    flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SHOWENTROPY Or DIE_SINGLELINEOUTPUT
+    flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SINGLELINEOUTPUT Or DIE_SHOWENTROPY
     buf = String(1000, Chr(0))
     v = DiEScanA(fPath, buf, Len(buf), flags)
     
     a = InStr(buf, Chr(0))
     If a > 0 Then buf = Left(buf, a - 1)
     buf = Replace(buf, vbLf, vbCrLf)
-    tmp = Split(buf, ";")
+    DiEScan = buf
     
-    For i = 0 To UBound(tmp)
-        tmp(i) = trim(tmp(i))
-        If Left(tmp(i), Len(et)) = et Then
-            entropy = trim(Mid(tmp(i), Len(et) + 2))
-            tmp(i) = Empty
-            Exit For
-        End If
-    Next
+'    tmp = Split(buf, ";")
+'
+'    For i = 0 To UBound(tmp)
+'        tmp(i) = trim(tmp(i))
+'        If Left(tmp(i), Len(et)) = et Then
+'            entropy = trim(Mid(tmp(i), Len(et) + 2))
+'            tmp(i) = Empty
+'            Exit For
+'        End If
+'    Next
     
-    DiEScan = Join(tmp, ";")
+'    DiEScan = Join(tmp, ";")
     
+    Exit Function
+hell:
+    DiEScan = Err.Description
 End Function
 
 
@@ -505,7 +512,7 @@ Function GetAllElements(lv As ListView, Optional selOnly As Boolean = False) As 
     Dim li As ListItem
 
     For i = 1 To lv.ColumnHeaders.Count
-        tmp = tmp & lv.ColumnHeaders(i).Text & vbTab
+        tmp = tmp & lv.ColumnHeaders(i).text & vbTab
     Next
 
     push ret, tmp
@@ -516,9 +523,9 @@ Function GetAllElements(lv As ListView, Optional selOnly As Boolean = False) As 
         tmp = Empty
         
         If selOnly Then
-            If li.selected Then tmp = li.Text & vbTab
+            If li.selected Then tmp = li.text & vbTab
         Else
-            tmp = li.Text & vbTab
+            tmp = li.text & vbTab
         End If
         
         For i = 1 To lv.ColumnHeaders.Count - 1
@@ -543,7 +550,7 @@ Function GetAllText(lv As ListView, Optional subItemRow As Long = 0) As String
     
     For i = 1 To lv.ListItems.Count
         If subItemRow = 0 Then
-            x = lv.ListItems(i).Text
+            x = lv.ListItems(i).text
             If Len(x) > 0 Then
                 tmp = tmp & x & vbCrLf
             End If
@@ -558,23 +565,12 @@ Function GetAllText(lv As ListView, Optional subItemRow As Long = 0) As String
     GetAllText = tmp
 End Function
 
- 
-
-
- 
- 
- 
-
 Function IsIde() As Boolean
     On Error GoTo hell
     Debug.Print 1 \ 0
 Exit Function
 hell: IsIde = True
 End Function
-
- 
-
- 
 
 Sub SetLiColor(li As ListItem, newcolor As Long)
     Dim f As ListSubItem
@@ -584,3 +580,108 @@ Sub SetLiColor(li As ListItem, newcolor As Long)
         f.ForeColor = newcolor
     Next
 End Sub
+
+'ported from Detect It Easy - Binary::calculateEntropy
+'   https://github.com/horsicq/DIE-engine/blob/master/binary.cpp#L2319
+Function fileEntropy(pth As String, Optional offset As Long = 0, Optional leng As Long = -1) As Single
+    
+    Dim sz As Long
+    Dim fEntropy As Single
+    Dim bytes(255) As Single
+    Dim temp As Single
+    Dim nSize As Long
+    Dim nTemp As Long
+    Const BUFFER_SIZE = &H1000
+    Dim buf() As Byte
+    Dim f As Long
+    
+    On Error Resume Next
+    
+    f = FreeFile
+    Open pth For Binary Access Read As f
+    If Err.Number <> 0 Then GoTo ret0
+    
+    sz = LOF(f) - 1
+    
+    If leng = 0 Then GoTo ret0
+    
+    If leng = -1 Then
+        leng = sz - offset
+        If leng = 0 Then GoTo ret0
+    End If
+    
+    If offset >= sz Then GoTo ret0
+    If offset + leng > sz Then GoTo ret0
+    
+    Seek f, offset
+    nSize = leng
+    fEntropy = 1.44269504088896
+    ReDim buf(BUFFER_SIZE)
+    
+    'read the file in chunks and count how many times each byte value occurs
+    While (nSize > 0)
+        nTemp = IIf(nSize < BUFFER_SIZE, nSize, BUFFER_SIZE)
+        If nTemp <> BUFFER_SIZE Then ReDim buf(nTemp) 'last chunk, partial buffer
+        Get f, , buf()
+        For i = 0 To UBound(buf)
+            bytes(buf(i)) = bytes(buf(i)) + 1
+        Next
+        nSize = nSize - nTemp
+    Wend
+    
+    For i = 0 To UBound(bytes)
+        temp = bytes(i) / CSng(leng)
+        If temp <> 0 Then
+            fEntropy = fEntropy + (-Log(temp) / Log(2)) * bytes(i)
+        End If
+    Next
+    
+    Close f
+    fileEntropy = fEntropy / CSng(leng)
+    
+Exit Function
+ret0:
+    Close f
+End Function
+
+
+Function memEntropy(buf() As Byte, Optional offset As Long = 0, Optional leng As Long = -1) As Single
+    
+    Dim sz As Long
+    Dim fEntropy As Single
+    Dim bytes(255) As Single
+    Dim temp As Single
+    Const BUFFER_SIZE = &H1000
+    
+    sz = UBound(buf)
+    
+    If leng = 0 Then GoTo ret0
+    If leng = -1 Then
+        leng = sz - offset
+        If leng = 0 Then GoTo ret0
+    End If
+    
+    If offset >= sz Then GoTo ret0
+    If offset + leng > sz Then GoTo ret0
+    
+    fEntropy = 1.44269504088896
+    
+    While (offset < sz)
+        'count each byte value occurance
+        bytes(buf(offset)) = bytes(buf(offset)) + 1
+        offset = offset + 1
+    Wend
+    
+    For i = 0 To UBound(bytes)
+        temp = bytes(i) / CSng(leng)
+        If temp <> 0 Then
+            fEntropy = fEntropy + (-Log(temp) / Log(2)) * bytes(i)
+        End If
+    Next
+    
+    memEntropy = fEntropy / CSng(leng)
+    
+Exit Function
+ret0:
+End Function
+

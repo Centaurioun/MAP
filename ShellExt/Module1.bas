@@ -191,8 +191,8 @@ Public Enum tmMsgs
         EM_SETMARGINS = &HD3
 End Enum
 
-Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
-Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal lpszOp As String, ByVal lpszFile As String, ByVal lpszParams As String, ByVal LpszDir As String, ByVal FsShowCmd As Long) As Long
+Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpszOp As String, ByVal lpszFile As String, ByVal lpszParams As String, ByVal LpszDir As String, ByVal FsShowCmd As Long) As Long
 
 Private Declare Function Wow64DisableWow64FsRedirection Lib "kernel32.dll" (ByRef old As Long) As Long
 Private Declare Function Wow64RevertWow64FsRedirection Lib "kernel32.dll" (ByRef old As Long) As Long
@@ -262,7 +262,7 @@ End Enum
 Private Type SHELLEXECUTEINFO
         cbSize        As Long
         fMask         As Long
-        hWnd          As Long
+        hwnd          As Long
         lpVerb        As String
         lpFile        As String
         lpParameters  As String
@@ -349,7 +349,7 @@ Public Function RunElevated(ByVal FilePath As String, Optional ShellShowType As 
         .nShow = ShellShowType              ' How the program will be displayed
         .lpDirectory = PathGetFolder(FilePath)
         .lpParameters = EXEParameters       ' Each parameter must be separated by space. If the lpFile member specifies a document file, lpParameters should be NULL.
-        .hWnd = hWndOwner                   ' Owner window handle
+        .hwnd = hWndOwner                   ' Owner window handle
         .lpVerb = "runas"
     End With
 
@@ -447,10 +447,10 @@ End Function
 
 Function pad(v, Optional l As Long = 8)
     On Error GoTo hell
-    Dim X As Long
-    X = Len(v)
-    If X < l Then
-        pad = String(l - X, " ") & v
+    Dim x As Long
+    x = Len(v)
+    If x < l Then
+        pad = String(l - x, " ") & v
     Else
 hell:
         pad = v
@@ -459,10 +459,10 @@ End Function
 
 Function rpad(v, Optional l As Long = 10)
     On Error GoTo hell
-    Dim X As Long
-    X = Len(v)
-    If X < l Then
-        rpad = v & String(l - X, " ")
+    Dim x As Long
+    x = Len(v)
+    If x < l Then
+        rpad = v & String(l - x, " ")
     Else
 hell:
         rpad = v
@@ -482,7 +482,7 @@ Public Sub LV_ColumnSort(ListViewControl As ListView, Column As ColumnHeader)
               .SortOrder = lvwAscending
              End If
        End If
-       .Sorted = -1
+       .sorted = -1
     End With
 End Sub
 
@@ -539,44 +539,44 @@ Function RevertRedir(old As Long) As Boolean 'really only reverts firstHandle wh
 End Function
 
 
-Function Google(hash As String, Optional hWnd As Long = 0)
+Function Google(hash As String, Optional hwnd As Long = 0)
     Const u = "http://www.google.com/#hl=en&output=search&q="
-    ShellExecute hWnd, "Open", u & hash, "", "C:\", 1
+    ShellExecute hwnd, "Open", u & hash, "", "C:\", 1
 End Function
 
 Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
-    Dim X As Long
-    X = UBound(ary) '<-throws Error If Not initalized
+    Dim x As Long
+    x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = value
     Exit Sub
 init:     ReDim ary(0): ary(0) = value
 End Sub
 
-Sub SaveMySetting(key, value)
-    SaveSetting "iDefense", "ShellExt", key, value
+Sub SaveMySetting(Key, value)
+    SaveSetting "iDefense", "ShellExt", Key, value
 End Sub
 
-Function GetMySetting(key, def)
-    GetMySetting = GetSetting("iDefense", "ShellExt", key, def)
+Function GetMySetting(Key, def)
+    GetMySetting = GetSetting("iDefense", "ShellExt", Key, def)
 End Function
 
 Sub SaveFormSizeAnPosition(f As Form)
     Dim s As String
     If f.WindowState <> 0 Then Exit Sub 'vbnormal
     s = f.Left & "," & f.Top & "," & f.Width & "," & f.Height
-    SaveMySetting f.name & "_pos", s
+    SaveMySetting f.Name & "_pos", s
 End Sub
 
 Sub RestoreFormSizeAnPosition(f As Form)
     On Error GoTo hell
     Dim s
     
-    s = GetMySetting(f.name & "_pos", "")
+    s = GetMySetting(f.Name & "_pos", "")
     
     If Len(s) = 0 Then Exit Sub
-    If occuranceCount(s, ",") <> 3 Then Exit Sub
+    If occuranceCount(s, ",") <> 4 Then Exit Sub
     
     s = Split(s, ",")
     f.Left = s(0)
@@ -801,9 +801,9 @@ hell: DetectFileType = "Unknown FileType" '<-- subtle error identifier in missin
 End Function
 
 
-Sub ScrollToLine(t As Object, X As Integer)
-     X = X - TopLineIndex(t)
-     ScrollIncremental t, , X
+Sub ScrollToLine(t As Object, x As Integer)
+     x = x - TopLineIndex(t)
+     ScrollIncremental t, , x
 End Sub
 
 Sub ScrollIncremental(t As Object, Optional horz As Integer = 0, Optional vert As Integer = 0)
@@ -817,16 +817,16 @@ Sub ScrollIncremental(t As Object, Optional horz As Integer = 0, Optional vert A
     
     Dim r As Long
     r = CLng(&H10000 * horz) + vert
-    r = SendMessage(t.hWnd, EM_LINESCROLL, 0, ByVal r)
+    r = SendMessage(t.hwnd, EM_LINESCROLL, 0, ByVal r)
 
 End Sub
 
-Function TopLineIndex(X As Object) As Long
-    TopLineIndex = SendMessage(X.hWnd, EM_GETFIRSTVISIBLELINE, 0, ByVal 0&) + 1
+Function TopLineIndex(x As Object) As Long
+    TopLineIndex = SendMessage(x.hwnd, EM_GETFIRSTVISIBLELINE, 0, ByVal 0&) + 1
 End Function
 
 
 Function sizeLvCol(lv As ListView)
     On Error Resume Next
-    lv.ColumnHeaders(lv.ColumnHeaders.count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.count - 1).Left - 100
+    lv.ColumnHeaders(lv.ColumnHeaders.Count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.Count - 1).Left - 100
 End Function

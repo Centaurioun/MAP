@@ -1,13 +1,13 @@
 VERSION 5.00
 Begin VB.Form frmPEVersion 
    Caption         =   "PE Header Version Requirements"
-   ClientHeight    =   2280
+   ClientHeight    =   2385
    ClientLeft      =   60
    ClientTop       =   345
-   ClientWidth     =   3750
+   ClientWidth     =   3765
    LinkTopic       =   "Form1"
-   ScaleHeight     =   2280
-   ScaleWidth      =   3750
+   ScaleHeight     =   2385
+   ScaleWidth      =   3765
    StartUpPosition =   2  'CenterScreen
    Begin VB.CommandButton Command1 
       Caption         =   "Enable On XP"
@@ -43,9 +43,20 @@ Attribute VB_Exposed = False
 Dim LoadedFile As String
 Dim LastError As String
 
-Sub ShowReport(fPath As String)
+Sub ShowReport(fPath As String, Optional text As String)
+
     LoadedFile = fPath
-    Text1 = PEVersionReport
+    
+    If Len(text) = 0 Then
+        Text1 = PEVersionReport
+    Else
+        Me.Caption = "Data Display"
+        Command1.Visible = False
+        Text1 = text
+        RestoreFormSizeAnPosition Me
+        SetWindowTopMost Me
+    End If
+    
     Me.Visible = True
 End Sub
  
@@ -144,3 +155,18 @@ hell:
     Close f
     RevertRedir fs
 End Function
+
+Private Sub Form_Resize()
+    On Error Resume Next
+    If Command1.Visible Then Exit Sub
+    '    Command1.top = Me.Height - Command1.Height - 200
+    '    Text1.Height = Me.Height - Text1.top - Command1.top - 200
+    'Else
+        Text1.Height = Me.Height - Text1.top - 200
+    'End If
+    Text1.Width = Me.Width - Text1.Left - 200
+End Sub
+
+Private Sub Form_Unload(Cancel As Integer)
+    SaveFormSizeAnPosition Me
+End Sub

@@ -126,6 +126,7 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
+      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -259,7 +260,7 @@ Dim running As Boolean
 Dim ranHidden As Boolean
 
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-Private Declare Function LockWindowUpdate Lib "USER32" (ByVal hwndLock As Long) As Long
+Private Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) As Long
 
 
 Option Compare Binary
@@ -392,7 +393,7 @@ Private Sub Command3_Click()
     def = fso.GetBaseName(curFile)
     If Len(def) > 12 Then def = VBA.Left(def, 5)
     def = "str_" & def & ".txt"
-    f = dlg.SaveDialog(textFiles, pf, "Save Report as", , Me.hWnd, def)
+    f = dlg.SaveDialog(textFiles, pf, "Save Report as", , Me.hwnd, def)
     If Len(f) = 0 Then Exit Sub
     fso.WriteFile f, rtf.Text
 End Sub
@@ -411,14 +412,14 @@ Private Sub Form_Load()
     chkFilter.value = GetMySetting("Filter", 0)
     optRaw.value = IIf(GetMySetting("Raw", 1) = 1, True, False)
     If Not optRaw.value Then optVa.value = True
-    rtf.Font.name = GetMySetting("strings.font.name", "Courier New")
+    rtf.Font.Name = GetMySetting("strings.font.name", "Courier New")
     rtf.Font.size = GetMySetting("strings.font.size", 11)
     rtf.Font.Bold = GetMySetting("strings.font.bold", False)
     mnuMore.Visible = False
     formLoaded = True
 End Sub
 
-Private Sub Form_Unload(cancel As Integer)
+Private Sub Form_Unload(Cancel As Integer)
    abort = True
    SaveFormSizeAnPosition Me
    SaveMySetting "offsests", chkShowOffsets.value
@@ -542,7 +543,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     Dim topLine As Integer
     
     lines = lines + UBound(ret)
-    LockWindowUpdate rtf.hWnd 'try to make it not jump when we add more...
+    LockWindowUpdate rtf.hwnd 'try to make it not jump when we add more...
     topLine = TopLineIndex(rtf)
     rtf.Text = rtf.Text & vbCrLf & vbCrLf & Join(ret, vbCrLf)
     ScrollToLine rtf, topLine
@@ -804,11 +805,11 @@ Private Sub mnuChangeFont_Click()
     On Error Resume Next
     Set f = dlg.ChooseFont(rtf)
     If Not f.selected Then Exit Sub
-    rtf.Font.name = f.name
+    rtf.Font.Name = f.Name
     rtf.Font.size = f.size
     rtf.Font.Bold = f.Bold
     If Err.Number = 0 Then
-        SaveMySetting "strings.font.name", f.name
+        SaveMySetting "strings.font.name", f.Name
         SaveMySetting "strings.font.size", f.size
         SaveMySetting "strings.font.bold", f.Bold
     End If
@@ -885,7 +886,7 @@ Private Sub mnuStringDiff_Click()
     
     On Error Resume Next
     
-    f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hWnd)
+    f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hwnd)
     If Len(f2) = 0 Then Exit Sub
     
     c1.fromArray Split(rtf.Text, vbCrLf), , True, True
@@ -918,7 +919,7 @@ Private Sub mnuStringMatch_Click()
     
     On Error Resume Next
     
-    f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hWnd)
+    f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hwnd)
     If Len(f2) = 0 Then Exit Sub
     
     c1.fromArray Split(rtf.Text, vbCrLf), , True, True
