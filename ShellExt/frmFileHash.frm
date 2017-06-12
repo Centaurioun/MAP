@@ -218,7 +218,7 @@ Dim pe As New CPEEditor
 
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hINst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
-Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal y As Long, ByVal hIcon As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Const WM_COMMAND = &H111
@@ -259,31 +259,13 @@ Private Sub Text1_Click()
          End If
          
          If curWord = "Resources:" Then
-         
-            'internal editor not ready for prime time yet..
-            'If IsIde And pe.isLoaded Then frmResViewer.ShowResources pe
-            
-            For i = 0 To mnuExt.Count
-                If InStr(1, mnuExt(i).Caption, "reshack", vbTextCompare) > 0 Then
-                    resHackPath = mnuExt(i).Tag
-                    Exit For
-                End If
-            Next
-            
-            If InStr(1, resHackPath, "%app_path%", vbTextCompare) > 0 Then
-                resHackPath = Replace(resHackPath, "%app_path%", App.path)
-            End If
-            
-            If Len(resHackPath) = 0 Then
-                MsgBox "If you add reshack to your external apps entry this will start it for you on click"
-            ElseIf fso.FileExists(trim(Replace(resHackPath, "%1", Empty))) Then
-                resHackPath = Replace(resHackPath, "%1", """" & LoadedFile & """")
-                Shell resHackPath, vbNormalFocus
+            'if they have a copy of reshacker in map dir then it overrides our internal one..
+            resHackPath = App.path & IIf(IsIde, "\..", Empty) & "\ResHacker.exe"
+            If pe.isLoaded And Not fso.FileExists(resHackPath) Then
+                frmResViewer.ShowResources pe
             Else
-                MsgBox "ResHack external app path is not a valid file path on this system" & vbCrLf & _
-                        "choose external -> edit cfg to edit it"
+                launchResHack LoadedFile
             End If
-            
          End If
          
          If curWord = "Scan_Date:" Then mnuGotoScan_Click
@@ -293,6 +275,47 @@ Private Sub Text1_Click()
     End If
     
 End Sub
+
+Function launchResHack(target As String)
+    
+    On Error Resume Next
+    
+    Dim exe As String
+    
+    If Not fso.FileExists(target) Then Exit Function
+    
+    exe = App.path & IIf(IsIde, "\..", Empty) & "\ResHacker.exe"
+    
+    If fso.FileExists(exe) Then
+        Shell exe & """" & target & """", vbNormalFocus
+    Else
+    
+        'find it from the user defined externals
+        For i = 0 To mnuExt.Count
+            If InStr(1, mnuExt(i).Caption, "reshack", vbTextCompare) > 0 Then
+                resHackPath = mnuExt(i).Tag
+                Exit For
+            End If
+        Next
+        
+        If InStr(1, resHackPath, "%app_path%", vbTextCompare) > 0 Then
+            resHackPath = Replace(resHackPath, "%app_path%", App.path)
+        End If
+        
+        If Len(resHackPath) = 0 Then
+            MsgBox "If you add reshack to your external apps entry this will start it for you on click"
+        ElseIf fso.FileExists(trim(Replace(resHackPath, "%1", Empty))) Then
+            resHackPath = Replace(resHackPath, "%1", """" & LoadedFile & """")
+            Shell resHackPath, vbNormalFocus
+        Else
+            MsgBox "ResHack external app path is not a valid file path on this system" & vbCrLf & _
+                    "choose external -> edit cfg to edit it"
+        End If
+        
+    End If
+            
+    
+End Function
 
 Function hilite_keywords()
     On Error Resume Next
@@ -312,12 +335,12 @@ Private Function isOpt(o As opts) As Boolean
     isOpt = mnuCopyHashMore(o).Checked
 End Function
 
-Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal Y As Long = 0) As Boolean
+Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal y As Long = 0) As Boolean
     Dim hIcon As Long
     hIcon = ExtractIcon(App.hInstance, fileName, iconIndex)
 
     If hIcon Then
-        DrawIcon hDC, x, Y, hIcon
+        DrawIcon hDC, x, y, hIcon
         ShowIcon = True
     End If
     
@@ -799,15 +822,15 @@ End Sub
 '
 'End Sub
 
-Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, y As Single)
     Dim z
     On Error Resume Next
     
     lastX = x
-    lastY = Y
+    lastY = y
     
     'this code below is a little processor heavy but what else are we doing...
-    curWord = WordUnderCursor(Text1, x, Y, startPos)
+    curWord = WordUnderCursor(Text1, x, y, startPos)
     'Debug.Print curWord
     
     For Each z In links

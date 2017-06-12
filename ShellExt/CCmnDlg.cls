@@ -80,6 +80,7 @@ Private Declare Function lstrcat Lib "kernel32" Alias "lstrcatA" (ByVal lpString
 Private Declare Function SHBrowseForFolder Lib "shell32" (lpbi As BrowseInfo) As Long
 Private Declare Function SHGetPathFromIDList Lib "shell32" (ByVal pidList As Long, ByVal lpBuffer As String) As Long
 Private Declare Sub CoTaskMemFree Lib "ole32.dll" (ByVal hMem As Long)
+Private Declare Function GetForegroundWindow Lib "user32" () As Long
 
 Private Const LF_FACESIZE = 32
 
@@ -103,7 +104,7 @@ End Type
 Private Type udtFont
    lStructSize As Long
    hWndOwner As Long           '  caller's window handle
-   hdc As Long                 '  printer DC/IC or NULL
+   hDC As Long                 '  printer DC/IC or NULL
    lpLogFont As Long            ' LOGFONT          '  ptr. to a LOGFONT struct
    iPointSize As Long          '  10 * size in points of selected font
    flags As Long               '  enum. type flags
@@ -129,8 +130,8 @@ Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (hpvDest As 
 Private Declare Function GlobalAlloc Lib "kernel32" (ByVal wFlags As Long, ByVal dwBytes As Long) As Long
 Private Declare Function GlobalFree Lib "kernel32" (ByVal hMem As Long) As Long
 Private Declare Function GlobalLock Lib "kernel32" (ByVal hMem As Long) As Long
-Private Declare Function GetDeviceCaps Lib "gdi32" (ByVal hdc As Long, ByVal nIndex As Long) As Long
-Private Declare Function GetDC Lib "USER32" (ByVal hWnd As Long) As Long
+Private Declare Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
+Private Declare Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
 Private Declare Function GlobalUnlock Lib "kernel32" (ByVal hMem As Long) As Long
 
 Private Const GMEM_FIXED = &H0
@@ -206,7 +207,7 @@ End Sub
 
 Function OpenDialog(filt As FilterTypes, Optional initDir As String, Optional title As String, Optional pHwnd As Long = 0) As String
     o.lStructSize = Len(o)
-    o.hWndOwner = pHwnd
+    o.hWndOwner = GetForegroundWindow()
     o.hInstance = 0
     o.lpstrFilter = filters(filt)
     o.lpstrFile = Space$(254)
@@ -225,8 +226,8 @@ End Function
 
 Function SaveDialog(filt As FilterTypes, Optional initDir As String, Optional title As String = "", Optional ConfirmOvewrite As Boolean = True, Optional pHwnd As Long = 0, Optional defaultFileName As String) As String
     o.lStructSize = Len(o)
-    o.hWndOwner = pHwnd
-    o.hInstance = pHwnd
+    o.hWndOwner = GetForegroundWindow()
+    o.hInstance = App.hInstance
     o.lpstrFilter = filters(filt)
     o.lpstrFile = Space$(254)
     o.nMaxFile = 255
@@ -264,7 +265,7 @@ Function ColorDialog(Optional pHwnd As Long) As Long
     Dim cColors() As Byte
 
     c.lStructSize = Len(c)
-    c.hWndOwner = pHwnd
+    c.hWndOwner = GetForegroundWindow()
     c.hInstance = App.hInstance
     c.lpCustColors = StrConv(cColors, vbUnicode, LANG_US)
     c.flags = 0
@@ -283,7 +284,7 @@ Function FolderDialog(Optional initDir As String, Optional pHwnd As Long = 0) As
     Dim bInfo As BrowseInfo, ret As String, ptrList As Long, nullChar As Long
 
     With bInfo
-        .hWndOwner = pHwnd
+        .hWndOwner = GetForegroundWindow()
         .lpszTitle = lstrcat(initDir, "") 'returns memaddress
         .ulFlags = 1                      'only directories
     End With
