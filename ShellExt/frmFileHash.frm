@@ -75,7 +75,6 @@ Begin VB.Form frmFileHash
       _Version        =   393217
       BackColor       =   -2147483638
       BorderStyle     =   0
-      Enabled         =   -1  'True
       Appearance      =   0
       TextRTF         =   $"frmFileHash.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -218,7 +217,7 @@ Dim pe As New CPEEditor
 
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hINst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
-Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal y As Long, ByVal hIcon As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Const WM_COMMAND = &H111
@@ -335,15 +334,26 @@ Private Function isOpt(o As opts) As Boolean
     isOpt = mnuCopyHashMore(o).Checked
 End Function
 
-Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal y As Long = 0) As Boolean
+Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal Y As Long = 0) As Boolean
     Dim hIcon As Long
     hIcon = ExtractIcon(App.hInstance, fileName, iconIndex)
 
     If hIcon Then
-        DrawIcon hDC, x, y, hIcon
+        DrawIcon hDC, x, Y, hIcon
         ShowIcon = True
     End If
     
+End Function
+
+Function hasInterestingResources() As Boolean
+    Dim r As CResData
+    For i = 1 To pe.Resources.Entries.Count
+        Set r = pe.Resources.Entries(i)
+        If InStr(1, r.path, "icon", vbTextCompare) < 1 And InStr(1, r.path, "version", vbTextCompare) < 1 Then
+            hasInterestingResources = True
+            Exit Function
+        End If
+    Next
 End Function
 
 Sub ShowFileStats(fPath As String)
@@ -356,6 +366,7 @@ Sub ShowFileStats(fPath As String)
     Dim fname As String
     Dim mySHA As String
     Dim Sections As String
+    Dim tmp As String
     
     cmdExports.Visible = False
     cmdRes.Visible = False
@@ -412,7 +423,6 @@ Sub ShowFileStats(fPath As String)
     push ret(), Empty
     
     
-    
     If isPE Then
         
         If InStr(compiled, ".NET") > 0 Then
@@ -437,15 +447,16 @@ Sub ShowFileStats(fPath As String)
     
     If pe.isLoaded Then
         If pe.Exports.functions.Count > 0 Then push ret(), "Exports:  " & pe.Exports.functions.Count
-        If pe.Resources.Entries.Count > 0 Then push ret(), "Resources: " & pe.Resources.Entries.Count & " - " & pe.Resources.size & " bytes"
+        If hasInterestingResources Then push ret(), "Resources: " & pe.Resources.Entries.Count & " - " & pe.Resources.size & " bytes"
     End If
     
     If isPE And isOpt(oPEVer) Then push ret(), PEVersionReport(True)
     If pe.isLoaded And isOpt(oImpHash) Then push ret(), "ImpHash:  " & LCase(pe.impHash())
     
-    If isOpt(oDiE) Then push ret(), "DiE:      " & DiEScan(fPath)
+    If isOpt(oDiE) Then
+        If DiEScan(LoadedFile, tmp) Then push ret(), "DiE:      " & tmp
+    End If
     
-
     Dim v As SigResults
     Dim subject As String, issuer As String
     v = VerifyFileSignature(fPath)
@@ -822,15 +833,15 @@ End Sub
 '
 'End Sub
 
-Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, Y As Single)
     Dim z
     On Error Resume Next
     
     lastX = x
-    lastY = y
+    lastY = Y
     
     'this code below is a little processor heavy but what else are we doing...
-    curWord = WordUnderCursor(Text1, x, y, startPos)
+    curWord = WordUnderCursor(Text1, x, Y, startPos)
     'Debug.Print curWord
     
     For Each z In links

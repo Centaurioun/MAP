@@ -255,7 +255,7 @@ Function DieVersion() As String
     
 End Function
 
-Function DiEScan(fPath As String)
+Function DiEScan(fPath As String, ByRef outVal) As Boolean
     Dim v As Long
     Dim buf As String
     Dim flags As Long
@@ -268,14 +268,19 @@ Function DiEScan(fPath As String)
     
     If Not LoadDie Then Exit Function
     
-    flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SINGLELINEOUTPUT Or DIE_SHOWENTROPY
+    flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SINGLELINEOUTPUT 'Or DIE_SHOWENTROPY
     buf = String(1000, Chr(0))
-    v = DiEScanA(fPath, buf, Len(buf), flags)
+    'v = DiEScanA(fPath, buf, Len(buf), flags)
+    v = dieScanEx(fPath, buf, Len(buf), flags, App.path & IIf(IsIde(), "\..", "") & "\die\db\")
     
     a = InStr(buf, Chr(0))
     If a > 0 Then buf = Left(buf, a - 1)
     buf = Replace(buf, vbLf, vbCrLf)
-    DiEScan = buf
+    tmp = Split(buf, ";")
+    buf = Join(tmp, vbCrLf & vbTab & "   ")
+    outVal = buf
+    
+    DiEScan = (InStr(1, buf, "Nothing found", vbBinaryCompare) < 1)
     
 '    tmp = Split(buf, ";")
 '
@@ -292,7 +297,7 @@ Function DiEScan(fPath As String)
     
     Exit Function
 hell:
-    DiEScan = Err.Description
+    outVal = Err.Description
 End Function
 
 
