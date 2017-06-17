@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmRecursiveHashFiles 
    Caption         =   "Hash all files below "
    ClientHeight    =   5895
@@ -72,13 +72,18 @@ Begin VB.Form frmRecursiveHashFiles
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      NumItems        =   2
+      NumItems        =   3
       BeginProperty ColumnHeader(1) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          Text            =   "Hash"
          Object.Width           =   8467
       EndProperty
       BeginProperty ColumnHeader(2) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   1
+         Text            =   "Size"
+         Object.Width           =   2540
+      EndProperty
+      BeginProperty ColumnHeader(3) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
+         SubItemIndex    =   2
          Text            =   "File"
          Object.Width           =   2540
       EndProperty
@@ -108,6 +113,9 @@ Begin VB.Form frmRecursiveHashFiles
       Begin VB.Menu mnuCopyCSV 
          Caption         =   "Copy CSV Results"
       End
+      Begin VB.Menu mnuCopyReport 
+         Caption         =   "Copy for Report"
+      End
    End
 End
 Attribute VB_Name = "frmRecursiveHashFiles"
@@ -126,6 +134,8 @@ End Sub
 
 Private Sub Command1_Click()
     
+    On Error Resume Next
+    
     If Not fso.FolderExists(Text1) Then
         MsgBox "No folder found"
         Exit Sub
@@ -138,8 +148,9 @@ Private Sub Command1_Click()
     
     For Each f In ff
         Set li = lv.ListItems.Add()
-        li.Text = hash.HashFile(CStr(f))
-        li.SubItems(1) = f
+        li.text = hash.HashFile(CStr(f))
+        li.SubItems(1) = pad(Hex(FileLen(CStr(f))))
+        li.SubItems(2) = f
     Next
     
 End Sub
@@ -149,11 +160,11 @@ End Sub
 Private Sub Form_Resize()
     On Error Resume Next
     lv.Width = Me.Width - lv.Left - 200
-    lv.Height = Me.Height - lv.Top - 400
+    lv.Height = Me.Height - lv.top - 400
     sizeLvCol lv
 End Sub
 
-Private Sub lv_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub lv_MouseUp(Button As Integer, Shift As Integer, x As Single, Y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
@@ -164,7 +175,7 @@ Private Sub mnuCopyHashs_Click()
     push x, "hashs for: " & Text1 & vbCrLf
     
     For Each li In lv.ListItems
-        push x, li.Text
+        push x, li.text
     Next
     
     Clipboard.Clear
@@ -176,10 +187,10 @@ Private Sub mnuCopyCSV_Click()
     Dim li As ListItem
     Dim x()
     
-    push x, "hash,path"
+    push x, "hash,hexSize,path"
     
     For Each li In lv.ListItems
-        push x, li.Text & "," & li.SubItems(1)
+        push x, li.text & "," & li.SubItems(1) & "," & li.SubItems(2)
     Next
     
     Clipboard.Clear
@@ -191,7 +202,21 @@ Private Sub Form_Load()
     sizeLvCol lv
 End Sub
 
-Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub mnuCopyReport_Click()
+    Dim li As ListItem
+    Dim x()
+    
+    For Each li In lv.ListItems
+        push x, rpad("File: ") & li.SubItems(2)
+        push x, rpad("Size: ") & li.SubItems(1)
+        push x, rpad("MD5: ") & li.text & vbCrLf
+    Next
+    
+    Clipboard.Clear
+    Clipboard.SetText Join(x, vbCrLf)
+End Sub
+
+Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
     On Error Resume Next
     If Not fso.FolderExists(Data.Files(1)) Then Exit Sub
     If Err.Number <> 0 Then Exit Sub

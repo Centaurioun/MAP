@@ -420,8 +420,6 @@ Sub ShowFileStats(fPath As String)
     
     compiled = GetCompileDateOrType(fPath, istype, isPE)
     push ret(), IIf(istype, rpad("FileType: "), rpad("Compiled:")) & compiled
-    push ret(), Empty
-    
     
     If isPE Then
         
@@ -435,6 +433,8 @@ Sub ShowFileStats(fPath As String)
         '    If Len(Sections) > 0 Then push ret(), "Sections: " & Sections
         'End If
         
+        If Len(pe.DebugDirectory.pdbPath) > 0 Then push ret(), rpad("PDB: ") & pe.DebugDirectory.pdbPath
+            
         Dim fp As FILEPROPERTIE
         fp = FileProps.FileInfo(fPath) 'should we include more here? we need a config pane now :(
         If Len(fp.FileVersion) > 0 Then
@@ -444,6 +444,8 @@ Sub ShowFileStats(fPath As String)
     End If
     
     If isOpt(oEntropy) Then push ret, "Entropy:  " & fileEntropy(fPath)
+    
+    push ret(), Empty
     
     If pe.isLoaded Then
         If pe.Exports.functions.Count > 0 Then push ret(), "Exports:  " & pe.Exports.functions.Count

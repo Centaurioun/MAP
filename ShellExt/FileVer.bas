@@ -146,6 +146,16 @@ Private Declare Function SetDllDirectory Lib "kernel32" Alias "SetDllDirectoryA"
 'Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function lstrlenA Lib "kernel32" (ByVal lpString As Long) As Long
 
+Private Type debugDir
+    characteristics As Long
+    timeStamp As Long
+    major As Integer
+    min As Integer
+    dbgtype As Long
+    sizeofData As Long
+    adrRawData As Long
+    ptrRawData As Long
+End Type
 
 'Private Type MungeDbl
 '    Value As Currency
@@ -266,6 +276,7 @@ Function DiEScan(fPath As String, ByRef outVal) As Boolean
     
     On Error GoTo hell
     
+    outVal = Empty
     If Not LoadDie Then Exit Function
     
     flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SINGLELINEOUTPUT 'Or DIE_SHOWENTROPY
@@ -690,3 +701,50 @@ Exit Function
 ret0:
 End Function
 
+Function pdbPath(pe As CPEEditor, outRet As String) As Boolean
+    
+    Dim rvaDebug As Long
+    Dim rawDebug As Long
+    Dim f As Long
+    Dim dd As debugDir
+    Dim bb() As Byte
+    Dim tmp As String
+    Dim a As Long, b As Long
+    
+    On Error GoTo hell
+    outRet = Empty
+    If Not pe.isLoaded Then Exit Function
+    
+    rvaDebug = pe.OptionalHeader.ddVirtualAddress(Debug_Data)
+    If rvaDebug = 0 Then Exit Function
+    
+    rawDebug = pe.RvaToOffset(rvaDebug)
+    If rawDebug = 0 Then Exit Function
+    
+    f = FreeFile
+    Open pe.LoadedFile For Binary As f
+    Get f, rawDebug + 1, dd
+    
+    ReDim bb(dd.sizeofData)
+    Get f, dd.ptrRawData + 1, bb()
+    Close f
+    f = 0
+    
+    tmp = StrConv(bb, vbUnicode, LANG_US)
+    a = InStr(1, tmp, ".pdb", vbTextCompare)
+    If a < 1 Then Exit Function
+    a = a + 4
+    
+    b = InStrRev(tmp, ":\", a)
+    If b < 1 Then Exit Function
+    b = b - 1
+    
+    outRet = Mid(tmp, b, a - b)
+    pdbPath = True
+    
+    Exit Function
+hell:
+    On Error Resume Next
+    If f <> 0 Then Close f
+    
+End Function

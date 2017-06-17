@@ -10,7 +10,7 @@ Begin VB.Form frmResViewer
    LinkTopic       =   "Form1"
    ScaleHeight     =   7155
    ScaleWidth      =   14910
-   StartUpPosition =   3  'Windows Default
+   StartUpPosition =   2  'CenterScreen
    Begin VB.TextBox txtReport 
       Height          =   1815
       Left            =   60
@@ -84,7 +84,7 @@ Sub ShowResources(pee As CPEEditor)
     Dim li As ListItem
     
     For Each r In pe.Resources.Entries
-        Set li = lv.ListItems.Add(, , Hex(r.size))
+        Set li = lv.ListItems.Add(, , r.size)
         Set li.Tag = r
         li.SubItems(1) = r.path
     Next
@@ -96,6 +96,10 @@ End Sub
  
 Private Sub Form_Load()
     mnuPopup.Visible = False
+End Sub
+
+Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
+    'LV_ColumnSort lv, ColumnHeader
 End Sub
 
 Private Sub lv_ItemClick(ByVal Item As MSComctlLib.ListItem)
@@ -124,7 +128,7 @@ Private Sub lv_ItemClick(ByVal Item As MSComctlLib.ListItem)
     
 End Sub
 
-Private Sub lv_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub lv_MouseUp(Button As Integer, Shift As Integer, x As Single, Y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 

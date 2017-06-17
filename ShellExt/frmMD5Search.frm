@@ -208,7 +208,7 @@ Dim fso As New CFileSystem2
 Dim hash As New CWinHash
 Dim dlg As New clsCmnDlg2
 Dim abort As Boolean
-Dim loadedFile As String 'only set if user browses to set hash/size
+Dim LoadedFile As String 'only set if user browses to set hash/size
 
 Sub Launch(Optional baseDir As String)
     txtBaseDir = baseDir
@@ -216,7 +216,7 @@ Sub Launch(Optional baseDir As String)
 End Sub
 
 Private Sub cboHash_Click()
-    If Len(loadedFile) > 0 Then loadHashSize
+    If Len(LoadedFile) > 0 Then loadHashSize
 End Sub
 
 Private Sub cmdBrowse_Click()
@@ -224,7 +224,7 @@ Private Sub cmdBrowse_Click()
 End Sub
 
 Private Sub cmdDefault_Click()
-    txtExt.Text = "txt doc docx pdf zip rar 7z rtf idb pcap png jpg"
+    txtExt.text = "txt doc docx pdf zip rar 7z rtf idb pcap png jpg"
 End Sub
 
 Function SelectedHash() As HashTypes
@@ -349,8 +349,8 @@ End Sub
 
 Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
-    Dim X As Long
-    X = UBound(ary) '<-throws Error If Not initalized
+    Dim x As Long
+    x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = value
     Exit Sub
@@ -358,16 +358,16 @@ init: ReDim ary(0): ary(0) = value
 End Sub
 
 Private Sub cmdSelectFile_Click()
-    loadedFile = dlg.OpenDialog(AllFiles)
+    LoadedFile = dlg.OpenDialog(AllFiles)
     loadHashSize
 End Sub
 
 Function loadHashSize()
-    If Len(loadedFile) > 0 Then
+    If Len(LoadedFile) > 0 Then
         Dim method As HashTypes
         method = SelectedHash()
-        txtHash = hash.HashFile(loadedFile, method)
-        txtSize = FileLen(loadedFile)
+        txtHash = hash.HashFile(LoadedFile, method)
+        txtSize = FileLen(LoadedFile)
     Else
         txtHash = Empty
         txtSize = Empty
@@ -377,7 +377,7 @@ End Function
 Private Sub Form_Load()
     Me.Icon = myIcon
     cmdDefault_Click
-    txtExt = GetSetting("shellext", "settings", "txtExt", txtExt.Text)
+    txtExt = GetSetting("shellext", "settings", "txtExt", txtExt.text)
     cboHash.AddItem "MD5"
     cboHash.AddItem "SHA1"
     cboHash.AddItem "SHA256"
@@ -388,11 +388,11 @@ End Sub
 Private Sub Form_Resize()
     On Error Resume Next
     txtResults.Width = Me.Width - 250
-    txtResults.Height = Me.Height - txtResults.Top - 400
+    txtResults.Height = Me.Height - txtResults.top - 400
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
-    SaveSetting "shellext", "settings", "txtExt", txtExt.Text
+    SaveSetting "shellext", "settings", "txtExt", txtExt.text
 End Sub
 
 Private Sub optHash_Click(index As Integer)
@@ -407,11 +407,11 @@ Private Sub lblHash_Click()
     End If
 End Sub
 
-Private Sub txtBaseDir_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub txtBaseDir_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
     On Error Resume Next
     
     If fso.FolderExists(Data.Files(1)) Then
-        txtBaseDir.Text = Data.Files(1)
+        txtBaseDir.text = Data.Files(1)
     Else
         MsgBox "Only drop folders in here..", vbInformation
     End If
@@ -422,12 +422,13 @@ End Sub
 
 
 
-Private Sub txtHash_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub txtHash_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
     On Error Resume Next
     Dim f As String
     f = Data.Files(1)
     If fso.FileExists(f) Then
-        loadedFile = f
+        LoadedFile = f
         loadHashSize
     End If
 End Sub
+
