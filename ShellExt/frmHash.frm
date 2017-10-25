@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmHash 
    Caption         =   "Directory File Hasher - Right Click on ListView for Menu Options"
    ClientHeight    =   4080
@@ -184,8 +184,10 @@ Attribute sc.VB_VarHelpID = -1
  
 Public path As String
 Public isComplete As Boolean
+Dim abort As Boolean
 
 Private Sub Form_Unload(Cancel As Integer)
+    abort = True
     sc.DetatchMessage Me.hwnd, WM_SYSCOMMAND
 End Sub
 
@@ -195,9 +197,12 @@ Private Sub mnuStringsDumpAll_Click()
     Dim li As ListItem
     Dim f As String
     
+    abort = False
+    
     For Each li In lv.ListItems
-        If VBA.Left(li.Text, 4) <> "str_" Then
-            f = path & "\" & li.Text
+        If abort Then Exit For
+        If VBA.Left(li.text, 4) <> "str_" Then
+            f = path & "\" & li.text
             If fso.FileExists(f) Then
                 frmStrings.ParseFile f
                 frmStrings.AutoSave
@@ -244,7 +249,7 @@ End Sub
 Private Sub Form_Resize()
     On Error Resume Next
     lv.Width = Me.Width - lv.Left - 140
-    lv.Height = Me.Height - lv.Top - 450
+    lv.Height = Me.Height - lv.top - 450
     pb.Width = lv.Width
     lv.ColumnHeaders(lv.ColumnHeaders.Count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.Count).Left - 100
 End Sub
@@ -259,12 +264,12 @@ Public Function GetFilesForHash(md5, Optional ByRef totalHits As Long, Optional 
     
     For Each li In lv.ListItems
         If li.SubItems(2) = md5 Then
-            ret = ret & li.Text & " , "
+            ret = ret & li.text & " , "
             cnt = cnt + 1
         End If
     Next
     
-    ret = Trim(ret)
+    ret = trim(ret)
     If Len(ret) > 0 And Right(ret, 1) = "," Then
         ret = Mid(ret, 1, Len(ret) - 1)
     End If
@@ -295,6 +300,7 @@ Sub HashDir(dPath As String, Optional diffMode As Boolean = False)
     Dim fs As Long
     'MsgBox "entering hash dir"
     
+    abort = False
     path = dPath
     pf = fso.GetParentFolder(path) & "\"
     pf = Replace(path, pf, Empty)
@@ -327,6 +333,7 @@ Sub HashDir(dPath As String, Optional diffMode As Boolean = False)
     Me.Visible = True
     
     For i = 0 To UBound(f)
+         If abort Then Exit Sub
          handleFile f(i)
          setpb i, UBound(f)
     Next
@@ -366,7 +373,7 @@ Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
     LV_ColumnSort lv, ColumnHeader
 End Sub
 
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
     If Button = vbRightButton Then PopupMenu mnuPopup
 End Sub
 
@@ -392,8 +399,8 @@ Private Sub mnuCopySelected_Click()
     ln = LongestFileName() + 3
     
     For Each li In lv.ListItems
-        If li.Selected Then
-            t = t & rpad(li.Text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & vbCrLf
+        If li.selected Then
+            t = t & rpad(li.text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & vbCrLf
         End If
     Next
     
@@ -423,7 +430,7 @@ Private Sub mnuCustomExtension_Click()
     For Each li In lv.ListItems
         i = 1
         fPath = li.Tag
-        fname = li.Text
+        fname = li.text
         pdir = fso.GetParentFolder(fPath) & "\"
         
         If InStrRev(fname, ".") > 1 Then
@@ -442,7 +449,7 @@ Private Sub mnuCustomExtension_Click()
         
         Name fPath As pdir & h
     
-        li.Text = h
+        li.text = h
         li.Tag = pdir & h
         li.EnsureVisible
         lv.Refresh
@@ -463,8 +470,8 @@ Private Sub mnuDeleteDuplicates_Click()
     
     Close
     
-    Const Msg As String = "Are you sure you want to DELETE all DUPLICATE files?"
-    If MsgBox(Msg, vbYesNo) = vbNo Then Exit Sub
+    Const msg As String = "Are you sure you want to DELETE all DUPLICATE files?"
+    If MsgBox(msg, vbYesNo) = vbNo Then Exit Sub
     
     For Each li In lv.ListItems
         h = li.SubItems(2)
@@ -485,7 +492,7 @@ Private Sub mnuDeleteDuplicates_Click()
     For i = lv.ListItems.Count To 1 Step -1
         Set li = lv.ListItems(i)
         If li.Tag = "DeleteMe" Then
-            f = path & "\" & li.Text
+            f = path & "\" & li.text
             If fso.FileExists(f) Then
                 If Not fso.DeleteFile(f) Then
                     errs = errs + 1
@@ -557,14 +564,14 @@ Private Sub mnuDeleteSelected_Click()
     Dim f As String
     On Error Resume Next
     
-    Const Msg As String = "Are you sure you want to delete these files?"
-    If MsgBox(Msg, vbYesNo + vbInformation) = vbNo Then Exit Sub
+    Const msg As String = "Are you sure you want to delete these files?"
+    If MsgBox(msg, vbYesNo + vbInformation) = vbNo Then Exit Sub
     
     
 nextone:
     For Each li In lv.ListItems
-        If li.Selected Then
-            f = path & "\" & li.Text
+        If li.selected Then
+            f = path & "\" & li.text
             If fso.FileExists(f) Then
                 Kill f
             End If
@@ -580,7 +587,7 @@ Private Function LongestFileName() As Long
     Dim r As Long
     
     For Each li In lv.ListItems
-        If Len(li.Text) > r Then r = Len(li.Text)
+        If Len(li.text) > r Then r = Len(li.text)
     Next
     
     LongestFileName = r + 1
@@ -601,7 +608,7 @@ Private Sub mnuCopyTable_Click()
         If li.ForeColor <> &H80000008 And li.ForeColor <> vbBlack Then
             sig = " " & vbTab & IIf(li.ForeColor = vbBlue, " VALID", " INVALID") & " signature"
         End If
-        t = t & "  " & rpad(li.Text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & sig & vbCrLf
+        t = t & "  " & rpad(li.text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & sig & vbCrLf
     Next
     
     Clipboard.Clear
@@ -658,7 +665,7 @@ Private Sub mnuGoogleSelected_Click()
     Dim x
     
     For Each li In lv.ListItems
-        If li.Selected Then
+        If li.selected Then
             h = li.SubItems(2)
             If Len(h) > 0 And InStr(h, "Error") < 1 Then
                 push hashs, li.SubItems(2)
@@ -698,7 +705,7 @@ Private Sub mnuHashDiff_Click()
     Set f = New frmHash
     f.Visible = True
     f.Left = Me.Left + 300
-    f.Top = Me.Top + 300
+    f.top = Me.top + 300
     f.Refresh
     DoEvents
     
@@ -775,7 +782,7 @@ Private Sub mnuMakeExtSafe_Click()
     For Each li In lv.ListItems
         i = 1
         fPath = li.Tag
-        fname = li.Text
+        fname = li.text
         pdir = fso.GetParentFolder(fPath) & "\"
         h = fname & "_"
         
@@ -790,7 +797,7 @@ Private Sub mnuMakeExtSafe_Click()
         
         Name fPath As pdir & h
     
-        li.Text = h
+        li.text = h
         li.Tag = pdir & h
         li.EnsureVisible
         lv.Refresh
@@ -811,7 +818,7 @@ Private Sub mnuMakeSubFolders_Click()
     
     For Each li In lv.ListItems
         fPath = li.Tag
-        fname = li.Text
+        fname = li.text
         pdir = fso.GetParentFolder(fPath) & "\"
         baseName = fso.GetBaseName(fPath)
         MkDir pdir & baseName
@@ -834,7 +841,7 @@ Private Sub mnuRenameToMD5_Click()
     For Each li In lv.ListItems
         i = 2
         fPath = li.Tag
-        fname = li.Text
+        fname = li.text
         h = li.SubItems(2)
         pdir = fso.GetParentFolder(fPath) & "\"
         
@@ -848,7 +855,7 @@ Private Sub mnuRenameToMD5_Click()
         rlog = rlog & fname & vbTab & "->" & vbTab & h & vbCrLf
         Name fPath As pdir & h
     
-        li.Text = h
+        li.text = h
         li.Tag = pdir & h
         li.EnsureVisible
         lv.Refresh
@@ -899,8 +906,8 @@ Private Sub mnuSubmitSelToVT_Click()
     Dim f As String
     
     For Each li In lv.ListItems
-        If li.Selected Then
-            f = path & "\" & li.Text
+        If li.selected Then
+            f = path & "\" & li.text
             If fso.FileExists(f) Then
                 push paths, f
                 i = i + 1
@@ -932,7 +939,7 @@ Private Sub mnuVTAll_Click()
     For Each li In lv.ListItems
         If InStr(h, "Error") < 1 Then
              't = t & li.SubItems(2) & vbCrLf
-             t = t & li.SubItems(2) & "," & path & "\" & li.Text & vbCrLf 'new format hash,path
+             t = t & li.SubItems(2) & "," & path & "\" & li.text & vbCrLf 'new format hash,path
         End If
     Next
     
@@ -952,11 +959,11 @@ Private Sub mnuVTLookupSelected_Click()
     Dim i As Long
     
     For Each li In lv.ListItems
-        If li.Selected Then
+        If li.selected Then
             h = li.SubItems(2)
             If Len(h) > 0 And InStr(h, "Error") < 1 Then
                 'push hashs, li.SubItems(2)
-                push hashs, li.SubItems(2) & "," & path & "\" & li.Text & vbCrLf 'new format hash,path
+                push hashs, li.SubItems(2) & "," & path & "\" & li.text & vbCrLf 'new format hash,path
                 i = i + 1
             End If
         End If

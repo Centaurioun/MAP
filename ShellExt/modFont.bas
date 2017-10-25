@@ -108,7 +108,7 @@ End Type
 
 Private Type POINTAPI
     x As Long
-    y As Long
+    Y As Long
 End Type
 
 Const EM_CHARFROMPOS& = &HD7
@@ -122,7 +122,8 @@ Private Declare Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
 Private Declare Function EnumFontFamiliesEx Lib "gdi32" Alias "EnumFontFamiliesExA" (ByVal hDC As Long, lpLogFont As LOGFONT, ByVal lpEnumFontProc As Long, ByVal lParam As Long, ByVal dw As Long) As Long
 Private Declare Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hDC As Long) As Long
 Public Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
-Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
+Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
+Private Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) As Long
 
 Private Const ANSI_CHARSET = 0
 Private Const DEFAULT_PITCH = 0
@@ -135,6 +136,43 @@ Private Const HWND_TOPMOST = -1
 
 Private sizes As Collection
 Private hDC As Long
+
+Function ColorText(ByRef rtf As RichTextBox, Optional ByRef find As String, Optional ByVal Color) As Long
+
+    Dim i As Long
+    Dim l As Long
+    Dim start As Long
+    Dim cnt As Long
+    
+    start = rtf.SelStart
+    LockWindowUpdate rtf.hwnd
+    
+    rtf.SelStart = 0
+    rtf.SelLength = Len(rtf.text)
+    rtf.SelColor = vbBlack
+    rtf.SelBold = False
+    rtf.SelFontSize = rtf.Font.size
+        
+    If Len(find) > 0 Then
+        l = Len(find)
+        i = rtf.find(find)
+        Do While i >= 0
+            rtf.SelStart = i
+            rtf.SelLength = l
+            rtf.SelColor = Color
+            rtf.SelBold = True
+            rtf.SelFontSize = rtf.Font.size + 4
+            i = rtf.find(find, i + l)
+            cnt = cnt + 1
+        Loop
+    End If
+    
+    rtf.SelStart = start
+    rtf.SelLength = 0
+    LockWindowUpdate 0
+    ColorText = cnt
+    
+End Function
 
 Sub SetWindowTopMost(f As Form, Optional top As Boolean = True)
    SetWindowPos f.hwnd, IIf(top, HWND_TOPMOST, 1), f.Left / 15, f.top / 15, f.Width / 15, f.Height / 15, Empty
@@ -202,7 +240,7 @@ MulDiv_err:
   Resume MulDiv_err
 End Function
 
-Function WordUnderCursor(MyRTB As RichTextBox, x As Single, y As Single, startPos As Long) As String
+Function WordUnderCursor(MyRTB As RichTextBox, x As Single, Y As Single, startPos As Long) As String
     Dim MyPoint As POINTAPI
     Dim MyPos As Integer
     Dim MyStartPos As Integer
@@ -213,7 +251,7 @@ Function WordUnderCursor(MyRTB As RichTextBox, x As Single, y As Single, startPo
     
     On Error Resume Next
     MyPoint.x = x \ Screen.TwipsPerPixelX
-    MyPoint.y = y \ Screen.TwipsPerPixelY
+    MyPoint.Y = Y \ Screen.TwipsPerPixelY
     MyPos = SendMessage(MyRTB.hwnd, EM_CHARFROMPOS, 0&, MyPoint)
     
     If MyPos <= 0 Then Exit Function

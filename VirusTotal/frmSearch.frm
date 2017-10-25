@@ -11,6 +11,14 @@ Begin VB.Form frmSearch
    ScaleHeight     =   9030
    ScaleWidth      =   17085
    StartUpPosition =   2  'CenterScreen
+   Begin VB.TextBox txtDir 
+      Height          =   285
+      Left            =   4860
+      OLEDropMode     =   1  'Manual
+      TabIndex        =   13
+      Top             =   540
+      Width           =   2625
+   End
    Begin InetCtlsObjects.Inet Inet1 
       Left            =   450
       Top             =   8415
@@ -52,29 +60,29 @@ Begin VB.Form frmSearch
       Width           =   6585
    End
    Begin VB.CommandButton cmdBrowse 
-      Caption         =   "..."
+      Caption         =   "1"
       BeginProperty Font 
-         Name            =   "System"
+         Name            =   "Wingdings"
          Size            =   9.75
-         Charset         =   0
-         Weight          =   700
+         Charset         =   2
+         Weight          =   400
          Underline       =   0   'False
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   375
-      Left            =   14805
+      Height          =   285
+      Left            =   7560
       TabIndex        =   6
-      Top             =   90
-      Width           =   735
+      Top             =   540
+      Width           =   510
    End
    Begin MSComctlLib.ProgressBar pb 
       Height          =   240
-      Left            =   4275
+      Left            =   8325
       TabIndex        =   4
       Top             =   540
-      Width           =   12660
-      _ExtentX        =   22331
+      Width           =   8610
+      _ExtentX        =   15187
       _ExtentY        =   423
       _Version        =   393216
       Appearance      =   1
@@ -111,10 +119,18 @@ Begin VB.Form frmSearch
    Begin VB.CommandButton cmdSearch 
       Caption         =   "Search"
       Height          =   375
-      Left            =   13590
+      Left            =   14175
       TabIndex        =   0
       Top             =   90
       Width           =   1140
+   End
+   Begin VB.Label Label2 
+      Caption         =   "Dl Dir:"
+      Height          =   195
+      Left            =   4320
+      TabIndex        =   12
+      Top             =   585
+      Width           =   510
    End
    Begin VB.Label Label1 
       Caption         =   "Limit"
@@ -139,6 +155,9 @@ Begin VB.Form frmSearch
       Begin VB.Menu mnuClearCacheVT 
          Caption         =   "Clear Cache VT Results"
          Visible         =   0   'False
+      End
+      Begin VB.Menu mnuHelp 
+         Caption         =   "Help"
       End
    End
    Begin VB.Menu mnuPopup 
@@ -169,7 +188,7 @@ Dim vt As New CVirusTotal
 Dim txtCacheDir As String
 Dim fso As New CFileSystem2
 Dim dlg As New CCmnDlg
-Dim txtDir As String
+'Dim txtDir As String
 Dim csr As CSearchResult
 Dim selItem As ListItem
 
@@ -393,6 +412,11 @@ Private Sub mnuGetReport_Click()
         selItem.subItems(2) = c.first_seen
         Set selItem.Tag = c
     End If
+End Sub
+
+Private Sub mnuHelp_Click()
+    On Error Resume Next
+    Shell "cmd.exe /c start https://virustotal.com/intelligence/help/", vbHide
 End Sub
 
 Private Sub mnuRawJSON_Click()

@@ -62,6 +62,30 @@ Public results As New Collection
 Public HadError As Boolean
 Public Errors As New Collection
 
+Function extractDetectionsFor(find, Optional likeSearch As Boolean = False) As String
+    Dim r As CResult
+    Dim tmp As String
+    
+    For Each r In results
+        If r.detected Then
+            If likeSearch Then
+                If r.result Like find Then
+                    tmp = tmp & vbTab & r.PaddedScanner() & r.result & vbCrLf
+                End If
+            Else
+                If InStr(1, r.result, find, vbTextCompare) > 0 Then
+                    tmp = tmp & vbTab & r.PaddedScanner() & r.result & vbCrLf
+                End If
+            End If
+        End If
+    Next
+    
+    If Len(tmp) > 0 Then tmp = md5 & vbCrLf & tmp & vbCrLf & String(50, "-") & vbCrLf & vbCrLf
+    
+    extractDetectionsFor = tmp
+    
+End Function
+
 Public Function GetReport() As String
     Dim r As CResult
     Dim tmp As String
@@ -127,29 +151,29 @@ Private Function FileNameFromPath(fullpath) As String
     End If
 End Function
 
-Private Function setbyname(name As Variant, Value As Variant)
+Private Function setbyname(name As Variant, value As Variant)
     
     If InStr(name, "{") > 0 Then name = Replace(name, "{", Empty)
     If InStr(name, "}") > 0 Then name = Replace(name, "}", Empty)
     name = Trim(Replace(name, """", Empty))
-    Value = Trim(Replace(Value, """", Empty))
-    Value = Replace(Value, "\\", Chr(5))
-    Value = Replace(Value, "\", Empty)
-    Value = Replace(Value, Chr(5), "\\")
+    value = Trim(Replace(value, """", Empty))
+    value = Replace(value, "\\", Chr(5))
+    value = Replace(value, "\", Empty)
+    value = Replace(value, Chr(5), "\\")
     
     Select Case LCase(name)
-        Case "permalink": permalink = Value
-        Case "sha1": sha1 = Value
-        Case "resource": resource = Value
-        Case "response_code": response_code = Value
-        Case "scan_date": scan_date = Value
-        Case "scan_id": scan_id = Value
-        Case "verbose_msg": verbose_msg = Value
-        Case "sha256": sha256 = Value
-        Case "positives": positives = Value
-        Case "total": total = Value
-        Case "md5": md5 = Value
-        Case "first_seen": first_seen = Value
+        Case "permalink": permalink = value
+        Case "sha1": sha1 = value
+        Case "resource": resource = value
+        Case "response_code": response_code = value
+        Case "scan_date": scan_date = value
+        Case "scan_id": scan_id = value
+        Case "verbose_msg": verbose_msg = value
+        Case "sha256": sha256 = value
+        Case "positives": positives = value
+        Case "total": total = value
+        Case "md5": md5 = value
+        Case "first_seen": first_seen = value
     End Select
     
 End Function
@@ -158,7 +182,7 @@ Friend Sub ParseResponse(json As String)
 
     On Error Resume Next
     Dim a As Long, b As Long
-    Dim main As String, name As String, Value As String, scans As String
+    Dim main As String, name As String, value As String, scans As String
     
     json = Replace(json, vbCr, Empty)
     json = Replace(json, vbLf, Empty)
@@ -182,8 +206,8 @@ Friend Sub ParseResponse(json As String)
         b = InStr(1, entry, ":")
         If b < 2 Then GoTo nextone
         name = Mid(entry, 1, b - 1)
-        Value = Mid(entry, b + 1)
-        setbyname name, Value
+        value = Mid(entry, b + 1)
+        setbyname name, value
 nextone:
     Next
     
@@ -227,3 +251,13 @@ End Sub
 Private Sub Class_Initialize()
     positives = 0
 End Sub
+
+Sub push(ary, value) 'this modifies parent ary object
+    On Error GoTo init
+    x = UBound(ary) '<-throws Error If Not initalized
+    ReDim Preserve ary(UBound(ary) + 1)
+    ary(UBound(ary)) = value
+    Exit Sub
+init:     ReDim ary(0): ary(0) = value
+End Sub
+

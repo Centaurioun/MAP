@@ -116,6 +116,9 @@ Begin VB.Form frmRecursiveHashFiles
       Begin VB.Menu mnuCopyReport 
          Caption         =   "Copy for Report"
       End
+      Begin VB.Menu mnuStringsForAll 
+         Caption         =   "Strings for All"
+      End
    End
 End
 Attribute VB_Name = "frmRecursiveHashFiles"
@@ -151,7 +154,10 @@ Private Sub Command1_Click()
         li.text = hash.HashFile(CStr(f))
         li.SubItems(1) = pad(Hex(FileLen(CStr(f))))
         li.SubItems(2) = f
+        DoEvents
     Next
+    
+    Me.Caption = "Hash all files below: " & lv.ListItems.Count & " files"
     
 End Sub
 
@@ -214,6 +220,40 @@ Private Sub mnuCopyReport_Click()
     
     Clipboard.Clear
     Clipboard.SetText Join(x, vbCrLf)
+End Sub
+
+Private Sub mnuStringsForAll_Click()
+    
+    On Error Resume Next
+    Dim li As ListItem
+    Dim f As String
+    Dim n As Long
+    Dim e As Long
+    
+    abort = False
+    
+    For Each li In lv.ListItems
+        'If abort Then Exit For
+        li.EnsureVisible
+        li.selected = True
+        Err.Clear
+        If VBA.Left(li.text, 4) <> "str_" Then
+            f = li.SubItems(2)
+            If fso.FileExists(f) Then
+                frmStrings.ParseFile f
+                frmStrings.AutoSave
+                n = n + 1
+            End If
+        End If
+        li.selected = False
+        If Err.Number <> 0 Then e = e + 1
+        DoEvents
+    Next
+    
+    Unload frmStrings
+    
+    MsgBox n & " string dumps generated" & vbCrLf & "Errors: " & e, vbInformation
+    
 End Sub
 
 Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)

@@ -11,6 +11,30 @@ Begin VB.Form Form1
    ScaleHeight     =   7770
    ScaleWidth      =   11190
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CheckBox chkSearchAll 
+      Caption         =   "search all"
+      Height          =   195
+      Left            =   1440
+      TabIndex        =   11
+      Top             =   4635
+      Width           =   1095
+   End
+   Begin VB.TextBox txtFilter 
+      BeginProperty Font 
+         Name            =   "Courier"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Height          =   330
+      Left            =   2610
+      TabIndex        =   9
+      Top             =   4590
+      Width           =   8385
+   End
    Begin InetCtlsObjects.Inet Inet1 
       Left            =   10485
       Top             =   495
@@ -85,12 +109,12 @@ Begin VB.Form Form1
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   3165
+      Height          =   2715
       Left            =   30
       MultiLine       =   -1  'True
       ScrollBars      =   2  'Vertical
       TabIndex        =   2
-      Top             =   4530
+      Top             =   4980
       Width           =   10965
    End
    Begin MSComctlLib.ListView lv 
@@ -149,6 +173,14 @@ Begin VB.Form Form1
       TabIndex        =   0
       Top             =   510
       Width           =   10935
+   End
+   Begin VB.Label Label3 
+      Caption         =   "CSV Line Filters:"
+      Height          =   240
+      Left            =   90
+      TabIndex        =   10
+      Top             =   4635
+      Width           =   1230
    End
    Begin VB.Menu mnuOptions 
       Caption         =   "Tools"
@@ -236,10 +268,13 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Dim vt As New CVirusTotal
 Dim selli As ListItem
+Dim scan As CScan
 Dim dlg As New clsCmnDlg
 Dim fso As New CFileSystem2
 
 Dim files As New Collection
+
+
 
 Private Sub cmdAbort_Click()
     vt.abort = True
@@ -277,13 +312,13 @@ Private Sub cmdQuery_Click()
     
     vt.report_cache_dir = Empty
     
-    If chkCache.Value = 1 Then        'currently sets cache_dir to exist or not once at start of sub, cant change during operation..
+    If chkCache.value = 1 Then        'currently sets cache_dir to exist or not once at start of sub, cant change during operation..
         If Len(txtCacheDir) = 0 Then
-            chkCache.Value = 0
+            chkCache.value = 0
         Else
             If Not fso.FolderExists(txtCacheDir) Then
                 If Not fso.buildPath(txtCacheDir) Then
-                    chkCache.Value = 0
+                    chkCache.value = 0
                 End If
             End If
         End If
@@ -327,15 +362,16 @@ Private Sub cmdQuery_Click()
         li.EnsureVisible
         DoEvents
         Me.Refresh
-        pb.Value = pb.Value + 1
+        pb.value = pb.value + 1
         
-        If pb.Value = lv.ListItems.count Then GoTo nextone
+        If pb.value = lv.ListItems.count Then GoTo nextone
         
 nextone:
     Next
     
-    pb.Value = 0
-    MsgBox "Queries Complete" & vbCrLf & vbcrllf & "Click on an item to view report.", vbInformation
+    lv_ItemClick lv.ListItems(1)
+    pb.value = 0
+    'MsgBox "Queries Complete" & vbCrLf & vbcrllf & "Click on an item to view report.", vbInformation
  
  
 End Sub
@@ -378,7 +414,7 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
     abort = True
     SaveSetting "vt", "settings", "cachedir", txtCacheDir.Text
-    SaveSetting "vt", "settings", "usecache", chkCache.Value
+    SaveSetting "vt", "settings", "usecache", chkCache.value
 End Sub
 
 Private Sub mnuAddHashs_Click()
@@ -386,6 +422,15 @@ Private Sub mnuAddHashs_Click()
     Dim f As CFile
     
     x = Clipboard.GetText
+    x = Replace(x, " ", Empty)
+    x = Replace(x, vbTab, Empty)
+    If InStr(Command, "/bulk") < 1 Then x = Replace(x, ",", Empty) '/bulk command line from shellext uses hash,path\r\n format
+    x = Replace(x, "'", Empty)
+    x = Replace(x, """", Empty)
+    x = Replace(x, ";", Empty)
+    x = Replace(x, "}", Empty)
+    x = Replace(x, ")", Empty)
+    
     tmp = Split(x, vbCrLf)
     For Each x In tmp
         x = Trim(x)
@@ -411,7 +456,8 @@ Private Sub Form_Resize()
     Text2.Width = List1.Width
     lv.Width = List1.Width
     pb.Width = List1.Width
-    Text2.Height = Me.Height - Text2.Top - 400
+    Text2.Height = Me.Height - Text2.Top - 700
+    txtFilter.Width = Me.Width - txtFilter.Left - 200
 End Sub
 
 Public Sub LV_ColumnSort(ListViewControl As ListView, Column As ColumnHeader)
@@ -450,7 +496,7 @@ Private Sub Form_Load()
     Set vt.debugLog = List1
     
     txtCacheDir = GetSetting("vt", "settings", "cachedir", "c:\VT_Cache")
-    chkCache.Value = GetSetting("vt", "settings", "usecache", 0)
+    chkCache.value = GetSetting("vt", "settings", "usecache", 0)
     
     lv.ColumnHeaders(4).Width = lv.Width - lv.ColumnHeaders(4).Left - 150
     
@@ -510,11 +556,18 @@ End Sub
 
 Private Sub lv_ItemClick(ByVal Item As MSComctlLib.ListItem)
     On Error Resume Next
-    Dim scan As CScan
     Set selli = Item
     Set scan = Item.Tag
     If scan Is Nothing Then Exit Sub
-    Text2 = scan.GetReport()
+    If Len(txtFilter) > 0 Then
+        If chkSearchAll.value = 1 Then
+            chkSearchAll.value = 0 'this will trigger the filter change itself
+        Else
+            txtFilter_Change
+        End If
+    Else
+        Text2 = scan.GetReport()
+    End If
 End Sub
 
 Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
@@ -746,6 +799,10 @@ Private Sub mnuSearch_Click()
     Dim likeSearch As Boolean
     Dim cs As CScan
     Dim found As Long
+    Dim tmp() As String
+    Dim r As String
+    Dim lines()  As String
+    Dim tmpFile As String
     
     find = InputBox("Enter marker to search for, to use vb like operator prefix with like:")
     If Len(find) = 0 Then Exit Sub
@@ -755,13 +812,22 @@ Private Sub mnuSearch_Click()
         likeSearch = True
     End If
     
+    push tmp(), "Search for '" & find & "' " & lv.ListItems.count & " samples - " & Now & vbCrLf
+    
     For Each li In lv.ListItems
         li.Selected = False
         Set cs = li.Tag
+        r = cs.GetReport()
         If likeSearch Then
-            If cs.GetReport() Like find Then li.Selected = True
+            If r Like find Then
+                li.Selected = True
+                push tmp(), cs.extractDetectionsFor(find, True)
+            End If
         Else
-            If InStr(1, cs.GetReport(), find, vbTextCompare) > 0 Then li.Selected = True
+            If InStr(1, r, find, vbTextCompare) > 0 Then
+                li.Selected = True
+                push tmp(), cs.extractDetectionsFor(find)
+            End If
         End If
         If li.Selected Then
             found = found + 1
@@ -770,6 +836,12 @@ Private Sub mnuSearch_Click()
     Next
     
     Me.Caption = found & " matches found for string: " & find
+    
+    If found > 0 Then
+        tmpFile = fso.GetFreeFileName(Environ("temp"))
+        fso.writeFile tmpFile, Join(tmp, vbCrLf)
+        Shell "notepad.exe """ & tmpFile & """", vbNormalFocus
+    End If
     
 End Sub
 
@@ -841,3 +913,108 @@ Private Sub mnuViewRaw_Click()
     Set scan = selli.Tag
     Text2 = scan.RawJson
 End Sub
+
+
+Sub push(ary, value) 'this modifies parent ary object
+    On Error GoTo init
+    x = UBound(ary) '<-throws Error If Not initalized
+    ReDim Preserve ary(UBound(ary) + 1)
+    ary(UBound(ary)) = value
+    Exit Sub
+init:     ReDim ary(0): ary(0) = value
+End Sub
+'
+'Private Sub txtFilter_KeyDown(KeyCode As Integer, Shift As Integer)
+'    If KeyCode = 13 Then
+'        txtFilter_Change
+'        KeyCode = 0
+'    End If
+'End Sub
+
+Private Sub txtFilter_KeyPress(KeyAscii As Integer)
+     If KeyAscii = 13 Then
+        txtFilter_Change
+        KeyAscii = 0
+    End If
+End Sub
+
+Private Sub chkSearchAll_Click()
+    txtFilter_Change
+End Sub
+
+Private Sub txtFilter_Change()
+    On Error Resume Next
+    
+    If chkSearchAll.value = 0 And scan Is Nothing Then
+        Text2 = Empty
+        Exit Sub
+    End If
+    
+    If Len(txtFilter.Text) = 0 Then
+        If scan Is Nothing Then
+            Text2 = Empty
+        Else
+            Text1 = scan.GetReport()
+        End If
+        Exit Sub
+    End If
+    
+    Dim ret() As String, r As String, hitCounter As Long, selCount As Long
+    Dim li As ListItem
+    Dim s As CScan
+    
+    If chkSearchAll.value = 1 Then
+        For Each li In lv.ListItems
+            Set s = li.Tag
+            r = searchScan(s, txtFilter, hitCounter)
+            If Len(r) Then
+                push ret, vbCrLf & String(75, "-") & vbCrLf & vbCrLf & r
+                selCount = selCount + 1
+                li.Selected = True
+            Else
+                li.Selected = False
+            End If
+        Next
+        Text2 = hitCounter & " hits across " & selCount & " samples" & vbCrLf & vbCrLf & Join(ret, vbCrLf)
+    Else
+        Text2 = searchScan(scan, txtFilter)
+    End If
+    
+End Sub
+
+Private Function searchScan(s As CScan, csvText As String, Optional ByRef hitCounter As Long) As String
+    
+    Dim ret(), tmp() As String, x
+    Dim matches() As String, m
+    Dim hits As Long
+    
+    matches = Split(csvText, ",")
+    tmp = Split(s.GetReport(), vbCrLf)
+    
+    'save file info
+    For i = 0 To 4
+        push ret, tmp(i)
+    Next
+    
+    For Each x In tmp
+        For Each m In matches
+            If Len(m) > 0 Then
+                If InStr(1, x, m, vbTextCompare) > 0 Then
+                   push ret, x
+                   hits = hits + 1
+                   hitCounter = hitCounter + 1
+                   Exit For
+                End If
+            End If
+        Next
+    Next
+    
+    If hits > 0 Then
+        searchScan = Join(ret, vbCrLf)
+    End If
+    
+End Function
+
+
+
+

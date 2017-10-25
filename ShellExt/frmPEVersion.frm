@@ -1,24 +1,28 @@
 VERSION 5.00
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
 Begin VB.Form frmPEVersion 
    Caption         =   "PE Header Version Requirements"
-   ClientHeight    =   2385
+   ClientHeight    =   3105
    ClientLeft      =   60
    ClientTop       =   345
-   ClientWidth     =   3765
+   ClientWidth     =   4665
    LinkTopic       =   "Form1"
-   ScaleHeight     =   2385
-   ScaleWidth      =   3765
+   ScaleHeight     =   3105
+   ScaleWidth      =   4665
    StartUpPosition =   2  'CenterScreen
-   Begin VB.CommandButton Command1 
-      Caption         =   "Enable On XP"
-      Height          =   375
-      Left            =   360
-      TabIndex        =   1
-      Top             =   1800
-      Width           =   2895
-   End
-   Begin VB.TextBox Text1 
-      BeginProperty Font 
+   Begin RichTextLib.RichTextBox Text1 
+      Height          =   1545
+      Left            =   90
+      TabIndex        =   3
+      Top             =   585
+      Width           =   3525
+      _ExtentX        =   6218
+      _ExtentY        =   2725
+      _Version        =   393217
+      Enabled         =   -1  'True
+      ScrollBars      =   3
+      TextRTF         =   $"frmPEVersion.frx":0000
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
          Name            =   "Courier"
          Size            =   12
          Charset         =   0
@@ -27,12 +31,37 @@ Begin VB.Form frmPEVersion
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   1575
-      Left            =   120
-      MultiLine       =   -1  'True
+   End
+   Begin VB.Frame Frame1 
+      BorderStyle     =   0  'None
+      Height          =   465
+      Left            =   90
+      TabIndex        =   1
+      Top             =   45
+      Width           =   3525
+      Begin VB.TextBox txtFind 
+         Height          =   285
+         Left            =   450
+         TabIndex        =   2
+         Top             =   45
+         Width           =   2850
+      End
+      Begin VB.Label Label1 
+         Caption         =   "Find: "
+         Height          =   240
+         Left            =   45
+         TabIndex        =   4
+         Top             =   45
+         Width           =   420
+      End
+   End
+   Begin VB.CommandButton Command1 
+      Caption         =   "Enable On XP"
+      Height          =   375
+      Left            =   315
       TabIndex        =   0
-      Top             =   120
-      Width           =   3495
+      Top             =   2205
+      Width           =   2895
    End
 End
 Attribute VB_Name = "frmPEVersion"
@@ -60,6 +89,10 @@ Sub ShowReport(fPath As String, Optional text As String)
     Me.Visible = True
 End Sub
  
+Private Sub txtFind_Change()
+    Me.Caption = ColorText(Text1, txtFind, vbBlue) & " hits"
+End Sub
+
 Private Sub Command1_Click()
     If ResetVersionsBetaTest(LoadedFile) Then
         MsgBox "Ok we generated a test image now named " & fso.FileNameFromPath(LoadedFile) & ".xp", vbInformation
@@ -170,3 +203,5 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
     SaveFormSizeAnPosition Me
 End Sub
+
+
