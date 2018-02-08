@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "richtx32.ocx"
 Begin VB.Form frmFileHash 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "File Hash"
@@ -73,8 +73,9 @@ Begin VB.Form frmFileHash
       _ExtentX        =   10186
       _ExtentY        =   1931
       _Version        =   393217
-      BackColor       =   -2147483638
+      BackColor       =   -2147483633
       BorderStyle     =   0
+      Enabled         =   -1  'True
       Appearance      =   0
       TextRTF         =   $"frmFileHash.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -99,7 +100,7 @@ Begin VB.Form frmFileHash
          Caption         =   "File Properties"
       End
       Begin VB.Menu mnuOffsetCalc 
-         Caption         =   "Offset Calculator"
+         Caption         =   "Offset Calculator (32bit)"
       End
       Begin VB.Menu mnuPEVerInfo 
          Caption         =   "PE Version Info"
@@ -179,6 +180,25 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuCorFlags 
          Caption         =   ".NET Force 32Bit"
       End
+      Begin VB.Menu mnuDllChar 
+         Caption         =   "Dll Characteristics"
+         Begin VB.Menu mnuDllCharAction 
+            Caption         =   "Remove DYNAMIC_BASE flag (ASLR)"
+            Index           =   0
+         End
+         Begin VB.Menu mnuDllCharAction 
+            Caption         =   "Remove NX_COMPAT flag (DEP)"
+            Index           =   1
+         End
+         Begin VB.Menu mnuDllCharAction 
+            Caption         =   "Remove FORCE_INTEGRITY flag (check sig)"
+            Index           =   2
+         End
+         Begin VB.Menu mnuDllCharAction 
+            Caption         =   "About"
+            Index           =   3
+         End
+      End
       Begin VB.Menu mnuSearchFileName 
          Caption         =   "Google File Name"
       End
@@ -241,6 +261,68 @@ Enum opts
     oImpHash
 End Enum
 
+Private Sub mnuDllCharAction_Click(index As Integer)
+    
+    '0 = remove aslr -d, 1 remove dep -n, 2 remove sigcheck -f, 3 about
+    
+    Dim exe As String
+    Dim f As String
+    Dim opt As String
+    Dim author As String
+    Dim newFile As Boolean
+    author = "setdllcharacteristics.exe\nAuthor: Didier Stevens\n" & _
+             "Site: http://didierstevens.com\n" & _
+             "Source: public domain, no Copyright, Use at your own risk\n\n"
+             
+    author = Replace(author, "\n", vbCrLf)
+              
+    opt = Array("-d", "-n", "-f", "")(index)
+    
+    On Error Resume Next
+    
+    exe = App.path & "\setdllcharacteristics.exe"
+    If Not fso.FileExists(exe) Then exe = fso.GetParentFolder(App.path) & "\setdllcharacteristics.exe"
+    If Not fso.FileExists(exe) Then
+        MsgBox "setdllcharacteristics.exe not found? " & exe
+        Exit Sub
+    End If
+    
+    If fso.GetExtension(LoadedFile) = ".dllmod" Or index = 3 Then 'or about read only..
+        f = LoadedFile
+    Else
+        f = fso.GetParentFolder(LoadedFile) & "\" & fso.GetBaseName(LoadedFile) & ".dllmod"
+        If fso.FileExists(f) Then Kill f
+        FileCopy LoadedFile, f
+        newFile = True
+    End If
+    
+    Dim cmd As New CCmdOutput
+    
+    If Not cmd.GetCommandOutput(exe, opt & " """ & f & """") Then
+        opt = "Failed to launch setdllcharacteristics.exe"
+    Else
+        opt = cmd.result
+    End If
+    
+    opt = "File: " & f & vbCrLf & vbCrLf & opt
+    If index = 3 Then opt = author & opt
+    
+    If newFile Then
+        opt = opt & vbCrLf & vbCrLf & "Reload as current?"
+        If MsgBox(opt, vbInformation + vbYesNo) = vbYes Then
+            ShowFileStats f
+        End If
+    Else
+        MsgBox opt, vbInformation
+    End If
+    
+    
+    'Shell """" & exe & """" & opt & " """ & f & """"
+    
+    
+    
+End Sub
+
 Private Sub Text1_Click()
     
     Dim marker As String
@@ -253,7 +335,8 @@ Private Sub Text1_Click()
          
          If curWord = "Exports:" Then
             If pe.isLoaded Then
-                frmPEVersion.ShowReport LoadedFile, "Exports: " & marker & c2s(pe.Exports.dumpNames, marker)
+                'output is ready for use with lib.exe /def:in.def /out:out.lib
+                frmPEVersion.ShowReport LoadedFile, "LIBRARY """ & fso.GetBaseName(LoadedFile) & """" & vbCrLf & "EXPORTS " & marker & c2s(pe.Exports.dumpNames, marker)
             End If
          End If
          
@@ -367,6 +450,7 @@ Sub ShowFileStats(fPath As String)
     Dim mySHA As String
     Dim Sections As String
     Dim tmp As String
+    Dim isX64 As Boolean
     
     cmdExports.Visible = False
     cmdRes.Visible = False
@@ -418,7 +502,7 @@ Sub ShowFileStats(fPath As String)
         End If
     End If
     
-    compiled = GetCompileDateOrType(fPath, istype, isPE)
+    compiled = GetCompileDateOrType(fPath, istype, isPE, isX64)
     push ret(), IIf(istype, rpad("FileType: "), rpad("Compiled:")) & compiled
     
     If isPE Then
@@ -428,7 +512,9 @@ Sub ShowFileStats(fPath As String)
                 mnuCorFlags.Enabled = True
             End If
         End If
-                
+                        
+        If InStr(LCase(compiled), "dll") > 0 Then mnuDllChar.Enabled = True
+            
         'If pe.LoadFile(fPath, Sections) Then 'little wasteful to load the pe twice (compile date 1st) but managable..
         '    If Len(Sections) > 0 Then push ret(), "Sections: " & Sections
         'End If
@@ -484,7 +570,12 @@ Sub ShowFileStats(fPath As String)
     End If
         
     mnuFileProps.Enabled = isPE
+    
     mnuOffsetCalc.Enabled = isPE
+    If mnuOffsetCalc.Enabled Then
+        If isX64 Then mnuOffsetCalc.Enabled = False
+    End If
+    
     mnuPEVerInfo.Enabled = isPE
      
     Text1 = Join(ret, vbCrLf)
@@ -565,6 +656,7 @@ Private Sub Form_Load()
     Me.Icon = myIcon
     vt.TimerObj = Timer1
     mnuCorFlags.Enabled = False
+    mnuDllChar.Enabled = False
     
     Dim ext As String
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
@@ -692,7 +784,13 @@ Private Sub mnuOffsetCalc_Click()
     On Error Resume Next
     Dim pe As New CPEEditor
     If pe.LoadFile(LoadedFile) Then
-        frmOffsets.Initilize pe
+        pe.ShowOffsetCalculator
+        'frmOffsets.Initilize pe
+    Else
+        MsgBox "Failed to load pe file: " & pe.errMessage
+    End If
+    If Err.Number <> 0 Then
+        MsgBox "Error: " & Err.Description
     End If
 End Sub
 

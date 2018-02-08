@@ -565,7 +565,7 @@ End Function
 Sub SaveFormSizeAnPosition(f As Form)
     Dim s As String
     If f.WindowState <> 0 Then Exit Sub 'vbnormal
-    s = f.Left & "," & f.Top & "," & f.Width & "," & f.Height
+    s = f.Left & "," & f.top & "," & f.Width & "," & f.Height
     SaveMySetting f.Name & "_pos", s
 End Sub
 
@@ -580,7 +580,7 @@ Sub RestoreFormSizeAnPosition(f As Form)
     
     s = Split(s, ",")
     f.Left = s(0)
-    f.Top = s(1)
+    f.top = s(1)
     f.Width = s(2)
     f.Height = s(3)
     
@@ -617,7 +617,7 @@ Private Function CompiledDate(stamp As Double) As String
 
 End Function
 
-Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Boolean, Optional ByRef out_isPE As Boolean) As String
+Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Boolean, Optional ByRef out_isPE As Boolean, Optional ByRef out_isx64 As Boolean) As String
     On Error GoTo hell
         
         Dim i As Long
@@ -635,6 +635,8 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
   
         OSVersion = Empty 'module level
         out_isType = False
+        out_isx64 = False
+        out_isPE = False
         
         fs = DisableRedir()
         If Not fso.FileExists(fPath) Then Exit Function
@@ -675,6 +677,7 @@ Function GetCompileDateOrType(fPath As String, Optional ByRef out_isType As Bool
             cli = opt64.DataDirectory(eDATA_DIRECTORY.CLI_Header).VirtualAddress
             If opt64.Subsystem = 1 Then isNative = True
             GetCompileDateOrType = GetCompileDateOrType & " - 64 Bit"
+            out_isx64 = True
         Else
             Get f, , opt
             SetVersions opt

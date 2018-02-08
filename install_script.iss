@@ -21,6 +21,7 @@ Source: ./dependancies\MSINET.OCX; DestDir: {sys}; Flags: uninsneveruninstall re
 Source: ./dependancies\TLBINF32.DLL; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\hexed.ocx; DestDir: {win}; Flags: regserver
 ;Source: ./sc_log\bin\sclog.exe; DestDir: {app}   //carries AV warnings these days...
+Source: setdllcharacteristics.exe; DestDir: {app}
 Source: gdiprocs.exe; DestDir: {app}
 Source: gdiprocs.exe; DestDir: {win}
 Source: FindDll.exe; DestDir: {app}; Flags: ignoreversion
@@ -1097,8 +1098,8 @@ Name: {app}\DiE\db\Text
 Name: {app}\DiE\SDK
 
 [Run]
-Filename: {app}\ShellExt.exe; Description: Install Shell Extensions Now; Flags: postinstall
-Filename: {app}\map_help.chm; StatusMsg: View Readme File; Flags: shellexec postinstall
+Filename: {app}\ShellExt.exe; Parameters: "/install";
+Filename: {app}\map_help.chm; StatusMsg: View Readme File; Flags: shellexec postinstall unchecked
 
 [Icons]
 Name: {group}\FakeDNS; Filename: {app}\fakeDNS.exe; WorkingDir: {app}

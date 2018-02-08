@@ -166,6 +166,8 @@ Const tlb = "dllfile\shell\Type Library Viewer\command"
 Const tlb2 = "ocxfile\shell\Type Library Viewer\command"
 Const tlb3 = "tlbfile\shell\Type Library Viewer\command"
 
+Private autoInstall As Boolean
+
 Function ap() As String
     ap = App.path
     If IsIde() Then ap = fso.GetParentFolder(ap)
@@ -203,7 +205,9 @@ Sub InstallRegKeys()
     If reg.CreateKey(peek) Then
         reg.SetValue peek, "", cmdline_1, REG_SZ
     Else
-        MsgBox "You may not have permission to write to HKCR", vbExclamation
+        If Not autoInstall Then
+            MsgBox "You may not have permission to write to HKCR", vbExclamation
+        End If
         Exit Sub
     End If
     
@@ -243,10 +247,10 @@ Sub InstallRegKeys()
         reg.SetValue tlb3, "", cmdline_8, REG_SZ
     End If
     
-    MsgBox "Entries Added", vbInformation
+    If Not autoInstall Then MsgBox "Entries Added", vbInformation
     End
     
-hell: MsgBox "Error adding keys: " & Err.Description
+hell: If Not autoInstall Then MsgBox "Error adding keys: " & Err.Description
 
 End Sub
 
@@ -420,10 +424,14 @@ Private Sub Form_Load()
         If VBA.Right(cmd, 5) = "/hsch" Then mode = 7
         If VBA.Right(cmd, 5) = "/hexv" Then mode = 8 'if /base is supplied it must be before /hexv
         
-        If VBA.Right(cmd, 8) = "/install" Then mode = 5 'required for Vista run elevated mode
+        If VBA.Right(cmd, 8) = "/install" Then
+            mode = 5 'required for Vista run elevated mode
+            autoInstall = True
+        End If
+        
         If VBA.Right(cmd, 7) = "/remove" Then mode = 6
         
-        cmd = Trim(Mid(cmd, 1, Len(cmd) - 5)) '<-- ** this is why those with path args are 5 chars long **
+        cmd = trim(Mid(cmd, 1, Len(cmd) - 5)) '<-- ** this is why those with path args are 5 chars long **
         
         If mode = 5 Or mode = 6 Then
             If IsVistaPlus() And Not IsProcessElevated() Then

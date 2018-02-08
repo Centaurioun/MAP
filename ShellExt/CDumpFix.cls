@@ -32,6 +32,8 @@ Option Explicit
 '         this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 '         Place, Suite 330, Boston, MA 02111-1307 USA
 
+'todo: make x64 compatiable
+
 Private Type IMAGEDOSHEADER
     e_magic As Integer
     e_cblp As Integer

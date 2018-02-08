@@ -3,4 +3,8 @@ shellext.virustotal: do not cache no results found
 strings offsets not x64 safe, offset calc not x64 aware..
 
 pe rich header?
+sppe2 occasional error reading imports (probably x64 binary related)
+dumpfix make x64 compatiable
+
+note: if using scripted installer use /VERYSILENT /SUPPRESSMSGBOXES
 
