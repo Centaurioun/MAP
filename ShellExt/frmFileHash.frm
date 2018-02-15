@@ -75,7 +75,6 @@ Begin VB.Form frmFileHash
       _Version        =   393217
       BackColor       =   -2147483633
       BorderStyle     =   0
-      Enabled         =   -1  'True
       Appearance      =   0
       TextRTF         =   $"frmFileHash.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -100,7 +99,7 @@ Begin VB.Form frmFileHash
          Caption         =   "File Properties"
       End
       Begin VB.Menu mnuOffsetCalc 
-         Caption         =   "Offset Calculator (32bit)"
+         Caption         =   "Offset Calculator (32/64bit)"
       End
       Begin VB.Menu mnuPEVerInfo 
          Caption         =   "PE Version Info"
@@ -183,19 +182,19 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuDllChar 
          Caption         =   "Dll Characteristics"
          Begin VB.Menu mnuDllCharAction 
-            Caption         =   "Remove DYNAMIC_BASE flag (ASLR)"
+            Caption         =   "Show Current"
             Index           =   0
          End
          Begin VB.Menu mnuDllCharAction 
-            Caption         =   "Remove NX_COMPAT flag (DEP)"
+            Caption         =   "Remove DYNAMIC_BASE flag (ASLR)"
             Index           =   1
          End
          Begin VB.Menu mnuDllCharAction 
-            Caption         =   "Remove FORCE_INTEGRITY flag (check sig)"
+            Caption         =   "Remove NX_COMPAT flag (DEP)"
             Index           =   2
          End
          Begin VB.Menu mnuDllCharAction 
-            Caption         =   "About"
+            Caption         =   "Remove FORCE_INTEGRITY flag (check sig)"
             Index           =   3
          End
       End
@@ -220,6 +219,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+'updated to sppe3 should now all be x64 safe
 
 'note: diescan wont work on xpsp0 because of msvcr100.dll dependancies, known ok on xpsp3
 
@@ -263,20 +263,21 @@ End Enum
 
 Private Sub mnuDllCharAction_Click(index As Integer)
     
-    '0 = remove aslr -d, 1 remove dep -n, 2 remove sigcheck -f, 3 about
+    '0 show current, 1 remove aslr -d, 2 remove dep -n, 3 remove sigcheck -f,
     
     Dim exe As String
     Dim f As String
     Dim opt As String
     Dim author As String
     Dim newFile As Boolean
+    
     author = "setdllcharacteristics.exe\nAuthor: Didier Stevens\n" & _
              "Site: http://didierstevens.com\n" & _
              "Source: public domain, no Copyright, Use at your own risk\n\n"
              
     author = Replace(author, "\n", vbCrLf)
               
-    opt = Array("-d", "-n", "-f", "")(index)
+    opt = Array("", "-d", "-n", "-f")(index)
     
     On Error Resume Next
     
@@ -287,7 +288,7 @@ Private Sub mnuDllCharAction_Click(index As Integer)
         Exit Sub
     End If
     
-    If fso.GetExtension(LoadedFile) = ".dllmod" Or index = 3 Then 'or about read only..
+    If fso.GetExtension(LoadedFile) = ".dllmod" Or index = 0 Then 'or about read only..
         f = LoadedFile
     Else
         f = fso.GetParentFolder(LoadedFile) & "\" & fso.GetBaseName(LoadedFile) & ".dllmod"
@@ -305,7 +306,7 @@ Private Sub mnuDllCharAction_Click(index As Integer)
     End If
     
     opt = "File: " & f & vbCrLf & vbCrLf & opt
-    If index = 3 Then opt = author & opt
+    If index = 0 Then opt = author & opt
     
     If newFile Then
         opt = opt & vbCrLf & vbCrLf & "Reload as current?"
@@ -513,7 +514,7 @@ Sub ShowFileStats(fPath As String)
             End If
         End If
                         
-        If InStr(LCase(compiled), "dll") > 0 Then mnuDllChar.Enabled = True
+        'If InStr(LCase(compiled), "dll") > 0 Then  mnuDllChar.Enabled = True
             
         'If pe.LoadFile(fPath, Sections) Then 'little wasteful to load the pe twice (compile date 1st) but managable..
         '    If Len(Sections) > 0 Then push ret(), "Sections: " & Sections
@@ -570,11 +571,10 @@ Sub ShowFileStats(fPath As String)
     End If
         
     mnuFileProps.Enabled = isPE
-    
     mnuOffsetCalc.Enabled = isPE
-    If mnuOffsetCalc.Enabled Then
-        If isX64 Then mnuOffsetCalc.Enabled = False
-    End If
+    'If mnuOffsetCalc.Enabled Then
+    '    If isX64 Then mnuOffsetCalc.Enabled = False
+    'End If
     
     mnuPEVerInfo.Enabled = isPE
      
@@ -585,9 +585,9 @@ Sub ShowFileStats(fPath As String)
     Me.FontSize = Text1.Font.size
     Text1.Height = TextHeight(Text1.text) + 200
     Text1.Width = TextWidth(Text1.text) + 200
-    Me.Height = Text1.top + Text1.Height + fraLower.Height + 600
+    Me.Height = Text1.top + Text1.Height + fraLower.Height + 700
     Me.Width = Text1.Width + Text1.Left + 400
-    fraLower.top = Me.Height - fraLower.Height - 650
+    fraLower.top = Me.Height - fraLower.Height - 750
     
     If ShowIcon(fPath, pictIcon.hDC) Then
         'Me.Width = Me.Width + pictIcon.Width '+ 50
@@ -656,7 +656,7 @@ Private Sub Form_Load()
     Me.Icon = myIcon
     vt.TimerObj = Timer1
     mnuCorFlags.Enabled = False
-    mnuDllChar.Enabled = False
+    'mnuDllChar.Enabled = False
     
     Dim ext As String
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"

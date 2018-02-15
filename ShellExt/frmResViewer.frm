@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Object = "{9A143468-B450-48DD-930D-925078198E4D}#1.1#0"; "hexed.ocx"
 Begin VB.Form frmResViewer 
    Caption         =   "Resource Viewer"
@@ -88,6 +88,8 @@ Sub ShowResources(pee As CPEEditor)
         Set li.Tag = r
         li.SubItems(1) = r.path
     Next
+    
+    If lv.ListItems.Count > 0 Then lv_ItemClick lv.ListItems(1)
     
     Me.Show
     SetWindowTopMost Me

@@ -11,7 +11,8 @@ OutputDir=./
 
 [Files]
 Source: ./dependancies\vbDevKit.dll; DestDir: {win}; Flags: regserver
-Source: ./dependancies\sppe2.dll; DestDir: {win}; Flags: regserver
+Source: ./dependancies\sppe3.dll; DestDir: {win}; Flags: regserver
+Source: ./dependancies\UTypes.dll; DestDir: {win};
 Source: ./dependancies\spSubclass2.dll; DestDir: {win}; Flags: regserver
 Source: ./dependancies\libVT.dll; DestDir: {win}; Flags: regserver
 Source: ./dependancies\MSWINSCK.OCX; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder

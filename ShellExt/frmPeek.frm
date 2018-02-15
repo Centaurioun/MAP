@@ -1,6 +1,6 @@
 VERSION 5.00
-Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "richtx32.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmStrings 
    Caption         =   "Strings"
    ClientHeight    =   5340
@@ -126,7 +126,6 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
-      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -242,6 +241,8 @@ Attribute VB_Exposed = False
 '         this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 '         Place, Suite 330, Boston, MA 02111-1307 USA
 
+Option Explicit
+
 Dim sSearch
 Dim lastFind As Long
 Dim lastSize As Long
@@ -267,7 +268,7 @@ Option Compare Binary
 
 Sub DisplayList(Data As String)
     
-    rtf.Text = Data
+    rtf.text = Data
     Me.Show 1
     
 End Sub
@@ -306,7 +307,7 @@ Private Sub cmdFindAll_Click()
     Dim tmp, x, ret(), i, f As String
      
     If Len(Text1) = 0 Then Exit Sub
-    tmp = Split(rtf.Text, vbCrLf)
+    tmp = Split(rtf.text, vbCrLf)
     
     pb.value = 0
     For Each x In tmp
@@ -357,11 +358,11 @@ Private Sub Command1_Click()
     If sSearch <> Text1 Then
         sSearch = Text1
         lastFind = 0
-        lastFind = rtf.Find(sSearch)
+        lastFind = rtf.find(sSearch)
         lastFind = lastFind + 1
-        Me.Caption = "Search for: " & Text1 & " - " & occuranceCount(rtf.Text, Text1) & " hits"
+        Me.Caption = "Search for: " & Text1 & " - " & occuranceCount(rtf.text, Text1) & " hits"
     Else
-        lastFind = rtf.Find(sSearch, lastFind)
+        lastFind = rtf.find(sSearch, lastFind)
         lastFind = lastFind + 1
     End If
     
@@ -381,7 +382,7 @@ Public Sub AutoSave()
     def = fso.GetBaseName(curFile)
     'If Len(def) > 12 Then def = VBA.Left(def, 8)
     f = pf & "\str_" & def & ".txt"
-    fso.WriteFile f, rtf.Text
+    fso.WriteFile f, rtf.text
 End Sub
 
 Private Sub Command3_Click()
@@ -395,7 +396,7 @@ Private Sub Command3_Click()
     def = "str_" & def & ".txt"
     f = dlg.SaveDialog(textFiles, pf, "Save Report as", , Me.hwnd, def)
     If Len(f) = 0 Then Exit Sub
-    fso.WriteFile f, rtf.Text
+    fso.WriteFile f, rtf.text
 End Sub
 
 Private Sub Form_Load()
@@ -431,7 +432,7 @@ End Sub
 
 Private Sub Form_Resize()
     On Error Resume Next
-    rtf.Move 100, rtf.Top, Me.Width - 300, Me.Height - rtf.Top - 400
+    rtf.Move 100, rtf.top, Me.Width - 300, Me.Height - rtf.top - 400
     pb.Width = rtf.Width
 End Sub
  
@@ -474,7 +475,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     
     If running Then
         abort = True
-        tmrReRun.enabled = True 'relaunch in 200ms
+        tmrReRun.Enabled = True 'relaunch in 200ms
         RevertRedir fs
         Exit Sub
     End If
@@ -508,7 +509,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     Loop
     
     lines = UBound(ret)
-    rtf.Text = Join(ret, vbCrLf)
+    rtf.text = Join(ret, vbCrLf)
     
     Erase ret
     
@@ -545,7 +546,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     lines = lines + UBound(ret)
     LockWindowUpdate rtf.hwnd 'try to make it not jump when we add more...
     topLine = TopLineIndex(rtf)
-    rtf.Text = rtf.Text & vbCrLf & vbCrLf & Join(ret, vbCrLf)
+    rtf.text = rtf.text & vbCrLf & vbCrLf & Join(ret, vbCrLf)
     ScrollToLine rtf, topLine
     LockWindowUpdate 0
     
@@ -600,16 +601,16 @@ End Sub
 
 'todo: this is not x64 safe..
 Function AddResult(m As match, offset As Long)
-    Dim x As Long, xx As Double, sect As String, o As String
+    Dim x As Long, xx, sect As String, o As String
     
     If chkShowOffsets.value = 1 Then
         x = m.FirstIndex + offset - 1
         If optVa.value And pe.isLoaded = True Then
-            xx = pe.OffsetToVA(x, sect)
-            If xx = 0 Then
+            xx = pe.OffsetToVA(x, sect).toString()
+            If xx = "0" Then
                 o = pad(x) & "  "
             Else
-                o = sect & ":" & pad(xx) & "  "
+                o = sect & ":" & xx & "  "
             End If
         Else
             o = pad(x) & "  "
@@ -699,7 +700,7 @@ Function toManyRepeats(ByVal s As String) As Boolean
 
     Dim os As String
     Dim hits As Long
-    Dim pcent
+    Dim pcent, i As Long, sl As Long, fl As Long
     
     os = s 'for debugging sake
     
@@ -733,7 +734,7 @@ Function toManySpecialChars(ByVal s) As Boolean
     'Const c = "/?.-_=+$@!*()#%~`^&|{}[]:;'""<>\,]"
     Const c = "?-_=+$@!*()#~`^&|{}[]:;'""<>,]" 'javascript fragments will trigger this...
     
-    Dim sl As Long
+    Dim sl As Long, i As Long
     Dim fl As Long
     Dim hits As Long
     Dim pcent As Long
@@ -760,7 +761,7 @@ End Function
 
 Function toManyNumbers(ByVal s) As Boolean
     
-    Dim sl As Long
+    Dim sl As Long, i As Long
     Dim fl As Long
     Dim hits As Long
     Dim pcent As Long
@@ -796,7 +797,7 @@ Private Sub Label3_Click()
     End If
 End Sub
 
-Private Sub lblMore_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub lblMore_MouseUp(Button As Integer, Shift As Integer, x As Single, Y As Single)
    PopupMenu mnuMore
 End Sub
 
@@ -819,7 +820,7 @@ Private Sub mnuDelphiFIlter_Click()
     On Error Resume Next
     
     Dim f As String, filt() As String
-    Dim txt() As String, i, removed
+    Dim txt() As String, i, removed, tmp
     
     f = App.path & IIf(IsIde(), "\..\", "\") & "delphi_filter.txt"
     
@@ -829,14 +830,14 @@ Private Sub mnuDelphiFIlter_Click()
     End If
     
     filt = Split(fso.ReadFile(f), vbCrLf)
-    txt = Split(rtf.Text, vbCrLf)
+    txt = Split(rtf.text, vbCrLf)
     
     Me.Caption = "Filter contains: " & UBound(filt)
     pb.max = 100
     pb.value = 0
     i = 0
     
-    tmp = rtf.Text
+    tmp = rtf.text
     
     For i = 0 To UBound(filt)
         tmp = Replace(tmp, filt(i), "-[dtd]-")
@@ -870,7 +871,7 @@ Private Sub mnuDelphiFIlter_Click()
     Me.Caption = UBound(filt) & " results shown  (" & removed & " removed by Delphi Filter)"
     pb.value = 0
     
-    rtf.Text = Join(filt, vbCrLf)
+    rtf.text = Join(filt, vbCrLf)
     
 End Sub
 
@@ -889,7 +890,7 @@ Private Sub mnuStringDiff_Click()
     f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hwnd)
     If Len(f2) = 0 Then Exit Sub
     
-    c1.fromArray Split(rtf.Text, vbCrLf), , True, True
+    c1.fromArray Split(rtf.text, vbCrLf), , True, True
     c2.fromTextFile f2, , True
     
     Set dif1 = c1.diff(c2)
@@ -922,7 +923,7 @@ Private Sub mnuStringMatch_Click()
     f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hwnd)
     If Len(f2) = 0 Then Exit Sub
     
-    c1.fromArray Split(rtf.Text, vbCrLf), , True, True
+    c1.fromArray Split(rtf.text, vbCrLf), , True, True
     c2.fromTextFile f2, , True
     
     Set matches = c1.findMatches(c2)
@@ -948,6 +949,6 @@ Private Sub optVa_Click()
 End Sub
 
 Private Sub tmrReRun_Timer()
-    tmrReRun.enabled = False
+    tmrReRun.Enabled = False
     ParseFile curFile
 End Sub
