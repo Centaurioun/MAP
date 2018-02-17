@@ -14,6 +14,30 @@ Begin VB.Form frmFileHash
    ScaleWidth      =   6270
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
+   Begin VB.Frame fraLower 
+      BorderStyle     =   0  'None
+      Height          =   435
+      Left            =   0
+      TabIndex        =   0
+      Top             =   1260
+      Width           =   5835
+      Begin VB.CommandButton cmdCopyHash 
+         Caption         =   "Copy Hash"
+         Height          =   345
+         Left            =   3060
+         TabIndex        =   2
+         Top             =   60
+         Width           =   1125
+      End
+      Begin VB.CommandButton cmdCopyAll 
+         Caption         =   "Copy All"
+         Height          =   345
+         Left            =   4500
+         TabIndex        =   1
+         Top             =   60
+         Width           =   1215
+      End
+   End
    Begin VB.Timer Timer2 
       Enabled         =   0   'False
       Interval        =   100
@@ -40,30 +64,6 @@ Begin VB.Form frmFileHash
       Visible         =   0   'False
       Width           =   675
    End
-   Begin VB.Frame fraLower 
-      BorderStyle     =   0  'None
-      Height          =   435
-      Left            =   60
-      TabIndex        =   0
-      Top             =   1260
-      Width           =   5835
-      Begin VB.CommandButton cmdCopyHash 
-         Caption         =   "Copy Hash"
-         Height          =   345
-         Left            =   3060
-         TabIndex        =   2
-         Top             =   0
-         Width           =   1125
-      End
-      Begin VB.CommandButton cmdCopyAll 
-         Caption         =   "Copy All"
-         Height          =   345
-         Left            =   4560
-         TabIndex        =   1
-         Top             =   0
-         Width           =   1215
-      End
-   End
    Begin RichTextLib.RichTextBox Text1 
       Height          =   1095
       Left            =   60
@@ -75,6 +75,7 @@ Begin VB.Form frmFileHash
       _Version        =   393217
       BackColor       =   -2147483633
       BorderStyle     =   0
+      Enabled         =   -1  'True
       Appearance      =   0
       TextRTF         =   $"frmFileHash.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -222,7 +223,7 @@ Dim pe As New CPEEditor
 
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hINst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
-Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Const WM_COMMAND = &H111
@@ -245,6 +246,8 @@ Enum opts
     oDiE
     oImpHash
 End Enum
+
+
 
 
 Private Sub mnuDllChar_Click()
@@ -345,12 +348,12 @@ Private Function isOpt(o As opts) As Boolean
     isOpt = mnuCopyHashMore(o).Checked
 End Function
 
-Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal Y As Long = 0) As Boolean
+Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal X As Long = 0, Optional ByVal Y As Long = 0) As Boolean
     Dim hIcon As Long
     hIcon = ExtractIcon(App.hInstance, fileName, iconIndex)
 
     If hIcon Then
-        DrawIcon hDC, x, Y, hIcon
+        DrawIcon hDC, X, Y, hIcon
         ShowIcon = True
     End If
     
@@ -380,10 +383,7 @@ Sub ShowFileStats(fPath As String)
     Dim tmp As String
     Dim isX64 As Boolean
     Dim a, b
-    
-    'cmdExports.Visible = False
-    'cmdRes.Visible = False
-        
+           
     LoadedFile = fPath
     fs = DisableRedir()
     myMd5 = hash.HashFile(fPath)
@@ -441,9 +441,7 @@ Sub ShowFileStats(fPath As String)
                 mnuCorFlags.Enabled = True
             End If
         End If
-                        
-        'If InStr(LCase(compiled), "dll") > 0 Then  mnuDllChar.Enabled = True
-            
+                                   
         'If pe.LoadFile(fPath, Sections) Then 'little wasteful to load the pe twice (compile date 1st) but managable..
         '    If Len(Sections) > 0 Then push ret(), "Sections: " & Sections
         'End If
@@ -500,22 +498,12 @@ Sub ShowFileStats(fPath As String)
         
     mnuFileProps.Enabled = isPE
     mnuOffsetCalc.Enabled = isPE
-    'If mnuOffsetCalc.Enabled Then
-    '    If isX64 Then mnuOffsetCalc.Enabled = False
-    'End If
-    
     mnuPEVerInfo.Enabled = isPE
      
     Text1 = Join(ret, vbCrLf)
     
     hilite_keywords
-    Me.fontname = Text1.Font.Name
-    Me.FontSize = Text1.Font.size
-    Text1.Height = TextHeight(Text1.text) + 200
-    Text1.Width = TextWidth(Text1.text) + 200
-    Me.Height = Text1.top + Text1.Height + fraLower.Height + 700
-    Me.Width = Text1.Width + Text1.Left + 400
-    fraLower.top = Me.Height - fraLower.Height - 750
+    Call sizeFormToTextBox
     
     If ShowIcon(fPath, pictIcon.hDC) Then
         'Me.Width = Me.Width + pictIcon.Width '+ 50
@@ -523,18 +511,43 @@ Sub ShowFileStats(fPath As String)
         pictIcon.Visible = True
     End If
     
-    Dim minWidth  As Long
-    minWidth = fraLower.Width + fraLower.Left + 300
-    If Me.Width < minWidth Then Me.Width = minWidth
-    
-    Me.Show '1 why was using a modal show? any reason?? made popup menus on subforms not show up..
+    Me.Show
         
 End Sub
 
+Function sizeFormToTextBox()
+    
+    Font = Text1.Font
+    Text1.Height = TextHeight(Text1.text) + 200
+    Text1.Width = TextWidth(Text1.text) + 200
+    
+    If IsIde Then
+        Text1.BackColor = &HC0C0C0
+        fraLower.BackColor = &HA0A0A0
+    End If
+    
+    Me.Height = Text1.top + Text1.Height + fraLower.Height + 700
+    Me.Width = Text1.Width + Text1.Left + 400
+    
+End Function
+
+Private Sub Form_Resize()
+    Dim minWidth  As Long
+    On Error Resume Next
+    fraLower.top = Me.Height - fraLower.Height - 750
+    minWidth = fraLower.Width + 300
+    If Me.Width < minWidth Then
+        Me.Width = minWidth
+    Else
+        fraLower.Left = Me.Width - fraLower.Width - 200
+    End If
+End Sub
+
+
 Function c2a(c As Collection) As Variant()
-    Dim tmp(), x
-    For Each x In c
-        push tmp, x
+    Dim tmp(), X
+    For Each X In c
+        push tmp, X
     Next
     c2a = tmp
 End Function
@@ -586,14 +599,14 @@ Private Sub Form_Load()
     mnuCorFlags.Enabled = False
     'mnuDllChar.Enabled = False
     
-    Dim ext As String, tmp() As String, x, i
+    Dim ext As String, tmp() As String, X, i
     
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
     If fso.FileExists(ext) Then
         ext = fso.ReadFile(ext)
         tmp = Split(ext, vbCrLf)
-        For Each x In tmp
-            AddExternal CStr(x)
+        For Each X In tmp
+            AddExternal CStr(X)
         Next
     End If
     
@@ -928,15 +941,15 @@ End Sub
 'End Sub
 
 
-Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, X As Single, Y As Single)
     Dim z
     On Error Resume Next
     
-    lastX = x
+    lastX = X
     lastY = Y
     
     'this code below is a little processor heavy but what else are we doing...
-    curWord = WordUnderCursor(Text1, x, Y, startPos)
+    curWord = WordUnderCursor(Text1, X, Y, startPos)
     'Debug.Print curWord
     
     For Each z In links

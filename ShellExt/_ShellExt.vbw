@@ -20,4 +20,4 @@ CFont = 22, 22, 802, 642,
 frmSelectFont = 110, 110, 890, 730, C, 88, 88, 868, 708, C
 modFont = 259, 74, 1106, 890, 
 frmResViewer = 44, 44, 849, 664, , 22, 22, 827, 642, C
-frmDllCharacteristics = 198, 198, 841, 731, Z, 110, 110, 753, 643, C
+frmDllCharacteristics = 198, 198, 841, 731, , 110, 110, 753, 643, C

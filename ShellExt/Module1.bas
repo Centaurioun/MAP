@@ -23,6 +23,7 @@ Global dlg As New CCmnDlg 'clsCmnDlg
 Global minStrLen As Long
 Global Const LANG_US = &H409
 Global myIcon As IPictureDisp
+Global abort As Boolean
 
 Public Const IMAGE_NT_OPTIONAL_HDR32_MAGIC = &H10B
 

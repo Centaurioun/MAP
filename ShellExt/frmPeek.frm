@@ -126,6 +126,7 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
+      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -256,7 +257,6 @@ Dim ret() As String
 Dim lines As Long
 Dim formLoaded As Boolean
 Dim filtered() As String
-Dim abort As Boolean
 Dim running As Boolean
 Dim ranHidden As Boolean
 
@@ -426,6 +426,7 @@ Private Sub Form_Unload(Cancel As Integer)
    SaveMySetting "offsests", chkShowOffsets.value
    SaveMySetting "Filter", chkFilter.value
    SaveMySetting "Raw", IIf(optRaw.value, 1, 0)
+   If running Then End
    'SaveMySetting "hiddenstrings", IIf(mnuHiddenStrings.Checked, 1, 0)
    'End
 End Sub

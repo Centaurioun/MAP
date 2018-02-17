@@ -10,18 +10,18 @@ OutputDir=./
 
 
 [Files]
-Source: ./dependancies\vbDevKit.dll; DestDir: {win}; Flags: regserver
-Source: ./dependancies\sppe3.dll; DestDir: {win}; Flags: regserver
+Source: ./dependancies\vbDevKit.dll; DestDir: {win}; Flags: regserver ignoreversion
+Source: ./dependancies\sppe3.dll; DestDir: {win}; Flags: regserver ignoreversion
 Source: ./dependancies\UTypes.dll; DestDir: {win};
-Source: ./dependancies\vbUtypes.dll; DestDir: {win}; Flags: regserver
-Source: ./dependancies\spSubclass2.dll; DestDir: {win}; Flags: regserver
-Source: ./dependancies\libVT.dll; DestDir: {win}; Flags: regserver
+Source: ./dependancies\vbUtypes.dll; DestDir: {win}; Flags: regserver ignoreversion
+Source: ./dependancies\spSubclass2.dll; DestDir: {win}; Flags: regserver ignoreversion
+Source: ./dependancies\libVT.dll; DestDir: {win}; Flags: regserver ignoreversion
 Source: ./dependancies\MSWINSCK.OCX; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\mscomctl.ocx; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\RICHTX32.OCX; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\MSINET.OCX; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\TLBINF32.DLL; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
-Source: ./dependancies\hexed.ocx; DestDir: {win}; Flags: regserver
+Source: ./dependancies\hexed.ocx; DestDir: {win}; Flags: regserver ignoreversion
 ;Source: ./sc_log\bin\sclog.exe; DestDir: {app}   //carries AV warnings these days...
 Source: gdiprocs.exe; DestDir: {app}
 Source: gdiprocs.exe; DestDir: {win}
