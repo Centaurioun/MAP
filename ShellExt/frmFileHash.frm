@@ -181,22 +181,6 @@ Begin VB.Form frmFileHash
       End
       Begin VB.Menu mnuDllChar 
          Caption         =   "Dll Characteristics"
-         Begin VB.Menu mnuDllCharAction 
-            Caption         =   "Show Current"
-            Index           =   0
-         End
-         Begin VB.Menu mnuDllCharAction 
-            Caption         =   "Remove DYNAMIC_BASE flag (ASLR)"
-            Index           =   1
-         End
-         Begin VB.Menu mnuDllCharAction 
-            Caption         =   "Remove NX_COMPAT flag (DEP)"
-            Index           =   2
-         End
-         Begin VB.Menu mnuDllCharAction 
-            Caption         =   "Remove FORCE_INTEGRITY flag (check sig)"
-            Index           =   3
-         End
       End
       Begin VB.Menu mnuSearchFileName 
          Caption         =   "Google File Name"
@@ -219,8 +203,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'updated to sppe3 should now all be x64 safe
+Option Explicit
 
+'updated to sppe3 should now all be x64 safe
 'note: diescan wont work on xpsp0 because of msvcr100.dll dependancies, known ok on xpsp3
 
 Dim myMd5 As String
@@ -261,67 +246,9 @@ Enum opts
     oImpHash
 End Enum
 
-Private Sub mnuDllCharAction_Click(index As Integer)
-    
-    '0 show current, 1 remove aslr -d, 2 remove dep -n, 3 remove sigcheck -f,
-    
-    Dim exe As String
-    Dim f As String
-    Dim opt As String
-    Dim author As String
-    Dim newFile As Boolean
-    
-    author = "setdllcharacteristics.exe\nAuthor: Didier Stevens\n" & _
-             "Site: http://didierstevens.com\n" & _
-             "Source: public domain, no Copyright, Use at your own risk\n\n"
-             
-    author = Replace(author, "\n", vbCrLf)
-              
-    opt = Array("", "-d", "-n", "-f")(index)
-    
-    On Error Resume Next
-    
-    exe = App.path & "\setdllcharacteristics.exe"
-    If Not fso.FileExists(exe) Then exe = fso.GetParentFolder(App.path) & "\setdllcharacteristics.exe"
-    If Not fso.FileExists(exe) Then
-        MsgBox "setdllcharacteristics.exe not found? " & exe
-        Exit Sub
-    End If
-    
-    If fso.GetExtension(LoadedFile) = ".dllmod" Or index = 0 Then 'or about read only..
-        f = LoadedFile
-    Else
-        f = fso.GetParentFolder(LoadedFile) & "\" & fso.GetBaseName(LoadedFile) & ".dllmod"
-        If fso.FileExists(f) Then Kill f
-        FileCopy LoadedFile, f
-        newFile = True
-    End If
-    
-    Dim cmd As New CCmdOutput
-    
-    If Not cmd.GetCommandOutput(exe, opt & " """ & f & """") Then
-        opt = "Failed to launch setdllcharacteristics.exe"
-    Else
-        opt = cmd.result
-    End If
-    
-    opt = "File: " & f & vbCrLf & vbCrLf & opt
-    If index = 0 Then opt = author & opt
-    
-    If newFile Then
-        opt = opt & vbCrLf & vbCrLf & "Reload as current?"
-        If MsgBox(opt, vbInformation + vbYesNo) = vbYes Then
-            ShowFileStats f
-        End If
-    Else
-        MsgBox opt, vbInformation
-    End If
-    
-    
-    'Shell """" & exe & """" & opt & " """ & f & """"
-    
-    
-    
+
+Private Sub mnuDllChar_Click()
+    frmDllCharacteristics.LoadFile LoadedFile
 End Sub
 
 Private Sub Text1_Click()
@@ -363,7 +290,7 @@ Function launchResHack(target As String)
     
     On Error Resume Next
     
-    Dim exe As String
+    Dim exe As String, i As Long, resHackPath
     
     If Not fso.FileExists(target) Then Exit Function
     
@@ -402,7 +329,7 @@ End Function
 
 Function hilite_keywords()
     On Error Resume Next
-    Dim z
+    Dim z, a
     For Each z In links
         a = InStr(1, Text1.text, z)
         If a > 0 Then
@@ -430,7 +357,7 @@ Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal ic
 End Function
 
 Function hasInterestingResources() As Boolean
-    Dim r As CResData
+    Dim r As CResData, i As Long
     For i = 1 To pe.Resources.Entries.Count
         Set r = pe.Resources.Entries(i)
         If InStr(1, r.path, "icon", vbTextCompare) < 1 And InStr(1, r.path, "version", vbTextCompare) < 1 Then
@@ -452,9 +379,10 @@ Sub ShowFileStats(fPath As String)
     Dim Sections As String
     Dim tmp As String
     Dim isX64 As Boolean
+    Dim a, b
     
-    cmdExports.Visible = False
-    cmdRes.Visible = False
+    'cmdExports.Visible = False
+    'cmdRes.Visible = False
         
     LoadedFile = fPath
     fs = DisableRedir()
@@ -522,8 +450,8 @@ Sub ShowFileStats(fPath As String)
         
         If Len(pe.DebugDirectory.pdbPath) > 0 Then push ret(), rpad("PDB: ") & pe.DebugDirectory.pdbPath
             
-        Dim fp As FILEPROPERTIE
-        fp = FileProps.FileInfo(fPath) 'should we include more here? we need a config pane now :(
+        Dim fp As CFileProps
+        Set fp = FileProps.FileInfo(fPath) 'should we include more here? we need a config pane now :(
         If Len(fp.FileVersion) > 0 Then
             push ret(), rpad("Version:") & fp.FileVersion
         End If
@@ -539,7 +467,7 @@ Sub ShowFileStats(fPath As String)
         If hasInterestingResources Then push ret(), "Resources: " & pe.Resources.Entries.Count & " - " & pe.Resources.size & " bytes"
     End If
     
-    If isPE And isOpt(oPEVer) Then push ret(), PEVersionReport(True)
+    If isPE And isOpt(oPEVer) Then push ret(), PEVersionReport(pe, True)
     If pe.isLoaded And isOpt(oImpHash) Then push ret(), "ImpHash:  " & LCase(pe.impHash())
     
     If isOpt(oDiE) Then
@@ -567,7 +495,7 @@ Sub ShowFileStats(fPath As String)
     End If
 
     If isOpt(oFileProps) Then
-       push ret(), vbCrLf & FileProps.QuickInfo(fPath, False)
+       push ret(), vbCrLf & FileProps.FileInfo(fPath).asStr()
     End If
         
     mnuFileProps.Enabled = isPE
@@ -645,7 +573,7 @@ End Sub
 
 Private Sub Form_Load()
     
-    Set subclass = New CSubclass2
+    'Set subclass = New CSubclass2
     pictIcon.BackColor = &H8000000F
     
     mnuVTCache.Checked = GetMySetting("mnuVTCache", True)
@@ -658,7 +586,8 @@ Private Sub Form_Load()
     mnuCorFlags.Enabled = False
     'mnuDllChar.Enabled = False
     
-    Dim ext As String
+    Dim ext As String, tmp() As String, x, i
+    
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
     If fso.FileExists(ext) Then
         ext = fso.ReadFile(ext)
@@ -735,9 +664,9 @@ End Sub
 
 Private Sub mnuFileProps_Click()
     On Error Resume Next
-    Dim fs As Long, f As String
+    Dim fs As Long, f As String, tmp As String
     fs = DisableRedir()
-    tmp = FileProps.QuickInfo(LoadedFile)
+    tmp = FileProps.FileInfo(LoadedFile).asStr()
     RevertRedir fs
     If Len(tmp) = 0 Then Exit Sub
     f = fso.GetFreeFileName(Environ("temp"))
@@ -810,6 +739,7 @@ End Sub
 
 Private Sub mnuStrings_Click()
     On Error Resume Next
+    Dim exe As String
     exe = App.path & IIf(IsIde(), "\..\", "") & "\shellext.exe"
     Shell exe & " """ & LoadedFile & """ /peek"
 End Sub
@@ -849,7 +779,8 @@ End Sub
 
 Sub AddExternal(cmd As String)
      
-    Dim i As Integer
+    Dim i As Integer, tmp() As String
+    
     cmd = trim(cmd)
     If Len(cmd) = 0 Then Exit Sub
     If VBA.Left(cmd, 1) = "#" Then Exit Sub
@@ -932,6 +863,70 @@ End Sub
 '        End If
 '
 'End Sub
+
+'Private Sub mnuDllCharAction_Click(index As Integer)
+'
+'    '0 show current, 1 remove aslr -d, 2 remove dep -n, 3 remove sigcheck -f,
+'
+'    Dim exe As String
+'    Dim f As String
+'    Dim opt As String
+'    Dim author As String
+'    Dim newFile As Boolean
+'
+'    author = "setdllcharacteristics.exe\nAuthor: Didier Stevens\n" & _
+'             "Site: http://didierstevens.com\n" & _
+'             "Source: public domain, no Copyright, Use at your own risk\n\n"
+'
+'    author = Replace(author, "\n", vbCrLf)
+'
+'    opt = Array("", "-d", "-n", "-f")(index)
+'
+'    On Error Resume Next
+'
+'    exe = App.path & "\setdllcharacteristics.exe"
+'    If Not fso.FileExists(exe) Then exe = fso.GetParentFolder(App.path) & "\setdllcharacteristics.exe"
+'    If Not fso.FileExists(exe) Then
+'        MsgBox "setdllcharacteristics.exe not found? " & exe
+'        Exit Sub
+'    End If
+'
+'    If fso.GetExtension(LoadedFile) = ".dllmod" Or index = 0 Then 'or about read only..
+'        f = LoadedFile
+'    Else
+'        f = fso.GetParentFolder(LoadedFile) & "\" & fso.GetBaseName(LoadedFile) & ".dllmod"
+'        If fso.FileExists(f) Then Kill f
+'        FileCopy LoadedFile, f
+'        newFile = True
+'    End If
+'
+'    Dim cmd As New CCmdOutput
+'
+'    If Not cmd.GetCommandOutput(exe, opt & " """ & f & """") Then
+'        opt = "Failed to launch setdllcharacteristics.exe"
+'    Else
+'        opt = cmd.result
+'    End If
+'
+'    opt = "File: " & f & vbCrLf & vbCrLf & opt
+'    If index = 0 Then opt = author & opt
+'
+'    If newFile Then
+'        opt = opt & vbCrLf & vbCrLf & "Reload as current?"
+'        If MsgBox(opt, vbInformation + vbYesNo) = vbYes Then
+'            ShowFileStats f
+'        End If
+'    Else
+'        MsgBox opt, vbInformation
+'    End If
+'
+'
+'    'Shell """" & exe & """" & opt & " """ & f & """"
+'
+'
+'
+'End Sub
+
 
 Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, Y As Single)
     Dim z

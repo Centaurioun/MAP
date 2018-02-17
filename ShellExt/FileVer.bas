@@ -1,4 +1,4 @@
-Attribute VB_Name = "FileProps"
+Attribute VB_Name = "modMisc"
 'License:   GPL
 'Copyright: 2005 iDefense a Verisign Company
 'Site:      http://labs.idefense.com
@@ -28,9 +28,9 @@ Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function SHGetPathFromIDList Lib "shell32" Alias "SHGetPathFromIDListA" (ByVal pidl As Long, ByVal pszPath As String) As Long
 Private Declare Function SHGetSpecialFolderLocation Lib "shell32" (ByVal hWndOwner As Long, ByVal nFolder As Long, pidl As Long) As Long
 Private Declare Sub CoTaskMemFree Lib "ole32" (ByVal pv As Long)
-Private Declare Function GetFileVersionInfo Lib "Version.dll" Alias "GetFileVersionInfoA" (ByVal lptstrFilename As String, ByVal dwhandle As Long, ByVal dwlen As Long, lpData As Any) As Long
-Private Declare Function GetFileVersionInfoSize Lib "Version.dll" Alias "GetFileVersionInfoSizeA" (ByVal lptstrFilename As String, lpdwHandle As Long) As Long
-Private Declare Function VerQueryValue Lib "Version.dll" Alias "VerQueryValueA" (pBlock As Any, ByVal lpSubBlock As String, lplpBuffer As Any, puLen As Long) As Long
+'Private Declare Function GetFileVersionInfo Lib "Version.dll" Alias "GetFileVersionInfoA" (ByVal lptstrFilename As String, ByVal dwhandle As Long, ByVal dwlen As Long, lpData As Any) As Long
+'Private Declare Function GetFileVersionInfoSize Lib "Version.dll" Alias "GetFileVersionInfoSizeA" (ByVal lptstrFilename As String, lpdwHandle As Long) As Long
+'Private Declare Function VerQueryValue Lib "Version.dll" Alias "VerQueryValueA" (pBlock As Any, ByVal lpSubBlock As String, lplpBuffer As Any, puLen As Long) As Long
 Private Declare Function GetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal path As String, ByVal cbBytes As Long) As Long
 Private Declare Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest As Any, ByVal Source As Long, ByVal Length As Long)
 Private Declare Function lstrcpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString1 As String, ByVal lpString2 As Long) As Long
@@ -38,18 +38,6 @@ Private Declare Function FindWindow Lib "user32" Alias "FindWindowA" (ByVal lpCl
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (hpvDest As Any, hpvSource As Any, ByVal cbCopy As Long)
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 
-
-Public Type FILEPROPERTIE
-    CompanyName As String
-    FileDescription As String
-    FileVersion As String
-    InternalName As String
-    LegalCopyright As String
-    OrigionalFileName As String
-    ProductName As String
-    ProductVersion As String
-    LanguageID As String
-End Type
 
 Private Type COPYDATASTRUCT
     dwFlag As Long
@@ -59,34 +47,6 @@ End Type
 
 Private Const WM_COPYDATA = &H4A
 Private Const WM_DISPLAY_TEXT = 3
-
-Private Const LANG_BULGARIAN = &H2
-Private Const LANG_CHINESE = &H4
-Private Const LANG_CROATIAN = &H1A
-Private Const LANG_CZECH = &H5
-Private Const LANG_DANISH = &H6
-Private Const LANG_DUTCH = &H13
-Private Const LANG_ENGLISH = &H9
-Private Const LANG_FINNISH = &HB
-Private Const LANG_FRENCH = &HC
-Private Const LANG_GERMAN = &H7
-Private Const LANG_GREEK = &H8
-Private Const LANG_HUNGARIAN = &HE
-Private Const LANG_ICELANDIC = &HF
-Private Const LANG_ITALIAN = &H10
-Private Const LANG_JAPANESE = &H11
-Private Const LANG_KOREAN = &H12
-Private Const LANG_NEUTRAL = &H0
-Private Const LANG_NORWEGIAN = &H14
-Private Const LANG_POLISH = &H15
-Private Const LANG_PORTUGUESE = &H16
-Private Const LANG_ROMANIAN = &H18
-Private Const LANG_RUSSIAN = &H19
-Private Const LANG_SLOVAK = &H1B
-Private Const LANG_SLOVENIAN = &H24
-Private Const LANG_SPANISH = &HA
-Private Const LANG_SWEDISH = &H1D
-Private Const LANG_TURKISH = &H1F
 
 Private Type sockaddr_in
     sin_family As Integer
@@ -146,57 +106,19 @@ Private Declare Function SetDllDirectory Lib "kernel32" Alias "SetDllDirectoryA"
 'Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function lstrlenA Lib "kernel32" (ByVal lpString As Long) As Long
 
-Private Type debugDir
-    characteristics As Long
-    timeStamp As Long
-    major As Integer
-    min As Integer
-    dbgtype As Long
-    sizeofData As Long
-    adrRawData As Long
-    ptrRawData As Long
-End Type
+Global FileProps As New CFileProperties
 
-'Private Type MungeDbl
-'    Value As Currency
+'Private Type debugDir
+'    Characteristics As Long
+'    timestamp As Long
+'    major As Integer
+'    min As Integer
+'    dbgtype As Long
+'    sizeofData As Long
+'    adrRawData As Long
+'    ptrRawData As Long
 'End Type
-'
-'Private Type Munge2Long
-'    LoValue As Long
-'    HiValue As Long
-'End Type
-'
-'Function x64ToHex(v As Currency) As String
-'    Dim c As MungeDbl
-'    Dim l As Munge2Long
-'    c.Value = v
-'    LSet l = c
-'    If l.HiValue = 0 Then
-'        x64ToHex = Hex(l.LoValue)
-'    Else
-'        x64ToHex = Hex(l.HiValue) & Right("00000000" & Hex(l.LoValue), 8)
-'    End If
-'End Function
-'
-''handles hex strings for 32bit and 64 bit numbers, leading 00's on high part not required, of course they are on lo if there is a high..
-'Function HextoX64(s As String) As Currency
-'    Dim c As MungeDbl
-'    Dim l As Munge2Long
-'
-'    Dim lo As String, hi As String
-'    If Len(s) <= 8 Then
-'        l.LoValue = CLng("&h" & s)
-'    Else
-'        lo = Right(s, 8)
-'        hi = Left(s, Len(s) - 8)
-'        l.LoValue = CLng("&h" & lo)
-'        l.HiValue = CLng("&h" & hi)
-'    End If
-'
-'    LSet c = l
-'    HextoX64 = c.Value
-'
-'End Function
+
 
 'Function LaunchStrings(data As String, Optional isPath As Boolean = False)
 '
@@ -364,142 +286,6 @@ Function HexDump(ByVal str, Optional hexOnly = 0, Optional offset As Long = 0) A
     
 End Function
 
-Function QuickInfo(fileName As String, Optional showIfBlank = True)
-    Dim f As FILEPROPERTIE
-    Dim tmp() As String
-    
-    f = FileInfo(fileName)
-    
-    If Len(f.CompanyName) > 0 Or showIfBlank Then push tmp, "CompanyName      " & f.CompanyName
-    If Len(f.FileDescription) > 0 Or showIfBlank Then push tmp, "FileDescription  " & f.FileDescription
-    If Len(f.FileVersion) > 0 Or showIfBlank Then push tmp, "FileVersion      " & f.FileVersion
-    If Len(f.InternalName) > 0 Or showIfBlank Then push tmp, "InternalName     " & f.InternalName
-    If Len(f.LegalCopyright) > 0 Or showIfBlank Then push tmp, "LegalCopyright   " & f.LegalCopyright
-    If Len(f.OrigionalFileName) > 0 Or showIfBlank Then push tmp, "OriginalFilename " & f.OrigionalFileName
-    If Len(f.ProductName) > 0 Or showIfBlank Then push tmp, "ProductName      " & f.ProductName
-    If Len(f.ProductVersion) > 0 Or showIfBlank Then push tmp, "ProductVersion   " & f.ProductVersion
-                
-    QuickInfo = Join(tmp, vbCrLf)
-
-End Function
-
-Public Function FileInfo(Optional ByVal PathWithFilename As String) As FILEPROPERTIE
-    ' return file-properties of given file  (EXE , DLL , OCX)
-    'http://support.microsoft.com/default.aspx?scid=kb;en-us;160042
-    
-    If Len(PathWithFilename) = 0 Then
-        Exit Function
-    End If
-    
-    Dim lngBufferlen As Long
-    Dim lngDummy As Long
-    Dim lngRc As Long
-    Dim lngVerPointer As Long
-    Dim lngHexNumber As Long
-    Dim bytBuffer() As Byte
-    Dim bytBuff() As Byte
-    Dim strBuffer As String
-    Dim strLangCharset As String
-    Dim strVersionInfo(7) As String
-    Dim strTemp As String
-    Dim intTemp As Integer
-           
-    ReDim bytBuff(500)
-    
-    ' size
-    lngBufferlen = GetFileVersionInfoSize(PathWithFilename, lngDummy)
-    If lngBufferlen > 0 Then
-    
-       ReDim bytBuffer(lngBufferlen)
-       lngRc = GetFileVersionInfo(PathWithFilename, 0&, lngBufferlen, bytBuffer(0))
-       
-       If lngRc <> 0 Then
-          lngRc = VerQueryValue(bytBuffer(0), "\VarFileInfo\Translation", lngVerPointer, lngBufferlen)
-          If lngRc <> 0 Then
-             'lngVerPointer is a pointer to four 4 bytes of Hex number,
-             'first two bytes are language id, and last two bytes are code
-             'page. However, strLangCharset needs a  string of
-             '4 hex digits, the first two characters correspond to the
-             'language id and last two the last two character correspond
-             'to the code page id.
-             MoveMemory bytBuff(0), lngVerPointer, lngBufferlen
-             lngHexNumber = bytBuff(2) + bytBuff(3) * &H100 + bytBuff(0) * &H10000 + bytBuff(1) * &H1000000
-             strLangCharset = Hex(lngHexNumber)
-             'now we change the order of the language id and code page
-             'and convert it into a string representation.
-             'For example, it may look like 040904E4
-             'Or to pull it all apart:
-             '04------        = SUBLANG_ENGLISH_USA
-             '--09----        = LANG_ENGLISH
-             ' ----04E4 = 1252 = Codepage for Windows:Multilingual
-             Do While Len(strLangCharset) < 8
-                 strLangCharset = "0" & strLangCharset
-             Loop
-             
-             If Mid(strLangCharset, 2, 2) = LANG_ENGLISH Then
-               strLangCharset2 = "English (US)"
-             End If
-
-             If Mid(strLangCharset, 2, 2) = LANG_BULGARIAN Then strLangCharset2 = "Bulgarian"
-             If Mid(strLangCharset, 2, 2) = LANG_FRENCH Then strLangCharset2 = "French"
-             If Mid(strLangCharset, 2, 2) = LANG_NEUTRAL Then strLangCharset2 = "Neutral"
-
-             Do While Len(strLangCharset) < 8
-                 strLangCharset = "0" & strLangCharset
-             Loop
-
-             ' assign propertienames
-             strVersionInfo(0) = "CompanyName"
-             strVersionInfo(1) = "FileDescription"
-             strVersionInfo(2) = "FileVersion"
-             strVersionInfo(3) = "InternalName"
-             strVersionInfo(4) = "LegalCopyright"
-             strVersionInfo(5) = "OriginalFileName"
-             strVersionInfo(6) = "ProductName"
-             strVersionInfo(7) = "ProductVersion"
-             
-             Dim n As Long
-             
-             ' loop and get fileproperties
-             For intTemp = 0 To 7
-                strBuffer = String$(800, 0)
-                strTemp = "\StringFileInfo\" & strLangCharset & "\" & strVersionInfo(intTemp)
-                lngRc = VerQueryValue(bytBuffer(0), strTemp, lngVerPointer, lngBufferlen)
-                If lngRc <> 0 Then
-                   ' get and format data
-                   lstrcpy strBuffer, lngVerPointer
-                   n = InStr(strBuffer, Chr(0)) - 1
-                   If n > 0 Then
-                        strBuffer = Mid$(strBuffer, 1, n)
-                        strBuffer = Replace(strBuffer, Chr(0), Empty)
-                        strVersionInfo(intTemp) = trim(strBuffer)
-                   End If
-                 Else
-                   ' property not found
-                   strVersionInfo(intTemp) = ""
-                End If
-             Next intTemp
-             
-          End If
-       End If
-    End If
-    
-    ' assign array to user-defined-type
-    FileInfo.CompanyName = strVersionInfo(0)
-    FileInfo.FileDescription = strVersionInfo(1)
-    FileInfo.FileVersion = strVersionInfo(2)
-    FileInfo.InternalName = strVersionInfo(3)
-    FileInfo.LegalCopyright = strVersionInfo(4)
-    FileInfo.OrigionalFileName = strVersionInfo(5)
-    FileInfo.ProductName = strVersionInfo(6)
-    FileInfo.ProductVersion = strVersionInfo(7)
-    FileInfo.LanguageID = strLangCharset2
-    
-End Function
-
-
-
-
 Private Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
     Dim x As Integer
@@ -509,10 +295,6 @@ Private Sub push(ary, value) 'this modifies parent ary object
     Exit Sub
 init:     ReDim ary(0): ary(0) = value
 End Sub
-
- 
-
-
 
 Private Function AryIsEmpty(ary) As Boolean
   On Error GoTo oops
@@ -701,50 +483,50 @@ Exit Function
 ret0:
 End Function
 
-Function pdbPath(pe As CPEEditor, outRet As String) As Boolean
-    
-    Dim rvaDebug As Long
-    Dim rawDebug As Long
-    Dim f As Long
-    Dim dd As debugDir
-    Dim bb() As Byte
-    Dim tmp As String
-    Dim a As Long, b As Long
-    
-    On Error GoTo hell
-    outRet = Empty
-    If Not pe.isLoaded Then Exit Function
-    
-    rvaDebug = pe.OptionalHeader.ddVirtualAddress(Debug_Data)
-    If rvaDebug = 0 Then Exit Function
-    
-    rawDebug = pe.RvaToOffset(rvaDebug)
-    If rawDebug = 0 Then Exit Function
-    
-    f = FreeFile
-    Open pe.LoadedFile For Binary As f
-    Get f, rawDebug + 1, dd
-    
-    ReDim bb(dd.sizeofData)
-    Get f, dd.ptrRawData + 1, bb()
-    Close f
-    f = 0
-    
-    tmp = StrConv(bb, vbUnicode, LANG_US)
-    a = InStr(1, tmp, ".pdb", vbTextCompare)
-    If a < 1 Then Exit Function
-    a = a + 4
-    
-    b = InStrRev(tmp, ":\", a)
-    If b < 1 Then Exit Function
-    b = b - 1
-    
-    outRet = Mid(tmp, b, a - b)
-    pdbPath = True
-    
-    Exit Function
-hell:
-    On Error Resume Next
-    If f <> 0 Then Close f
-    
-End Function
+'Function pdbPath(pe As CPEEditor, outRet As String) As Boolean
+'
+'    Dim rvaDebug As Long
+'    Dim rawDebug As Long
+'    Dim f As Long
+'    Dim dd As debugDir
+'    Dim bb() As Byte
+'    Dim tmp As String
+'    Dim a As Long, b As Long
+'
+'    On Error GoTo hell
+'    outRet = Empty
+'    If Not pe.isLoaded Then Exit Function
+'
+'    rvaDebug = pe.OptionalHeader.ddVirtualAddress(Debug_Data)
+'    If rvaDebug = 0 Then Exit Function
+'
+'    rawDebug = pe.RvaToOffset(rvaDebug)
+'    If rawDebug = 0 Then Exit Function
+'
+'    f = FreeFile
+'    Open pe.LoadedFile For Binary As f
+'    Get f, rawDebug + 1, dd
+'
+'    ReDim bb(dd.sizeofData)
+'    Get f, dd.ptrRawData + 1, bb()
+'    Close f
+'    f = 0
+'
+'    tmp = StrConv(bb, vbUnicode, LANG_US)
+'    a = InStr(1, tmp, ".pdb", vbTextCompare)
+'    If a < 1 Then Exit Function
+'    a = a + 4
+'
+'    b = InStrRev(tmp, ":\", a)
+'    If b < 1 Then Exit Function
+'    b = b - 1
+'
+'    outRet = Mid(tmp, b, a - b)
+'    pdbPath = True
+'
+'    Exit Function
+'hell:
+'    On Error Resume Next
+'    If f <> 0 Then Close f
+'
+'End Function

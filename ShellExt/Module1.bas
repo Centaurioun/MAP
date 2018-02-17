@@ -299,7 +299,7 @@ Public LinkerVersion As String
 Public ImageVersion As String
 Public SubSysVersion As String
 
-Function PEVersionReport(Optional compact As Boolean = False) As String
+Function PEVersionReport(Optional pe As CPEEditor, Optional compact As Boolean = False) As String
     Dim tmp() As String
     
     If OSVersion = Empty Then Exit Function 'marker that its not set...
@@ -307,11 +307,23 @@ Function PEVersionReport(Optional compact As Boolean = False) As String
     If compact Then
         PEVersionReport = "PEVersion:" & "OS:" & OSVersion & " Link:" & LinkerVersion & _
                                          " Img:" & ImageVersion & " SubSys:" & SubSysVersion
+        
+        If Not pe Is Nothing Then
+            If pe.OptionalHeader.DEP Then PEVersionReport = "DEP " & PEVersionReport
+            If pe.OptionalHeader.FORCE_INTEGRITY Then PEVersionReport = "SIGCHECK " & PEVersionReport
+            If pe.OptionalHeader.ASLR Then PEVersionReport = "ASLR " & PEVersionReport
+        End If
+        
     Else
         push tmp, rpad("OSVersion: ", 16) & OSVersion
         push tmp, rpad("LinkerVersion: ", 16) & LinkerVersion
         push tmp, rpad("ImageVersion: ", 16) & ImageVersion
         push tmp, rpad("SubSysVersion: ", 16) & SubSysVersion
+        If Not pe Is Nothing Then
+            push tmp, rpad("ASLR: ", 16) & pe.OptionalHeader.ASLR
+            push tmp, rpad("DEP: ", 16) & pe.OptionalHeader.DEP
+            push tmp, rpad("ForceIntegrity: ", 16) & pe.OptionalHeader.FORCE_INTEGRITY
+        End If
         PEVersionReport = Join(tmp, vbCrLf)
     End If
     
@@ -787,6 +799,8 @@ Private Function DetectFileType(buf As String, fname As String) As String
         DetectFileType = "RAR File"
     ElseIf VBA.Left(buf, 5) = "{\rtf" Then
         DetectFileType = "RTF Document"
+    ElseIf VBA.Left(buf, 4) = Chr(&H7F) & "ELF" Then
+        DetectFileType = "ELF File"
     Else
         dot = InStrRev(fname, ".")
         If dot > 0 And dot <> Len(fname) Then
