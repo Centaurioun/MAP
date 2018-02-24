@@ -295,6 +295,23 @@ Public Enum EShellShowConstants
         essSW_SHOWDEFAULT = 10
 End Enum
 
+'min build Windows XP
+Private Declare Sub GetNativeSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
+
+Private Type SYSTEM_INFO
+    wProcessorArchitecture As Integer
+    wReserved As Integer
+    dwPageSize As Long
+    lpMinimumApplicationAddress As Long
+    lpMaximumApplicationAddress As Long
+    dwActiveProcessorMask As Long
+    dwNumberOrfProcessors As Long
+    dwProcessorType As Long
+    dwAllocationGranularity As Long
+    wProcessorLevel As Integer
+    wProcessorRevision As Integer
+End Type
+
 Public OSVersion As String
 Public LinkerVersion As String
 Public ImageVersion As String
@@ -385,6 +402,26 @@ Public Function IsVistaPlus() As Boolean
     If GetVersionEx(OSVersion) = 0 Then Exit Function
     If OSVersion.dwPlatformId <> VER_PLATFORM_WIN32_NT Or OSVersion.dwMajorVersion < 6 Then Exit Function
     IsVistaPlus = True
+End Function
+
+Function Is64BitProcessor() As Boolean
+
+    Const PROCESSOR_ARCHITECTURE_AMD64 As Integer = 9
+    Const PROCESSOR_ARCHITECTURE_IA64 As Integer = 6
+    Dim si As SYSTEM_INFO
+    
+    Dim lpfn As Long
+
+    lpfn = GetProcAddress(GetModuleHandle("kernel32"), "GetNativeSystemInfo")
+
+    If lpfn = 0 Then Exit Function
+      
+    GetNativeSystemInfo si
+   
+    Is64BitProcessor = (si.wProcessorArchitecture = PROCESSOR_ARCHITECTURE_AMD64 _
+        Or _
+            si.wProcessorArchitecture = PROCESSOR_ARCHITECTURE_IA64)
+            
 End Function
 
 Public Function IsUserAnAdministrator() As Boolean
@@ -535,9 +572,9 @@ Function DisableRedir() As Long
     
 End Function
 
-Function RevertRedir(old As Long) As Boolean 'really only reverts firstHandle when called...
+Function RevertRedir(Optional old As Long) As Boolean 'really only reverts firstHandle when called...
     
-    If old = 0 Then Exit Function
+    If old = 0 Then old = firstHandle
     If old <> firstHandle Then Exit Function
     
     If GetProcAddress(GetModuleHandle("kernel32.dll"), "Wow64RevertWow64FsRedirection") = 0 Then

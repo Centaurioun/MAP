@@ -446,19 +446,30 @@ End Sub
 
 
 Sub ParseFile(fPath As String, Optional force As Boolean = False)
-    'On Error GoTo hell
+    On Error GoTo hell
     
     Dim f As Long, pointer As Long
     Dim buf()  As Byte
     Dim x As Long
     Dim fs As Long
+    Dim tmp As String
     
     If Not formLoaded Then Form_Load
         
     Erase ret
     Erase filtered
     
-    f = FreeFile
+    If Is64BitProcessor() And InStr(1, fPath, Environ("windir") & "\System32", vbTextCompare) > 0 Then
+        'file system redirection is stupid, pe.loadfile dll dependancies fail to load with redir off..tried everything..
+        tmp = Environ("temp") & "\" & fso.FileNameFromPath(fPath)
+        If fso.FileExists(tmp) Then fso.DeleteFile tmp
+        fs = DisableRedir()
+        FileCopy fPath, tmp
+        RevertRedir
+        fPath = tmp
+    End If
+    
+    'MsgBox fPath & " " & fso.FileExists(fPath)
     curFile = fPath
     
     If Not IsNumeric(txtMinLen) Then txtMinLen = 4
@@ -466,7 +477,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     'If Not force Then If lastSize = txtMinLen Then Exit Sub
     lastSize = CLng(txtMinLen)
     
-    fs = DisableRedir()
+    'fs = DisableRedir()
     If Not fso.FileExists(fPath) Then
         MsgBox "File not found: " & fPath, vbExclamation
         GoTo done
@@ -477,7 +488,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     If running Then
         abort = True
         tmrReRun.Enabled = True 'relaunch in 200ms
-        RevertRedir fs
+        'RevertRedir fs
         Exit Sub
     End If
     
@@ -494,6 +505,7 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     push ret, "Size: " & FileLen(fPath) & vbCrLf
     push ret, "Ascii Strings:" & vbCrLf & String(75, "-")
     
+    f = FreeFile
     ReDim buf(9000)
     Open fPath For Binary Access Read As f
     
@@ -561,15 +573,15 @@ Sub ParseFile(fPath As String, Optional force As Boolean = False)
     
     Me.Caption = Me.Caption & "  -  " & fPath
     running = False
-    RevertRedir fs
+    'RevertRedir fs
     
     
 Exit Sub
 hell:
-      MsgBox "Error getting strings: " & Err.Description, vbExclamation
+      MsgBox "Error getting strings: " & Err.Description & "Line: " & Erl, vbExclamation
       Close f
 done:
-      RevertRedir fs
+      'RevertRedir fs
       'Unload Me
       End
       
