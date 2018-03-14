@@ -357,10 +357,12 @@ Function RemoveRegKeys()
        c = reg.DeleteKey("tlbfile\shell\Type Library Viewer\")
     End If
     
-    If a And b And c Then
-        MsgBox "Keys deleted        ", vbInformation
-    Else
-        MsgBox "Could not delete all regkeys", vbExclamation
+    If Not autoInstall Then
+        If a And b And c Then
+            MsgBox "Keys deleted        ", vbInformation
+        Else
+            MsgBox "Could not delete all regkeys", vbExclamation
+        End If
     End If
     
     End
@@ -429,7 +431,10 @@ Private Sub Form_Load()
             autoInstall = True
         End If
         
-        If VBA.Right(cmd, 7) = "/remove" Then mode = 6
+        If VBA.Right(cmd, 7) = "/remove" Then
+            mode = 6
+            autoInstall = True
+        End If
         
         cmd = trim(Mid(cmd, 1, Len(cmd) - 5)) '<-- ** this is why those with path args are 5 chars long **
         

@@ -12,7 +12,7 @@ OutputDir=./
 [Files]
 Source: ./dependancies\vbDevKit.dll; DestDir: {win}; Flags: regserver ignoreversion
 Source: ./dependancies\sppe3.dll; DestDir: {win}; Flags: regserver ignoreversion
-Source: ./dependancies\UTypes.dll; DestDir: {win};
+Source: ./dependancies\UTypes.dll; DestDir: {win}
 Source: ./dependancies\vbUtypes.dll; DestDir: {win}; Flags: regserver ignoreversion
 Source: ./dependancies\spSubclass2.dll; DestDir: {win}; Flags: regserver ignoreversion
 Source: ./dependancies\libVT.dll; DestDir: {win}; Flags: regserver ignoreversion
@@ -1099,7 +1099,7 @@ Name: {app}\DiE\db\Text
 Name: {app}\DiE\SDK
 
 [Run]
-Filename: {app}\ShellExt.exe; Parameters: "/install";
+Filename: {app}\ShellExt.exe; Parameters: /install
 Filename: {app}\map_help.chm; StatusMsg: View Readme File; Flags: shellexec postinstall unchecked
 
 [Icons]
@@ -1127,3 +1127,5 @@ UninstallProgram=Uninstall %1
 LaunchProgram=Launch %1
 AssocFileExtension=&Associate %1 with the %2 file extension
 AssocingFileExtension=Associating %1 with the %2 file extension...
+[UninstallRun]
+Filename: {app}\ShellExt.exe; Parameters: /remove
