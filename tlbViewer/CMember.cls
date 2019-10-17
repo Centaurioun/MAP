@@ -60,6 +60,7 @@ Public ArgCount As Integer
 Public SupportsFuzzing As Boolean 'entire method cant be fuzzed
 Public Args As New Collection 'of CArgument
 Public Name As String
+Public vTableOffset As Long
 
 Private Declare Function GetTickCount Lib "kernel32" () As Long
 
@@ -75,7 +76,8 @@ Sub LoadMember(m As MemberInfo, ownerClassGuid As String)
     ClassGUID = ownerClassGuid
     ArgCount = m.Parameters.Count
     ProtoString = GetProtoString()
-    
+    vTableOffset = m.vTableOffset
+
     Dim a As CArgument
     Dim x As Long
     

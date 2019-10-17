@@ -536,6 +536,14 @@ Public Sub LV_ColumnSort(ListViewControl As ListView, Column As ColumnHeader)
     End With
 End Sub
 
+Function lv_selCount(lv As ListView) As Long
+    Dim i As Long, li As ListItem
+    For Each li In lv.ListItems
+        If li.selected Then i = i + 1
+    Next
+    lv_selCount = i
+End Function
+
 Public Function GetShortName(sFile As String) As String
     Dim sShortFile As String * 67
     Dim lResult As Long

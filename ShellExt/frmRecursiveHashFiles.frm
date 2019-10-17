@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmRecursiveHashFiles 
    Caption         =   "Hash all files below "
    ClientHeight    =   5895
@@ -211,11 +211,18 @@ End Sub
 Private Sub mnuCopyReport_Click()
     Dim li As ListItem
     Dim x()
+    Dim mbr As VbMsgBoxResult
+    
+    mbr = MsgBox("One item per line?", vbYesNo)
     
     For Each li In lv.ListItems
-        push x, rpad("File: ") & li.SubItems(2)
-        push x, rpad("Size: ") & li.SubItems(1)
-        push x, rpad("MD5: ") & li.text & vbCrLf
+        If mbr = vbYes Then
+            push x, pad(li.SubItems(1), 6) & "   " & li.text & "   " & li.SubItems(2)
+        Else
+            push x, rpad("File: ") & li.SubItems(2)
+            push x, rpad("Size: ") & li.SubItems(1)
+            push x, rpad("MD5: ") & li.text & vbCrLf
+        End If
     Next
     
     Clipboard.Clear

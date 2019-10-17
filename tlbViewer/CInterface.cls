@@ -47,10 +47,10 @@ Friend Sub LoadMembers(mm As Members, ownerClassGuid As String)
         Dim ignoreThreshold As Integer
         Dim i As Long
         
-        If Not hasIDispatch Then
-            Name = Name & " - No IDisp"
-            Exit Sub
-        End If
+        'If Not hasIDispatch Then
+        '    Name = Name & " - No IDisp"
+        '    Exit Sub
+        'End If
         
         
         'i = 1
@@ -124,18 +124,18 @@ End Function
 
 Private Sub Class_Initialize()
     
-    Dim IgnoreMe() As String
-    Dim x
-    
-    'IUnknown and IDispatch methods
-    
-    Const IgnoreMeths = "QueryInterface,AddRef,Release,GetTypeInfoCount," & _
-                        "GetTypeInfo,GetIDsOfNames,Invoke"
-    
-    IgnoreMe() = Split(IgnoreMeths, ",")
-    
-    For Each x In IgnoreMe
-        Ignored.Add x, x
-    Next
+'    Dim IgnoreMe() As String
+'    Dim x
+'
+'    'IUnknown and IDispatch methods
+'
+'    Const IgnoreMeths = "QueryInterface,AddRef,Release,GetTypeInfoCount," & _
+'                        "GetTypeInfo,GetIDsOfNames,Invoke"
+'
+'    IgnoreMe() = Split(IgnoreMeths, ",")
+'
+'    For Each x In IgnoreMe
+'        Ignored.Add x, x
+'    Next
         
 End Sub

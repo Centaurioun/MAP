@@ -131,7 +131,9 @@ Sub AddInterface(iface As InterfaceInfo)
 
         mi.DerivedString = GetDerivedInterfaces(iface, mi)
         dbg "Interface: " & iface.Name & " " & mi.DerivedString & IIf(mi.isPublic, " : Public", " : Private")
-                
+            
+        'If InStr(1, iface.Name, "command", vbTextCompare) > 0 Then Stop
+        
         With iface
             mi.GUID = .GUID
             mi.Name = .Name

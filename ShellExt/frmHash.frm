@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmHash 
    Caption         =   "Directory File Hasher - Right Click on ListView for Menu Options"
    ClientHeight    =   4080
@@ -89,6 +89,9 @@ Begin VB.Form frmHash
       End
       Begin VB.Menu mnuCopySelected 
          Caption         =   "Copy Selected"
+      End
+      Begin VB.Menu mnuCopyDetailed 
+         Caption         =   "Copy Detailed"
       End
       Begin VB.Menu mnuDiv 
          Caption         =   "-"
@@ -211,6 +214,51 @@ Private Sub mnuStringsDumpAll_Click()
     Next
     
     Unload frmStrings
+    
+End Sub
+
+Private Sub mnuCopyDetailed_Click()
+    
+    Dim selOnly As Boolean, li As ListItem, ret() As String, tmp As String, selCount As Long, org As String
+    
+    org = Me.Caption
+    pb.value = 0
+    frmFileHash.Visible = False
+   
+    selCount = lv_selCount(lv)
+    If selCount > 1 Then selOnly = True
+    
+    If selOnly Then
+         pb.max = selCount
+    Else
+         pb.max = lv.ListItems.Count
+    End If
+    
+    For Each li In lv.ListItems
+        If selOnly Then
+            If li.selected Then GoSub addItem
+        Else
+            GoSub addItem 'i never use it and its there so... wtf not
+        End If
+    Next
+    
+    Unload frmFileHash
+    pb.value = 0
+    Clipboard.Clear
+    Clipboard.SetText Join(ret, vbCrLf)
+    Me.Caption = org
+    
+Exit Sub
+
+addItem:
+    Me.Caption = "Processing: " & li.text
+    tmp = Replace(frmFileHash.ShowFileStats(path & "\" & li.text, True), vbCrLf & vbCrLf, vbCrLf)
+    If Right(tmp, 2) = vbCrLf Then tmp = Mid(tmp, 1, Len(tmp) - 2)
+    If Right(tmp, 2) = vbCrLf Then tmp = Mid(tmp, 1, Len(tmp) - 2)
+    push ret(), tmp
+    push ret(), String(50, "-")
+    pb.value = pb.value + 1
+    Return
     
 End Sub
 
@@ -600,15 +648,36 @@ Private Sub mnuCopyTable_Click()
     Dim t As String
     Dim ln As Long
     Dim sig As String
+    Dim allNamedMD5 As Boolean
     
     ln = LongestFileName() + 2
     
+    'if the file name contains the md5 and is not just a .txt file
+    'if all files meet this criteria then copy table will not contain the md5 of the files since duplicate info
+    'this is common if the rename all to md5 option was used on a directory (which also produces rename_log.txt)
+    'this allows some additions to filename without needing exact match..
+    'this logic below is reused in copy table csv and just post processed.
+    allNamedMD5 = True
+    For Each li In lv.ListItems
+        If InStr(1, li.text, li.SubItems(2), vbTextCompare) < 1 Then
+            If LCase(fso.GetExtension(li.text)) <> ".txt" Then
+                allNamedMD5 = False
+                Exit For
+            End If
+        End If
+    Next
+            
     For Each li In lv.ListItems
         sig = Empty
         If li.ForeColor <> &H80000008 And li.ForeColor <> vbBlack Then
             sig = " " & vbTab & IIf(li.ForeColor = vbBlue, " VALID", " INVALID") & " signature"
         End If
-        t = t & "  " & rpad(li.text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & sig & vbCrLf
+        'subitems2 = md5
+        If allNamedMD5 Then
+            t = t & "  " & rpad(li.text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(3) & sig & vbCrLf
+        Else
+            t = t & "  " & rpad(li.text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & sig & vbCrLf
+        End If
     Next
     
     Clipboard.Clear

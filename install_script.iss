@@ -22,7 +22,8 @@ Source: ./dependancies\RICHTX32.OCX; DestDir: {sys}; Flags: uninsneveruninstall 
 Source: ./dependancies\MSINET.OCX; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\TLBINF32.DLL; DestDir: {sys}; Flags: uninsneveruninstall regserver promptifolder
 Source: ./dependancies\hexed.ocx; DestDir: {win}; Flags: regserver ignoreversion
-;Source: ./sc_log\bin\sclog.exe; DestDir: {app}   //carries AV warnings these days...
+;Source: ./sc_log\bin\sclog.exe; DestDir: {app}            //carries AV warnings these days...
+;Source: sckTool.exe; DestDir: {app}; Flags: ignoreversion //carries AV warnings these days...
 Source: gdiprocs.exe; DestDir: {app}
 Source: gdiprocs.exe; DestDir: {win}
 Source: FindDll.exe; DestDir: {app}; Flags: ignoreversion
@@ -41,7 +42,7 @@ Source: sniff_hit.exe; DestDir: {app}; Flags: ignoreversion
 Source: fakeDNS.exe; DestDir: {app}; Flags: ignoreversion
 Source: IDCDumpFix.exe; DestDir: {app}; Flags: ignoreversion
 Source: mail_pot.exe; DestDir: {app}; Flags: ignoreversion
-Source: sckTool.exe; DestDir: {app}; Flags: ignoreversion
+
 Source: ShellExt.exe; DestDir: {app}; Flags: ignoreversion
 Source: tlbViewer.exe; DestDir: {app}; Flags: ignoreversion
 Source: map_help.chm; DestDir: {app}

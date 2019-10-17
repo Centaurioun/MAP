@@ -1,4 +1,6 @@
 
+if no net connection do not do vt lookup, hangs
+
 shellext.virustotal: do not cache no results found
 
 pe rich header?

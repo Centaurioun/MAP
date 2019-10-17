@@ -70,6 +70,7 @@ Function LoadFile(path As String, Optional targetGUID As String) As Boolean
         
         Set c = New CClass
         With ccinfo
+            'If InStr(1, .Name, "command", vbTextCompare) > 0 Then Stop
             c.Name = .Name
             c.GUID = .GUID
             c.LoadInterfaces ccinfo.Interfaces, ccinfo.DefaultInterface

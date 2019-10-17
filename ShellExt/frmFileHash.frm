@@ -223,7 +223,7 @@ Dim pe As New CPEEditor
 
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hINst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
-Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Const WM_COMMAND = &H111
@@ -348,12 +348,12 @@ Private Function isOpt(o As opts) As Boolean
     isOpt = mnuCopyHashMore(o).Checked
 End Function
 
-Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal X As Long = 0, Optional ByVal Y As Long = 0) As Boolean
+Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal Y As Long = 0) As Boolean
     Dim hIcon As Long
     hIcon = ExtractIcon(App.hInstance, fileName, iconIndex)
 
     If hIcon Then
-        DrawIcon hDC, X, Y, hIcon
+        DrawIcon hDC, x, Y, hIcon
         ShowIcon = True
     End If
     
@@ -370,7 +370,7 @@ Function hasInterestingResources() As Boolean
     Next
 End Function
 
-Sub ShowFileStats(fPath As String)
+Function ShowFileStats(fPath As String, Optional fromAutomation As Boolean = False) As String
     
     On Error Resume Next
     Dim ret() As String
@@ -458,7 +458,7 @@ Sub ShowFileStats(fPath As String)
     
     If isOpt(oEntropy) Then push ret, "Entropy:  " & fileEntropy(fPath)
     
-    push ret(), Empty
+    If Not fromAutomation Then push ret(), Empty
     
     If pe.isLoaded Then
         If pe.Exports.functions.Count > 0 Then push ret(), "Exports:  " & pe.Exports.functions.Count
@@ -490,6 +490,7 @@ Sub ShowFileStats(fPath As String)
        mnuGotoScan.Enabled = (Len(scan.permalink) > 0)
        mnuVT.Enabled = mnuGotoScan.Enabled
        push ret(), Replace(scan.BriefReport(), "Scan Date", "Scan_Date")
+       If fromAutomation And mnuGotoScan.Enabled Then push ret(), rpad("Link:", 13) & scan.permalink
     End If
 
     If isOpt(oFileProps) Then
@@ -501,19 +502,22 @@ Sub ShowFileStats(fPath As String)
     mnuPEVerInfo.Enabled = isPE
      
     Text1 = Join(ret, vbCrLf)
+    ShowFileStats = Text1.text
     
-    hilite_keywords
-    Call sizeFormToTextBox
-    
-    If ShowIcon(fPath, pictIcon.hDC) Then
-        'Me.Width = Me.Width + pictIcon.Width '+ 50
-        pictIcon.Left = Me.Width - pictIcon.Width
-        pictIcon.Visible = True
-    End If
-    
-    Me.Show
+    If Not fromAutomation Then
+        hilite_keywords
+        Call sizeFormToTextBox
         
-End Sub
+        If ShowIcon(fPath, pictIcon.hDC) Then
+            'Me.Width = Me.Width + pictIcon.Width '+ 50
+            pictIcon.Left = Me.Width - pictIcon.Width
+            pictIcon.Visible = True
+        End If
+        
+        Me.Show
+    End If
+        
+End Function
 
 Function sizeFormToTextBox()
     
@@ -545,9 +549,9 @@ End Sub
 
 
 Function c2a(c As Collection) As Variant()
-    Dim tmp(), X
-    For Each X In c
-        push tmp, X
+    Dim tmp(), x
+    For Each x In c
+        push tmp, x
     Next
     c2a = tmp
 End Function
@@ -599,14 +603,14 @@ Private Sub Form_Load()
     mnuCorFlags.Enabled = False
     'mnuDllChar.Enabled = False
     
-    Dim ext As String, tmp() As String, X, i
+    Dim ext As String, tmp() As String, x, i
     
     ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
     If fso.FileExists(ext) Then
         ext = fso.ReadFile(ext)
         tmp = Split(ext, vbCrLf)
-        For Each X In tmp
-            AddExternal CStr(X)
+        For Each x In tmp
+            AddExternal CStr(x)
         Next
     End If
     
@@ -941,15 +945,15 @@ End Sub
 'End Sub
 
 
-Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, Y As Single)
     Dim z
     On Error Resume Next
     
-    lastX = X
+    lastX = x
     lastY = Y
     
     'this code below is a little processor heavy but what else are we doing...
-    curWord = WordUnderCursor(Text1, X, Y, startPos)
+    curWord = WordUnderCursor(Text1, x, Y, startPos)
     'Debug.Print curWord
     
     For Each z In links

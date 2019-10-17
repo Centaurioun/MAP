@@ -433,7 +433,7 @@ End Sub
 
 Private Sub Form_Resize()
     On Error Resume Next
-    rtf.Move 100, rtf.top, Me.Width - 300, Me.Height - rtf.top - 400
+    rtf.Move 100, rtf.top, Me.Width - 400, Me.Height - rtf.top - 650
     pb.Width = rtf.Width
 End Sub
  

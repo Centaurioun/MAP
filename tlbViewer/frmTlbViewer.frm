@@ -1,8 +1,7 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
-Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "richtx32.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
 Begin VB.Form frmtlbViewer 
-   BackColor       =   &H8000000A&
    Caption         =   "Type Library Viewer"
    ClientHeight    =   5370
    ClientLeft      =   60
@@ -22,6 +21,7 @@ Begin VB.Form frmtlbViewer
       _ExtentX        =   11536
       _ExtentY        =   8520
       _Version        =   393217
+      Enabled         =   -1  'True
       ScrollBars      =   3
       TextRTF         =   $"frmTlbViewer.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -145,6 +145,9 @@ Begin VB.Form frmtlbViewer
       End
       Begin VB.Menu mnuCopyFuncNames 
          Caption         =   "Copy Names"
+      End
+      Begin VB.Menu mnuShowVOff 
+         Caption         =   "Show VTable Offsets"
       End
    End
 End
@@ -379,6 +382,10 @@ Private Sub mnuFullProtos_Click()
         
 End Sub
 
+Private Sub mnuShowVOff_Click()
+    mnuShowVOff.Checked = Not mnuShowVOff.Checked
+End Sub
+
 Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single)
     On Error Resume Next
     Text1 = Data.Files(1)
@@ -424,7 +431,9 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
     
     If TypeName(Node.Tag) = "CMember" Then
         Set c = Node.Tag
-        text2 = c.ProtoString
+        report = IIf(mnuShowVOff.Checked, c.vTableOffset & "|" & Hex(c.vTableOffset) & vbCrLf, Empty) & c.ProtoString
+        text2 = report
+        
     End If
     
     If TypeName(Node.Tag) = "CInterface" Then
@@ -449,6 +458,7 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
                 Else
                     report = report & vbCrLf
                 End If
+                If mnuShowVOff.Checked Then report = "[" & c.vTableOffset & "|" & Hex(c.vTableOffset) & "] " & report
                 push tmp, report
             'Else
             '    push tmp, vbTab & c.mMemberInfo.Name
@@ -462,6 +472,13 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
         push tmp, "Class " & cc.Name
         push tmp, "GUID: " & cc.GUID
         push tmp, "Number of Interfaces: " & cc.mInterfaces.Count
+        
+        If cc.mInterfaces.Count > 0 Then
+            For Each i In cc.mInterfaces
+                push tmp, vbTab & i.Name & " - " & i.GUID & " " & i.DerivedString
+            Next
+        End If
+        
         push tmp, "Default Interface: " & cc.DefaultInterface
         push tmp, "KillBitSet: " & cc.KillBitSet
         push tmp, vbCrLf
