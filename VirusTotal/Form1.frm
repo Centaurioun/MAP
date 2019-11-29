@@ -238,8 +238,14 @@ Begin VB.Form Form1
       Begin VB.Menu mnuDivider2 
          Caption         =   "-"
       End
-      Begin VB.Menu mnuAddHashs 
-         Caption         =   "Load Hashs from Clipboard"
+      Begin VB.Menu mnuLoadH 
+         Caption         =   "Load Hashs from"
+         Begin VB.Menu mnuAddHashsFile 
+            Caption         =   "File"
+         End
+         Begin VB.Menu mnuAddHashs 
+            Caption         =   "Clipboard"
+         End
       End
       Begin VB.Menu mnuViewRaw 
          Caption         =   "View raw JSON"
@@ -420,6 +426,8 @@ End Sub
 Private Sub mnuAddHashs_Click()
     On Error Resume Next
     Dim f As CFile
+    Dim tmp
+    Dim useLF As Boolean
     
     x = Clipboard.GetText
     x = Replace(x, " ", Empty)
@@ -431,8 +439,19 @@ Private Sub mnuAddHashs_Click()
     x = Replace(x, "}", Empty)
     x = Replace(x, ")", Empty)
     
-    tmp = Split(x, vbCrLf)
+    If Len(x) > 1000 Then
+        If InStr(Mid(x, 1, 1000), vbCrLf) < 1 Then useLF = True
+    Else
+        If InStr(x, vbCrLf) < 1 Then useLF = True
+    End If
+    
+    tmp = Split(x, IIf(useLF, vbLf, vbCrLf))
+    pb.Max = UBound(tmp)
+    pb.value = 0
     For Each x In tmp
+        If InStr(x, ":") > 0 Then
+            x = Split(x, ":")(1) 'its from yara match output? sigName:hash
+        End If
         x = Trim(x)
         If Len(x) > 0 Then
             If InStr(x, ",") > 0 Then 'new "hash,path" format
@@ -446,7 +465,11 @@ Private Sub mnuAddHashs_Click()
                 lv.ListItems.Add , , x
             End If
         End If
+        pb.value = pb.value + 1
     Next
+    
+    pb.value = 0
+    Me.Caption = lv.ListItems.count & " hashs added"
     
 End Sub
 
@@ -588,6 +611,16 @@ Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, y As 
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
+
+Private Sub mnuAddHashsFile_Click()
+    On Error Resume Next
+    Dim fp As String
+    f = dlg.OpenDialog(AllFiles)
+    If Len(f) = 0 Then Exit Sub
+    Clipboard.Clear
+    Clipboard.SetText fso.ReadFile(f)
+    mnuAddHashs_Click
+End Sub
 
 Private Sub mnuBulkDownload_Click()
     frmBulkDownload.Show
@@ -794,50 +827,80 @@ Private Sub mnuSaveReports_Click()
 
 End Sub
 
+Function StartsWith(blob, prefix) As Boolean
+    Dim i As Long
+    Dim tmp As String
+    i = Len(prefix)
+    If Len(blob) < i Then Exit Function
+    tmp = LCase(Left(blob, i))
+    If tmp = LCase(prefix) Then StartsWith = True
+End Function
+
 Private Sub mnuSearch_Click()
     Dim li As ListItem
-    Dim likeSearch As Boolean
+    Dim likeSearch As Boolean, NotLikeSearch As Boolean
     Dim cs As CScan
     Dim found As Long
     Dim tmp() As String
     Dim r As String
     Dim lines()  As String
     Dim tmpFile As String
+    Dim capt As String
+    Dim tested As Long
     
-    find = InputBox("Enter marker to search for, to use vb like operator prefix with like:")
+    capt = " string: "
+    find = InputBox("Enter marker to search for, to use vb like operator prefix with 'like:' or 'not like:'")
     If Len(find) = 0 Then Exit Sub
     
-    If Len(find) > 5 And VBA.Left(find, 5) = "like:" Then
-        find = Trim(Mid(find, 6))
+    If StartsWith(find, "like:") Then
+        find = LCase(Trim(Mid(find, 6)))
+        If InStr(find, "*") < 1 Then find = "*" & find & "*"
         likeSearch = True
+        capt = " like " & find
+    End If
+    
+    If StartsWith(find, "not like:") Then
+        find = LCase(Trim(Mid(find, 10)))
+        If InStr(find, "*") < 1 Then find = "*" & find & "*"
+        NotLikeSearch = True
+        capt = " not like " & find
     End If
     
     push tmp(), "Search for '" & find & "' " & lv.ListItems.count & " samples - " & Now & vbCrLf
     
     For Each li In lv.ListItems
         li.Selected = False
-        Set cs = li.Tag
-        r = cs.GetReport()
-        If likeSearch Then
-            If r Like find Then
-                li.Selected = True
-                push tmp(), cs.extractDetectionsFor(find, True)
+        If IsObject(li.Tag) Then
+            tested = tested + 1
+            Set cs = li.Tag
+            r = LCase(cs.GetReport())
+            If NotLikeSearch Then
+                If Not r Like find Then
+                    li.Selected = True
+                    push tmp(), cs.GetReport()
+                End If
+            ElseIf likeSearch Then
+                If r Like find Then
+                    li.Selected = True
+                    push tmp(), cs.extractDetectionsFor(find, True)
+                End If
+            Else
+                If InStr(1, r, find, vbTextCompare) > 0 Then
+                    li.Selected = True
+                    push tmp(), cs.extractDetectionsFor(find)
+                End If
             End If
-        Else
-            If InStr(1, r, find, vbTextCompare) > 0 Then
-                li.Selected = True
-                push tmp(), cs.extractDetectionsFor(find)
+            If li.Selected Then
+                found = found + 1
+                li.EnsureVisible
             End If
-        End If
-        If li.Selected Then
-            found = found + 1
-            li.EnsureVisible
         End If
     Next
     
-    Me.Caption = found & " matches found for string: " & find
+    Me.Caption = found & " matches found for " & capt & find
     
     If found > 0 Then
+        tmp(0) = tmp(0) & "Found: " & found & " hits of " & tested & vbCrLf
         tmpFile = fso.GetFreeFileName(Environ("temp"))
         fso.writeFile tmpFile, Join(tmp, vbCrLf)
         Shell "notepad.exe """ & tmpFile & """", vbNormalFocus

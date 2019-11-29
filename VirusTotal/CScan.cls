@@ -69,7 +69,7 @@ Function extractDetectionsFor(find, Optional likeSearch As Boolean = False) As S
     For Each r In results
         If r.detected Then
             If likeSearch Then
-                If r.result Like find Then
+                If LCase(r.result) Like LCase(find) Then
                     tmp = tmp & vbTab & r.PaddedScanner() & r.result & vbCrLf
                 End If
             Else

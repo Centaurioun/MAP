@@ -96,6 +96,9 @@ Begin VB.Form frmHash
       Begin VB.Menu mnuDiv 
          Caption         =   "-"
       End
+      Begin VB.Menu mnuUniqueImpHash 
+         Caption         =   "Unique ImpHash"
+      End
       Begin VB.Menu mnuDisplayUnique 
          Caption         =   "Display unique"
       End
@@ -264,6 +267,54 @@ End Sub
 
 Private Sub mnuRecursiveHash_Click()
     frmRecursiveHashFiles.RecursiveHashDir path
+End Sub
+
+Private Sub mnuUniqueImpHash_Click()
+    
+    On Error Resume Next
+    Dim li As ListItem
+    Dim c As New CollectionEx 'key = imphash, val = csv md5 list
+    Dim pe As New CPEEditor
+    Dim ih As String, fpath As String
+    Dim i As Long
+    Dim r() As String
+    Dim k() As String
+    Dim x
+    
+    pb.value = 0
+    pb.max = lv.ListItems.Count
+    
+    push r, "imphash : hits"
+    push r, vbTab & "sample md5" & vbCrLf
+    
+    For Each li In lv.ListItems
+        fpath = li.Tag
+        If pe.LoadFile(fpath) Then
+                ih = LCase(pe.impHash())
+                If c.keyExists(ih) Then
+                    c(ih, 1) = c(ih) & "," & li.text 'did i mention i love CollectionEx?
+                Else
+                    c.Add li.text, ih
+                End If
+        End If
+        pb.value = pb.value + 1
+    Next
+    
+    pb.value = 0
+    
+    For i = 1 To c.Count
+        k = Split(c.Item(i), ",")
+        push r, c.keyForIndex(i) & " hits: " & (UBound(k) + 1)
+        For Each x In k
+            push r, vbTab & x
+        Next
+        push r, vbCrLf
+    Next
+    
+    Clipboard.Clear
+    Clipboard.SetText Join(r, vbCrLf)
+    MsgBox c.Count & " unique imphashs copied for " & pb.max & " samples"
+    
 End Sub
 
 Private Sub sc_MessageReceived(hwnd As Long, wMsg As Long, wParam As Long, lParam As Long, Cancel As Boolean)
@@ -477,9 +528,9 @@ Private Sub mnuCustomExtension_Click()
     
     For Each li In lv.ListItems
         i = 1
-        fPath = li.Tag
+        fpath = li.Tag
         fname = li.text
-        pdir = fso.GetParentFolder(fPath) & "\"
+        pdir = fso.GetParentFolder(fpath) & "\"
         
         If InStrRev(fname, ".") > 1 Then
             fname = Mid(fname, 1, InStrRev(fname, ".") - 1)
@@ -495,7 +546,7 @@ Private Sub mnuCustomExtension_Click()
             i = i + 1
         Wend
         
-        Name fPath As pdir & h
+        Name fpath As pdir & h
     
         li.text = h
         li.Tag = pdir & h
@@ -850,9 +901,9 @@ Private Sub mnuMakeExtSafe_Click()
     
     For Each li In lv.ListItems
         i = 1
-        fPath = li.Tag
+        fpath = li.Tag
         fname = li.text
-        pdir = fso.GetParentFolder(fPath) & "\"
+        pdir = fso.GetParentFolder(fpath) & "\"
         h = fname & "_"
         
         If LCase(VBA.Right(fname, 4)) = ".txt" Then GoTo nextone  'txt files are fine..
@@ -864,7 +915,7 @@ Private Sub mnuMakeExtSafe_Click()
             i = i + 1
         Wend
         
-        Name fPath As pdir & h
+        Name fpath As pdir & h
     
         li.text = h
         li.Tag = pdir & h
@@ -883,13 +934,13 @@ Private Sub mnuMakeSubFolders_Click()
     Dim li As ListItem
     Dim pdir As String
     Dim baseName As String
-    Dim fPath As String
+    Dim fpath As String
     
     For Each li In lv.ListItems
-        fPath = li.Tag
+        fpath = li.Tag
         fname = li.text
-        pdir = fso.GetParentFolder(fPath) & "\"
-        baseName = fso.GetBaseName(fPath)
+        pdir = fso.GetParentFolder(fpath) & "\"
+        baseName = fso.GetBaseName(fpath)
         MkDir pdir & baseName
     Next
         
@@ -909,10 +960,10 @@ Private Sub mnuRenameToMD5_Click()
     
     For Each li In lv.ListItems
         i = 2
-        fPath = li.Tag
+        fpath = li.Tag
         fname = li.text
         h = li.SubItems(2)
-        pdir = fso.GetParentFolder(fPath) & "\"
+        pdir = fso.GetParentFolder(fpath) & "\"
         
         If InStr(h, "Error") >= 1 Then GoTo nextone
         If LCase(fname) = LCase(h) Then GoTo nextone
@@ -922,7 +973,7 @@ Private Sub mnuRenameToMD5_Click()
         Wend
         
         rlog = rlog & fname & vbTab & "->" & vbTab & h & vbCrLf
-        Name fPath As pdir & h
+        Name fpath As pdir & h
     
         li.text = h
         li.Tag = pdir & h

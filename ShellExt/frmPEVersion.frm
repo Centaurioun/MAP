@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "richtx32.ocx"
 Begin VB.Form frmPEVersion 
    Caption         =   "PE Header Version Requirements"
    ClientHeight    =   3105
@@ -19,7 +19,6 @@ Begin VB.Form frmPEVersion
       _ExtentX        =   6218
       _ExtentY        =   2725
       _Version        =   393217
-      Enabled         =   -1  'True
       ScrollBars      =   3
       TextRTF         =   $"frmPEVersion.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -195,7 +194,7 @@ Private Sub Form_Resize()
     '    Command1.top = Me.Height - Command1.Height - 200
     '    Text1.Height = Me.Height - Text1.top - Command1.top - 200
     'Else
-        Text1.Height = Me.Height - Text1.top - 200
+        Text1.Height = Me.Height - Text1.top - 200 - Frame1.Height
     'End If
     Text1.Width = Me.Width - Text1.Left - 200
 End Sub
