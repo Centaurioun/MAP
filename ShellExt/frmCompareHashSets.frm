@@ -9,6 +9,22 @@ Begin VB.Form frmCompareHashSets
    ScaleHeight     =   7650
    ScaleWidth      =   17490
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton cmdUnique 
+      Caption         =   "Unique Only"
+      Height          =   435
+      Left            =   2940
+      TabIndex        =   8
+      Top             =   7020
+      Width           =   1215
+   End
+   Begin VB.CommandButton cmdClear 
+      Caption         =   "Clear All"
+      Height          =   495
+      Left            =   4440
+      TabIndex        =   7
+      Top             =   7020
+      Width           =   1155
+   End
    Begin VB.TextBox Text3 
       BeginProperty Font 
          Name            =   "Courier"
@@ -141,6 +157,35 @@ nope: KeyExistsInCollection = False
 End Function
 
 
+Private Sub cmdClear_Click()
+    Text1 = Empty
+    Text2 = Empty
+    Text3 = Empty
+End Sub
+
+Private Sub cmdUnique_Click()
+    Dim hashs As New Collection
+    Dim h
+    Dim h1() As String
+    Dim tmp() As String
+    
+    On Error Resume Next
+    h1 = Split(Text1, vbCrLf)
+    
+    'build a unique list of hashs in base directory set..
+    For Each h In h1
+        h = trim(h)
+        If Len(h) > 0 And Not KeyExistsInCollection(hashs, CStr(h)) Then
+            hashs.Add h, CStr(h)
+            push tmp, h
+        End If
+    Next
+     
+    Text1 = Join(tmp, vbCrLf)
+    Me.Caption = UBound(tmp) & " unique"
+    
+End Sub
+
 Private Sub Command1_Click()
 
     Dim hashs As New Collection
@@ -155,7 +200,7 @@ Private Sub Command1_Click()
     
     'build a unique list of hashs in base directory set..
     For Each h In h1
-        h = Trim(h)
+        h = trim(h)
         If Len(h) > 0 And Not KeyExistsInCollection(hashs, CStr(h)) Then
             hashs.Add h, CStr(h)
         End If
@@ -163,7 +208,7 @@ Private Sub Command1_Click()
      
      'build a unique list of hashs in compare directory set..
      For Each h In h2
-        h = Trim(h)
+        h = trim(h)
         If Len(h) > 0 And Not KeyExistsInCollection(hashs2, CStr(h)) Then
             hashs2.Add h, CStr(h)
         End If

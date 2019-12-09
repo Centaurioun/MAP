@@ -632,6 +632,10 @@ Private Sub mnuClearCache_Click()
     Dim f() As String
     Dim ff
     
+    If MsgBox("Are you sure you want to delete all cached reports? They take a while to query?", vbYesNo + vbInformation) = vbNo Then
+        Exit Sub
+    End If
+    
     If fso.FolderExists(txtCacheDir) Then
         f() = fso.GetFolderFiles(txtCacheDir, "*.txt")
         For Each ff In f
@@ -648,6 +652,10 @@ End Sub
 Private Sub mnuClearSelectedFromCache_Click()
     Dim li As ListItem
     Dim fpath As String
+    
+    If MsgBox("Are you sure you want to delete all cached reports? They take a while to query?", vbYesNo + vbInformation) = vbNo Then
+        Exit Sub
+    End If
     
     If fso.FolderExists(txtCacheDir) Then
         For Each li In lv.ListItems
@@ -1038,7 +1046,7 @@ Private Sub txtFilter_Change()
                 li.Selected = False
             End If
         Next
-        Text2 = hitCounter & " hits across " & selCount & " samples" & vbCrLf & vbCrLf & Join(ret, vbCrLf)
+        Text2 = hitCounter & " hits across " & selCount & " samples for " & txtFilter & vbCrLf & vbCrLf & Join(ret, vbCrLf)
     Else
         Text2 = searchScan(scan, txtFilter)
     End If
