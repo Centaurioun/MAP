@@ -190,6 +190,9 @@ Begin VB.Form Form2
    End
    Begin VB.Menu mnuTools 
       Caption         =   "Tools"
+      Begin VB.Menu mnuBulkScan 
+         Caption         =   "Bulk Scan"
+      End
       Begin VB.Menu mnuBulkDl 
          Caption         =   "Bulk Download"
       End
@@ -336,6 +339,12 @@ Private Sub mnuBulkDl_Click()
     frmBulkDownload.Show
 End Sub
 
+Private Sub mnuBulkScan_Click()
+    On Error Resume Next
+    Form1.Show
+    Unload Me
+End Sub
+
 Private Sub mnuCopyTable_Click()
     On Error Resume Next
     Dim r
@@ -427,13 +436,13 @@ End Sub
 
 
 
-Sub push(ary, Value) 'this modifies parent ary object
+Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
     x = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = Value
+    ary(UBound(ary)) = value
     Exit Sub
-init:     ReDim ary(0): ary(0) = Value
+init:     ReDim ary(0): ary(0) = value
 End Sub
 
 

@@ -112,15 +112,15 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-Dim dlg As New clsCmnDlg
 Dim fso As New CFileSystem2
 Dim vt As New CVirusTotal
+Dim dlg As New CCmnDlg
 
 'todo: async download with progress bar instead of blocking
 
 Private Sub cmdBrowse_Click()
     Dim x As String
-    x = dlg.FolderDialog(, Me.hwnd)
+    x = dlg.FolderDialog2()
     If Len(x) = 0 Then Exit Sub
     txtDir = x
 End Sub
@@ -142,7 +142,7 @@ Private Sub cmdDownload_Click()
     txtHash = Trim(Replace(txtHash, vbCrLf & vbCrLf, vbCrLf))
     
     lv.ListItems.Clear
-    pb.Value = 0
+    pb.value = 0
     
     tmp = Split(txtHash, vbCrLf)
     pb.Max = UBound(tmp) + 1
@@ -161,10 +161,10 @@ Private Sub cmdDownload_Click()
         End If
         DoEvents
         Me.Refresh
-        pb.Value = pb.Value + 1
+        pb.value = pb.value + 1
     Next
     
-    pb.Value = 0
+    pb.value = 0
         
 End Sub
 

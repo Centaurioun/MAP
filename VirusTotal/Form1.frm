@@ -137,7 +137,7 @@ Begin VB.Form Form1
       BackColor       =   -2147483643
       BorderStyle     =   1
       Appearance      =   1
-      NumItems        =   4
+      NumItems        =   5
       BeginProperty ColumnHeader(1) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          Text            =   "hash"
          Object.Width           =   7056
@@ -154,6 +154,11 @@ Begin VB.Form Form1
       EndProperty
       BeginProperty ColumnHeader(4) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   3
+         Text            =   "First Seen"
+         Object.Width           =   2540
+      EndProperty
+      BeginProperty ColumnHeader(5) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
+         SubItemIndex    =   4
          Text            =   "Description"
          Object.Width           =   2540
       EndProperty
@@ -275,7 +280,7 @@ Attribute VB_Exposed = False
 Dim vt As New CVirusTotal
 Dim selli As ListItem
 Dim scan As CScan
-Dim dlg As New clsCmnDlg
+Dim dlg As New CCmnDlg
 Dim fso As New CFileSystem2
 
 Dim files As New Collection
@@ -295,7 +300,7 @@ End Sub
 
 Private Sub cmdBrowse_Click()
     Dim f As String
-    f = dlg.FolderDialog()
+    f = dlg.FolderDialog2()
     If Len(f) = 0 Then Exit Sub
     txtCacheDir = f
 End Sub
@@ -338,6 +343,8 @@ Private Sub cmdQuery_Click()
     vt.delayInterval = IIf(pb.Max < 5, 2500, 17300) 'cant exceed 4 requests per minute...
     List1.AddItem "Max: " & pb.Max & " Interval: " & vt.delayInterval
     
+    If Not vt.usingPrivateKey Then lv.ColumnHeaders(3).Width = 0 'first seen only available w/ priv ley
+
     For Each li In lv.ListItems
     
         If vt.abort Then Exit For
@@ -352,7 +359,8 @@ Private Sub cmdQuery_Click()
         If Not scan.HadError Then
             li.subItems(1) = scan.positives
             li.subItems(2) = scan.scan_date
-            li.subItems(3) = scan.verbose_msg
+            li.subItems(3) = scan.first_seen
+            li.subItems(4) = scan.verbose_msg
             Set li.Tag = scan
         Else
             li.subItems(1) = "Failure"
@@ -449,7 +457,7 @@ Private Sub mnuAddHashs_Click()
     pb.Max = UBound(tmp)
     pb.value = 0
     For Each x In tmp
-        If InStr(x, ":") > 0 Then
+        If InStr(x, ":") > 0 And InStr(x, ",") < 1 Then
             x = Split(x, ":")(1) 'its from yara match output? sigName:hash
         End If
         x = Trim(x)
@@ -501,6 +509,14 @@ Public Sub LV_ColumnSort(ListViewControl As ListView, Column As ColumnHeader)
 End Sub
 
 
+
+Function IsIde() As Boolean
+' Brad Martinez  http://www.mvps.org/ccrp
+    On Error GoTo out
+    Debug.Print 1 / 0
+out: IsIde = Err
+End Function
+
 Private Sub Form_Load()
     
     On Error Resume Next
@@ -509,8 +525,11 @@ Private Sub Form_Load()
     Dim hash_mode As Boolean
     
     mnuUsePrivateKey.Checked = vt.usingPrivateKey
-    mnuBulkDownload.Enabled = vt.usingPrivateKey
-    mnuSearchVT.Enabled = vt.usingPrivateKey
+    
+    If Not IsIde Then
+        mnuBulkDownload.Enabled = vt.usingPrivateKey
+        mnuSearchVT.Enabled = vt.usingPrivateKey
+    End If
     
     mnuPopup.Visible = False
     
@@ -518,10 +537,10 @@ Private Sub Form_Load()
     Set vt.winInet = Inet1
     Set vt.debugLog = List1
     
-    txtCacheDir = GetSetting("vt", "settings", "cachedir", "c:\VT_Cache")
+    txtCacheDir = GetSetting("vt", "settings", "cachedir", App.path & "\VT_Cache")
     chkCache.value = GetSetting("vt", "settings", "usecache", 0)
     
-    lv.ColumnHeaders(4).Width = lv.Width - lv.ColumnHeaders(4).Left - 150
+    lv.ColumnHeaders(5).Width = lv.Width - lv.ColumnHeaders(5).Left - 150
     
     'bulk can be a raw crlf hash list, or it can be a crlf hash,file list in which case submit is available, as well as file path included in report..
     If InStr(Command, "/bulk") > 0 Then
@@ -627,6 +646,7 @@ Private Sub mnuBulkDownload_Click()
     Unload Me
 End Sub
 
+
 Private Sub mnuClearCache_Click()
     
     Dim f() As String
@@ -679,7 +699,9 @@ Private Sub mnuCopyAll_Click()
     On Error Resume Next
     
     For Each li In lv.ListItems
-        r = r & li.Text & "  Detections: " & li.subItems(1) & "  ScanDate: " & li.subItems(2) & vbCrLf
+        r = r & li.Text & "  Detections: " & li.subItems(1) & "  ScanDate: " & li.subItems(2)
+        If vt.usingPrivateKey Then r = r & "  First Seen: " & li.subItems(3)
+        r = r & vbCrLf
     Next
     
     r = r & vbCrLf & vbCrLf
@@ -711,7 +733,10 @@ On Error Resume Next
     Dim scan As CScan
     Set scan = selli.Tag
     
-    r = selli.Text & "  Detections: " & selli.subItems(1) & "  ScanDate: " & li.subItems(2) & vbCrLf & String(50, "-") & vbCrLf & scan.GetReport()
+    r = selli.Text & "  Detections: " & selli.subItems(1) & "  ScanDate: " & li.subItems(2)
+    If vt.usingPrivateKey Then r = r & "  First Seen: " & li.subItems(3)
+    r = r & vbCrLf & String(50, "-") & vbCrLf & scan.GetReport()
+    
     Clipboard.Clear
     Clipboard.SetText r
     MsgBox Len(r) & " bytes copied to clipboard"
@@ -728,7 +753,8 @@ On Error Resume Next
     
     For Each li In lv.ListItems
         r = r & li.Text & "  Detections: " & li.subItems(1) & "  ScanDate: " & li.subItems(2)
-            
+        If vt.usingPrivateKey Then r = r & "  First Seen: " & li.subItems(3)
+        
         Set s = li.Tag
         If Not s Is Nothing Then
             If Len(s.LocalFilePath) > 0 Then
@@ -826,9 +852,11 @@ Private Sub mnuSaveReports_Click()
         
         report = "Hash: " & li.Text & vbCrLf & _
                  "Detections: " & li.subItems(1) & vbCrLf & _
-                 "ScanDate: " & li.subItems(2) & vbCrLf & _
-                 String(50, "-") & vbCrLf & vbCrLf & _
-                 scan.GetReport()
+                 "ScanDate: " & li.subItems(2) & vbCrLf
+                 
+        If vt.usingPrivateKey Then report = report & "  First Seen: " & li.subItems(3) & vbCrLf
+        
+        report = report & String(50, "-") & vbCrLf & vbCrLf & scan.GetReport()
                  
         fso.writeFile pf & "\VT_" & hash & ".txt", report
     Next
