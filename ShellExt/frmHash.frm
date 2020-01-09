@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmHash 
    Caption         =   "Directory File Hasher - Right Click on ListView for Menu Options"
    ClientHeight    =   4080
@@ -116,6 +116,12 @@ Begin VB.Form frmHash
       End
       Begin VB.Menu mnuRecursiveHash 
          Caption         =   "Hash all files below"
+      End
+      Begin VB.Menu mnuMoveSelected 
+         Caption         =   "Move Selected to SubFolder"
+      End
+      Begin VB.Menu mnuFilePropsReport 
+         Caption         =   "File Property Report"
       End
       Begin VB.Menu mnuSpacer33 
          Caption         =   "-"
@@ -265,6 +271,85 @@ addItem:
     
 End Sub
 
+Function lvSelCount(lv As ListView) As Long
+    Dim i As Long, li As ListItem
+    For Each li In lv.ListItems
+        If li.selected Then i = i + 1
+    Next
+    lvSelCount = i
+End Function
+
+Private Sub mnuFilePropsReport_Click()
+    
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim fPath As String
+    Dim selOnly As Boolean
+    Dim doIt As Boolean
+    Dim fs As New clsFileStream
+    Dim report As String
+    
+    report = fso.GetFreeFileName(Environ("temp"))
+    fs.fOpen report, otwriting
+    fs.WriteLine vbCrLf & "This is a temp file saveAs to save"
+    fs.WriteDivider
+    
+    selOnly = (lvSelCount(lv) > 1)
+    
+    For Each li In lv.ListItems
+        doIt = False
+        If selOnly Then
+            If li.selected Then doIt = True
+        Else
+            doIt = True
+        End If
+        If doIt Then
+            fPath = li.Tag
+            If fso.FileExists(fPath) Then
+                fs.WriteLine "File: " & fPath
+                fs.WriteLine FileProps.FileInfo(fPath).asStr
+                fs.WriteDivider
+            End If
+        End If
+    Next
+    
+    fs.fClose
+    Shell "notepad.exe """ & report & """", vbNormalFocus
+    
+End Sub
+
+Private Sub mnuMoveSelected_Click()
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim fPath As String
+    Dim newDir As String
+    Dim fName As String
+    Dim i As Long
+    Dim moved As Long, total As Long
+    
+    newDir = dlg.FolderDialog2(path)
+    If Len(newDir) = 0 Then Exit Sub
+    
+    For i = lv.ListItems.Count To 1 Step -1
+        Set li = lv.ListItems(i)
+        If li.selected Then
+            total = total + 1
+            fPath = li.Tag
+            fName = "\" & fso.FileNameFromPath(fPath)
+            If Not fso.FileExists(newDir & fName) Then
+                fso.Move fPath, newDir
+                lv.ListItems.Remove i
+                moved = moved + 1
+            End If
+        End If
+    Next
+    
+    MsgBox moved & "/" & total & " files moved", vbInformation
+    
+End Sub
+
 Private Sub mnuRecursiveHash_Click()
     frmRecursiveHashFiles.RecursiveHashDir path
 End Sub
@@ -275,7 +360,7 @@ Private Sub mnuUniqueImpHash_Click()
     Dim li As ListItem
     Dim c As New CollectionEx 'key = imphash, val = csv md5 list
     Dim pe As New CPEEditor
-    Dim ih As String, fpath As String
+    Dim ih As String, fPath As String
     Dim i As Long
     Dim r() As String
     Dim k() As String
@@ -288,8 +373,8 @@ Private Sub mnuUniqueImpHash_Click()
     push r, vbTab & "sample md5" & vbCrLf
     
     For Each li In lv.ListItems
-        fpath = li.Tag
-        If pe.LoadFile(fpath) Then
+        fPath = li.Tag
+        If pe.LoadFile(fPath) Then
                 ih = LCase(pe.impHash())
                 If c.keyExists(ih) Then
                     c(ih, 1) = c(ih) & "," & li.text 'did i mention i love CollectionEx?
@@ -528,25 +613,25 @@ Private Sub mnuCustomExtension_Click()
     
     For Each li In lv.ListItems
         i = 1
-        fpath = li.Tag
-        fname = li.text
-        pdir = fso.GetParentFolder(fpath) & "\"
+        fPath = li.Tag
+        fName = li.text
+        pdir = fso.GetParentFolder(fPath) & "\"
         
-        If InStrRev(fname, ".") > 1 Then
-            fname = Mid(fname, 1, InStrRev(fname, ".") - 1)
+        If InStrRev(fName, ".") > 1 Then
+            fName = Mid(fName, 1, InStrRev(fName, ".") - 1)
         End If
         
-        h = fname & ext
+        h = fName & ext
         
-        If LCase(VBA.Right(fname, 4)) = ".txt" Then GoTo nextone  'txt files are fine..
-        If LCase(VBA.Right(fname, Len(ext))) = LCase(ext) Then GoTo nextone   'already set
+        If LCase(VBA.Right(fName, 4)) = ".txt" Then GoTo nextone  'txt files are fine..
+        If LCase(VBA.Right(fName, Len(ext))) = LCase(ext) Then GoTo nextone   'already set
         
         While fso.FileExists(pdir & h) 'dont delete dups, but append counter onto end..
-            h = fname & "_" & i
+            h = fName & "_" & i
             i = i + 1
         Wend
         
-        Name fpath As pdir & h
+        Name fPath As pdir & h
     
         li.text = h
         li.Tag = pdir & h
@@ -819,7 +904,7 @@ Private Sub mnuHashDiff_Click()
     Dim unique1 As String
     Dim unique1_hits As Long
     
-    pth2 = dlg.FolderDialog(, Me.hwnd)
+    pth2 = dlg.FolderDialog2()
     If Len(pth2) = 0 Then Exit Sub
     
     Set f = New frmHash
@@ -901,21 +986,21 @@ Private Sub mnuMakeExtSafe_Click()
     
     For Each li In lv.ListItems
         i = 1
-        fpath = li.Tag
-        fname = li.text
-        pdir = fso.GetParentFolder(fpath) & "\"
-        h = fname & "_"
+        fPath = li.Tag
+        fName = li.text
+        pdir = fso.GetParentFolder(fPath) & "\"
+        h = fName & "_"
         
-        If LCase(VBA.Right(fname, 4)) = ".txt" Then GoTo nextone  'txt files are fine..
-        If InStr(fname, ".") < 1 Then GoTo nextone                'no extension
-        If VBA.Right(fname, 1) = "_" Then GoTo nextone            'already safe
+        If LCase(VBA.Right(fName, 4)) = ".txt" Then GoTo nextone  'txt files are fine..
+        If InStr(fName, ".") < 1 Then GoTo nextone                'no extension
+        If VBA.Right(fName, 1) = "_" Then GoTo nextone            'already safe
         
         While fso.FileExists(pdir & h) 'dont delete dups, but append counter onto end..
-            h = fname & "_" & i
+            h = fName & "_" & i
             i = i + 1
         Wend
         
-        Name fpath As pdir & h
+        Name fPath As pdir & h
     
         li.text = h
         li.Tag = pdir & h
@@ -934,13 +1019,13 @@ Private Sub mnuMakeSubFolders_Click()
     Dim li As ListItem
     Dim pdir As String
     Dim baseName As String
-    Dim fpath As String
+    Dim fPath As String
     
     For Each li In lv.ListItems
-        fpath = li.Tag
-        fname = li.text
-        pdir = fso.GetParentFolder(fpath) & "\"
-        baseName = fso.GetBaseName(fpath)
+        fPath = li.Tag
+        fName = li.text
+        pdir = fso.GetParentFolder(fPath) & "\"
+        baseName = fso.GetBaseName(fPath)
         MkDir pdir & baseName
     Next
         
@@ -960,20 +1045,20 @@ Private Sub mnuRenameToMD5_Click()
     
     For Each li In lv.ListItems
         i = 2
-        fpath = li.Tag
-        fname = li.text
+        fPath = li.Tag
+        fName = li.text
         h = li.SubItems(2)
-        pdir = fso.GetParentFolder(fpath) & "\"
+        pdir = fso.GetParentFolder(fPath) & "\"
         
         If InStr(h, "Error") >= 1 Then GoTo nextone
-        If LCase(fname) = LCase(h) Then GoTo nextone
+        If LCase(fName) = LCase(h) Then GoTo nextone
         While fso.FileExists(pdir & h) 'dont delete dups, but append counter onto end..
             h = li.SubItems(2) & "_" & i
             i = i + 1
         Wend
         
-        rlog = rlog & fname & vbTab & "->" & vbTab & h & vbCrLf
-        Name fpath As pdir & h
+        rlog = rlog & fName & vbTab & "->" & vbTab & h & vbCrLf
+        Name fPath As pdir & h
     
         li.text = h
         li.Tag = pdir & h
@@ -993,7 +1078,7 @@ Private Sub mnuSaveTable_Click()
     Dim pdir As String
     Dim ppdir As String
     Dim defName As String
-    Dim fname As String
+    Dim fName As String
     Dim dat As String
     Dim li As ListItem
     
@@ -1006,7 +1091,7 @@ Private Sub mnuSaveTable_Click()
     'fname = dlg.SaveDialog(AllFiles, pdir, "Save output as", True, Me.hwnd, defName)
     'If Len(fname) = 0 Then Exit Sub
     
-    fname = pdir & "\" & defName
+    fName = pdir & "\" & defName
     
     mnuCopyTable_Click
     
@@ -1014,7 +1099,7 @@ Private Sub mnuSaveTable_Click()
             Replace(path, ppdir, Empty) & _
             vbCrLf & vbCrLf & Clipboard.GetText
     
-    fso.WriteFile fname, dat
+    fso.WriteFile fName, dat
     
 End Sub
 

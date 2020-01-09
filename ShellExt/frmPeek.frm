@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "richtx32.ocx"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmStrings 
    Caption         =   "Strings"
    ClientHeight    =   5340
@@ -126,7 +126,6 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
-      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -266,9 +265,9 @@ Private Declare Function LockWindowUpdate Lib "user32" (ByVal hwndLock As Long) 
 
 Option Compare Binary
 
-Sub DisplayList(Data As String)
+Sub DisplayList(data As String)
     
-    rtf.text = Data
+    rtf.text = data
     Me.Show 1
     
 End Sub
@@ -331,10 +330,10 @@ Private Sub cmdFindAll_Click()
         Exit Sub
     End If
     
-    Dim Data As String
-    Data = Join(ret, vbCrLf)
+    Dim data As String
+    data = Join(ret, vbCrLf)
     
-    If Len(Data) = 0 Then
+    If Len(data) = 0 Then
         Me.Caption = "Search for: " & Text1 & " 0 hits"
         Exit Sub
     Else
@@ -342,7 +341,7 @@ Private Sub cmdFindAll_Click()
     End If
     
     f = fso.GetFreeFileName(Environ("temp"))
-    fso.WriteFile f, Data
+    fso.WriteFile f, data
     Shell "notepad.exe """ & f & """", vbNormalFocus
     
 End Sub
@@ -394,7 +393,7 @@ Private Sub Command3_Click()
     def = fso.GetBaseName(curFile)
     If Len(def) > 12 Then def = VBA.Left(def, 5)
     def = "str_" & def & ".txt"
-    f = dlg.SaveDialog(textFiles, pf, "Save Report as", , Me.hwnd, def)
+    f = dlg.SaveDialog(def, pf, "Save Report as")
     If Len(f) = 0 Then Exit Sub
     fso.WriteFile f, rtf.text
 End Sub
@@ -433,7 +432,7 @@ End Sub
 
 Private Sub Form_Resize()
     On Error Resume Next
-    rtf.Move 100, rtf.top, Me.Width - 400, Me.Height - rtf.top - 650
+    rtf.move 100, rtf.top, Me.Width - 400, Me.Height - rtf.top - 650
     pb.Width = rtf.Width
 End Sub
  
@@ -817,6 +816,7 @@ End Sub
 Private Sub mnuChangeFont_Click()
     Dim f As CFont
     On Error Resume Next
+    Dim dlg As New CCmnDlg
     Set f = dlg.ChooseFont(rtf)
     If Not f.selected Then Exit Sub
     rtf.Font.Name = f.Name
@@ -900,7 +900,7 @@ Private Sub mnuStringDiff_Click()
     
     On Error Resume Next
     
-    f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hwnd)
+    f2 = dlg.OpenDialog("", "Load String Dump")
     If Len(f2) = 0 Then Exit Sub
     
     c1.fromArray Split(rtf.text, vbCrLf), , True, True
@@ -933,7 +933,7 @@ Private Sub mnuStringMatch_Click()
     
     On Error Resume Next
     
-    f2 = dlg.OpenDialog(textFiles, , "Load String Dump", Me.hwnd)
+    f2 = dlg.OpenDialog("", "Load String Dump")
     If Len(f2) = 0 Then Exit Sub
     
     c1.fromArray Split(rtf.text, vbCrLf), , True, True

@@ -11,6 +11,14 @@ Begin VB.Form frmBulkDownload
    ScaleHeight     =   6000
    ScaleWidth      =   10410
    StartUpPosition =   2  'CenterScreen
+   Begin VB.TextBox txtLimit 
+      Height          =   285
+      Left            =   3300
+      TabIndex        =   8
+      Text            =   "-1"
+      Top             =   120
+      Width           =   615
+   End
    Begin VB.Timer Timer1 
       Left            =   4560
       Top             =   2760
@@ -81,12 +89,12 @@ Begin VB.Form frmBulkDownload
    End
    Begin VB.TextBox txtDir 
       Height          =   285
-      Left            =   3915
+      Left            =   5175
       OLEDropMode     =   1  'Manual
       TabIndex        =   2
       Text            =   "Supports drag and drop"
       Top             =   90
-      Width           =   4695
+      Width           =   3435
    End
    Begin VB.TextBox txtHash 
       Height          =   5415
@@ -97,13 +105,31 @@ Begin VB.Form frmBulkDownload
       Top             =   450
       Width           =   3750
    End
+   Begin VB.Label Label2 
+      Caption         =   "import"
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   8.25
+         Charset         =   0
+         Weight          =   400
+         Underline       =   -1  'True
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      ForeColor       =   &H00FF0000&
+      Height          =   255
+      Left            =   2100
+      TabIndex        =   7
+      Top             =   180
+      Width           =   555
+   End
    Begin VB.Label Label1 
-      Caption         =   "Hashs One per line or CSV                  save to  folder:"
+      Caption         =   "Hashs One per line or CSV                     limit                   save to  folder:"
       Height          =   240
-      Left            =   90
+      Left            =   60
       TabIndex        =   0
-      Top             =   90
-      Width           =   3750
+      Top             =   180
+      Width           =   5010
    End
 End
 Attribute VB_Name = "frmBulkDownload"
@@ -125,9 +151,20 @@ Private Sub cmdBrowse_Click()
     txtDir = x
 End Sub
 
+Function getLimit() As Long
+    On Error Resume Next
+    Dim limit As Long
+    limit = CLng(txtLimit)
+    If limit < 1 Then limit = 0
+    getLimit = limit
+End Function
+
 Private Sub cmdDownload_Click()
     
     Dim li As ListItem
+    Dim limit As Long
+    
+    limit = getLimit()
     
     If Not fso.FolderExists(txtDir) Then
         MsgBox "Set download folder", vbInformation
@@ -148,6 +185,9 @@ Private Sub cmdDownload_Click()
     pb.Max = UBound(tmp) + 1
     
     For Each x In tmp
+        If limit > 0 Then
+            If pb.value > limit Then Exit For
+        End If
         x = Trim(x)
         If Len(x) > 0 Then
             Set li = lv.ListItems.Add(, , x)
@@ -162,6 +202,7 @@ Private Sub cmdDownload_Click()
         DoEvents
         Me.Refresh
         pb.value = pb.value + 1
+        Me.Caption = pb.value & "/" & pb.Max
     Next
     
     pb.value = 0
@@ -171,6 +212,14 @@ End Sub
 Private Sub Form_Load()
     Set vt.Timer1 = Timer1
     Set vt.winInet = Inet1
+End Sub
+
+Private Sub Label2_Click()
+    Dim tmp As String
+    tmp = frmImport.ImportHashs()
+    If Len(tmp) > 0 Then
+        txtHash = tmp
+    End If
 End Sub
 
 Private Sub txtDir_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, xx As Single, y As Single)

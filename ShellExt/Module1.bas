@@ -19,7 +19,7 @@ Option Explicit
 
 Global fso As New clsFileSystem
 Global hash As New CWinHash
-Global dlg As New CCmnDlg 'clsCmnDlg
+Global dlg As New vbDevKit.CCmnDlg 'clsCmnDlg
 Global minStrLen As Long
 Global Const LANG_US = &H409
 Global myIcon As IPictureDisp
@@ -651,7 +651,7 @@ Function occuranceCount(haystack, match) As Long
     Dim tmp
     tmp = Split(haystack, match, , vbTextCompare)
     occuranceCount = UBound(tmp) + 1
-    If Err.Number <> 0 Then occuranceCount = 0
+    If Len(tmp(0)) = Len(haystack) Or Err.Number <> 0 Then occuranceCount = 0
 End Function
 
 Function AryIsEmpty(ary) As Boolean
@@ -820,7 +820,7 @@ End Function
 
  
 
-Private Function DetectFileType(buf As String, fname As String) As String
+Private Function DetectFileType(buf As String, fName As String) As String
     Dim dot As Long
     On Error GoTo hell
     
@@ -848,9 +848,9 @@ Private Function DetectFileType(buf As String, fname As String) As String
     ElseIf VBA.Left(buf, 4) = Chr(&H7F) & "ELF" Then
         DetectFileType = "ELF File"
     Else
-        dot = InStrRev(fname, ".")
-        If dot > 0 And dot <> Len(fname) Then
-            DetectFileType = UCase(Mid(fname, dot + 1)) & " File"
+        dot = InStrRev(fName, ".")
+        If dot > 0 And dot <> Len(fName) Then
+            DetectFileType = UCase(Mid(fName, dot + 1)) & " File"
             If Len(DetectFileType) > 12 Then DetectFileType = "Unknown File Type." '<-- subtle identifier ending period
         Else
             DetectFileType = "Unknown File Type"

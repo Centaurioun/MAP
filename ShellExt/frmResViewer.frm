@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Object = "{9A143468-B450-48DD-930D-925078198E4D}#1.1#0"; "hexed.ocx"
 Begin VB.Form frmResViewer 
    Caption         =   "Resource Viewer"
@@ -140,7 +140,7 @@ Private Sub mnuSave_Click()
     
     If selData Is Nothing Then Exit Sub
     
-    pth = dlg.SaveDialog(AllFiles, fso.GetParentFolder(pe.LoadedFile), , , , Replace(selData.path, "\", "_") & ".rsc")
+    pth = dlg.SaveDialog(Replace(selData.path, "\", "_") & ".rsc", fso.GetParentFolder(pe.LoadedFile))
     If Len(pth) = 0 Then Exit Sub
     
     If Not pe.Resources.SaveResource(pth, selData.path) Then
@@ -159,7 +159,7 @@ Private Sub mnuSaveAll_Click()
     
     If lv.ListItems.Count = 0 Then Exit Sub
     
-    pth = dlg.FolderDialog(fso.GetParentFolder(pe.LoadedFile))
+    pth = dlg.FolderDialog2(fso.GetParentFolder(pe.LoadedFile))
     If Len(pth) = 0 Then Exit Sub
     
     For Each li In lv.ListItems

@@ -50,6 +50,7 @@ Public positives
 Public total
 Public md5
 Public first_seen
+Public times_submitted
 
 Public LocalFilePath 'not part of VT response, we add manually for UI
 
@@ -96,6 +97,7 @@ Public Function GetReport() As String
     Else
 
         tmp = "Scan Date:   " & Me.scan_date & vbCrLf
+        If Len(times_submitted) > 0 Then tmp = tmp & "Submissions:  " & times_submitted & vbCrLf
         If Len(first_seen) > 0 Then tmp = tmp & "First Seen:  " & first_seen & vbCrLf
         
         tmp = tmp & "Hash:        " & Me.md5 & vbCrLf
@@ -127,6 +129,7 @@ Public Function BriefReport() As String
         tmp = verbose_msg
     Else
         tmp = "Scan Date:   " & Me.scan_date & vbCrLf
+        If Len(times_submitted) > 0 Then tmp = tmp & "Submissions:  " & times_submitted & vbCrLf
         If Len(first_seen) > 0 Then tmp = tmp & "First Seen:  " & first_seen & vbCrLf
         tmp = tmp & "Detections:  " & Me.positives & "/" & Me.total
     End If
@@ -151,6 +154,7 @@ Private Function FileNameFromPath(fullpath) As String
     End If
 End Function
 
+'called for every tag
 Private Function setbyname(name As Variant, value As Variant)
     
     If InStr(name, "{") > 0 Then name = Replace(name, "{", Empty)
@@ -174,6 +178,7 @@ Private Function setbyname(name As Variant, value As Variant)
         Case "total": total = value
         Case "md5": md5 = value
         Case "first_seen": first_seen = value
+        Case "times_submitted": times_submitted = value
     End Select
     
 End Function

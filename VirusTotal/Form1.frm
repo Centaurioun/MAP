@@ -6,11 +6,19 @@ Begin VB.Form Form1
    ClientHeight    =   7770
    ClientLeft      =   60
    ClientTop       =   630
-   ClientWidth     =   11190
+   ClientWidth     =   11910
    LinkTopic       =   "Form2"
    ScaleHeight     =   7770
-   ScaleWidth      =   11190
+   ScaleWidth      =   11910
    StartUpPosition =   2  'CenterScreen
+   Begin VB.TextBox txtLimit 
+      Height          =   285
+      Left            =   8520
+      TabIndex        =   13
+      Text            =   "-1"
+      Top             =   120
+      Width           =   675
+   End
    Begin VB.CheckBox chkSearchAll 
       Caption         =   "search all"
       Height          =   195
@@ -45,25 +53,25 @@ Begin VB.Form Form1
    Begin VB.CommandButton cmdBrowse 
       Caption         =   "..."
       Height          =   285
-      Left            =   8190
+      Left            =   7200
       TabIndex        =   8
-      Top             =   150
+      Top             =   120
       Width           =   645
    End
    Begin VB.TextBox txtCacheDir 
       Height          =   285
-      Left            =   3780
+      Left            =   3360
       TabIndex        =   7
       Text            =   "C:\VT_Cache\"
-      Top             =   120
-      Width           =   4335
+      Top             =   90
+      Width           =   3675
    End
    Begin VB.CheckBox chkCache 
       Caption         =   "Cache Reports"
       Height          =   285
-      Left            =   2130
+      Left            =   1710
       TabIndex        =   6
-      Top             =   120
+      Top             =   90
       Width           =   1545
    End
    Begin VB.Timer tmrDelay 
@@ -137,29 +145,34 @@ Begin VB.Form Form1
       BackColor       =   -2147483643
       BorderStyle     =   1
       Appearance      =   1
-      NumItems        =   5
+      NumItems        =   6
       BeginProperty ColumnHeader(1) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          Text            =   "hash"
          Object.Width           =   7056
       EndProperty
       BeginProperty ColumnHeader(2) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   1
-         Text            =   "detections"
-         Object.Width           =   2540
+         Text            =   "detects"
+         Object.Width           =   1411
       EndProperty
       BeginProperty ColumnHeader(3) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   2
-         Text            =   "Date"
-         Object.Width           =   2540
+         Text            =   "subs"
+         Object.Width           =   1235
       EndProperty
       BeginProperty ColumnHeader(4) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   3
-         Text            =   "First Seen"
+         Text            =   "date"
          Object.Width           =   2540
       EndProperty
       BeginProperty ColumnHeader(5) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   4
-         Text            =   "Description"
+         Text            =   "firstSeen"
+         Object.Width           =   2540
+      EndProperty
+      BeginProperty ColumnHeader(6) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
+         SubItemIndex    =   5
+         Text            =   "description"
          Object.Width           =   2540
       EndProperty
    End
@@ -178,6 +191,14 @@ Begin VB.Form Form1
       TabIndex        =   0
       Top             =   510
       Width           =   10935
+   End
+   Begin VB.Label Label1 
+      Caption         =   "Limit"
+      Height          =   255
+      Left            =   8040
+      TabIndex        =   12
+      Top             =   120
+      Width           =   375
    End
    Begin VB.Label Label3 
       Caption         =   "CSV Line Filters:"
@@ -212,6 +233,9 @@ Begin VB.Form Form1
       End
       Begin VB.Menu mnuCopyAll 
          Caption         =   "Copy All Results"
+      End
+      Begin VB.Menu mnuCopyAllProps 
+         Caption         =   "Copy All w/FileProps"
       End
       Begin VB.Menu mnuSaveReports 
          Caption         =   "Save Reports to Files"
@@ -285,8 +309,6 @@ Dim fso As New CFileSystem2
 
 Dim files As New Collection
 
-
-
 Private Sub cmdAbort_Click()
     vt.abort = True
 End Sub
@@ -307,7 +329,7 @@ End Sub
 
 
 Private Sub cmdQuery_Click()
-    
+    Dim limit As Long
     Dim report As String
     Dim detections As Long
     Dim li As ListItem
@@ -315,6 +337,9 @@ Private Sub cmdQuery_Click()
     Dim pth As String
     
     On Error Resume Next
+    
+    limit = CLng(txtLimit)
+    If limit < 1 Then limit = 0
     
     If lv.ListItems.count = 0 Then
         MsgBox "Load hashs first!"
@@ -338,16 +363,23 @@ Private Sub cmdQuery_Click()
         
     
     vt.abort = False
-    
+    pb.value = 0
     pb.Max = lv.ListItems.count
     vt.delayInterval = IIf(pb.Max < 5, 2500, 17300) 'cant exceed 4 requests per minute...
     List1.AddItem "Max: " & pb.Max & " Interval: " & vt.delayInterval
     
-    If Not vt.usingPrivateKey Then lv.ColumnHeaders(3).Width = 0 'first seen only available w/ priv ley
-
+    If Not vt.usingPrivateKey Then
+        lv.ColumnHeaders(2).Width = 0 'times submitted
+        lv.ColumnHeaders(3).Width = 0 'first seen only available w/ priv key
+    End If
+    
     For Each li In lv.ListItems
     
         If vt.abort Then Exit For
+        
+        If limit > 0 Then
+            If pb.value >= limit Then Exit For
+        End If
         
         If Len(Trim(li.Text)) = 0 Then GoTo nextone
         
@@ -357,10 +389,11 @@ Private Sub cmdQuery_Click()
         If Len(pth) > 0 Then scan.LocalFilePath = pth
     
         If Not scan.HadError Then
-            li.subItems(1) = scan.positives
-            li.subItems(2) = scan.scan_date
-            li.subItems(3) = scan.first_seen
-            li.subItems(4) = scan.verbose_msg
+            li.subItems(1) = Right("   " & scan.positives, 3)
+            li.subItems(2) = Right("   " & scan.times_submitted, 3)
+            li.subItems(3) = scan.scan_date
+            li.subItems(4) = scan.first_seen
+            li.subItems(5) = scan.verbose_msg
             Set li.Tag = scan
         Else
             li.subItems(1) = "Failure"
@@ -377,12 +410,14 @@ Private Sub cmdQuery_Click()
         DoEvents
         Me.Refresh
         pb.value = pb.value + 1
-        
+        Me.Caption = pb.value & "/" & pb.Max
         If pb.value = lv.ListItems.count Then GoTo nextone
         
 nextone:
     Next
     
+    lv.ListItems(1).EnsureVisible
+    lv.ListItems(1).Selected = True
     lv_ItemClick lv.ListItems(1)
     pb.value = 0
     'MsgBox "Queries Complete" & vbCrLf & vbcrllf & "Click on an item to view report.", vbInformation
@@ -508,7 +543,31 @@ Public Sub LV_ColumnSort(ListViewControl As ListView, Column As ColumnHeader)
     End With
 End Sub
 
-
+Function lvGetAllElements(lv As Object, Optional divider As String = vbTab) As String
+    Dim ret() As String, i As Integer, tmp As String
+    Dim li 'As ListItem
+    
+    On Error Resume Next
+    
+    For i = 1 To lv.ColumnHeaders.count
+        tmp = tmp & lv.ColumnHeaders(i).Text & divider
+    Next
+    
+    push ret, tmp
+    push ret, String(50, "-")
+        
+    For Each li In lv.ListItems
+        tmp = Trim(li.Text) & divider
+        For i = 1 To lv.ColumnHeaders.count - 1
+            tmp = tmp & " " & Trim(li.subItems(i)) & divider
+        Next
+        If Right(tmp, Len(divider)) = divider Then tmp = Left(tmp, Len(tmp) - Len(divider))
+        push ret, tmp
+    Next
+    
+    lvGetAllElements = Join(ret, vbCrLf)
+    
+End Function
 
 Function IsIde() As Boolean
 ' Brad Martinez  http://www.mvps.org/ccrp
@@ -698,12 +757,7 @@ Private Sub mnuCopyAll_Click()
     
     On Error Resume Next
     
-    For Each li In lv.ListItems
-        r = r & li.Text & "  Detections: " & li.subItems(1) & "  ScanDate: " & li.subItems(2)
-        If vt.usingPrivateKey Then r = r & "  First Seen: " & li.subItems(3)
-        r = r & vbCrLf
-    Next
-    
+    r = lvGetAllElements(lv, ",")
     r = r & vbCrLf & vbCrLf
     
     For Each li In lv.ListItems
@@ -720,9 +774,49 @@ Private Sub mnuCopyAll_Click()
     
 End Sub
 
+Private Sub mnuCopyAllProps_Click()
+    
+    Dim li As ListItem
+    Dim r
+    Dim s As CScan
+    Dim ret() As String, i As Integer, tmp() As String
+    Dim fp As New CFileProperties
+    Dim fs As New clsFileStream
+    Dim report As String
+    
+    On Error Resume Next
+    
+    report = fso.GetFreeFileName(Environ("temp"))
+    fs.fOpen report, otwriting
+    fs.WriteLine vbCrLf & "This is a temp file saveAs to save"
+    fs.WriteDivider
+    
+    For Each li In lv.ListItems
+        fs.WriteLine "Hash: " & Trim(li.Text)
+        
+        For i = 2 To lv.ColumnHeaders.count
+            fs.WriteLine lv.ColumnHeaders(i).Text & ": " & Trim(li.subItems(i - 1))
+        Next
+        
+        Set s = li.Tag
+        If Not s Is Nothing Then
+            If fso.FileExists(s.LocalFilePath) Then
+                fs.WriteLine "File: " & fso.FileNameFromPath(s.LocalFilePath)
+                fs.WriteLine "Props: " & fp.FileInfo(s.LocalFilePath).asStr()
+            End If
+        End If
+        
+        fs.WriteDivider
+    Next
+    
+    fs.fClose
+    Shell "notepad.exe """ & report & """", vbNormalFocus
+    
+End Sub
+
 Private Sub mnuCopyResult_Click()
 
-On Error Resume Next
+    On Error Resume Next
 
     If selli Is Nothing Then
         MsgBox "Nothing selected"
@@ -733,8 +827,10 @@ On Error Resume Next
     Dim scan As CScan
     Set scan = selli.Tag
     
-    r = selli.Text & "  Detections: " & selli.subItems(1) & "  ScanDate: " & li.subItems(2)
-    If vt.usingPrivateKey Then r = r & "  First Seen: " & li.subItems(3)
+    r = selli.Text & "  Detections: " & selli.subItems(1)
+    If vt.usingPrivateKey Then r = r & "  Submissions: " & li.subItems(2)
+    r = r & "  ScanDate: " & li.subItems(3)
+    If vt.usingPrivateKey Then r = r & "  First Seen: " & li.subItems(4)
     r = r & vbCrLf & String(50, "-") & vbCrLf & scan.GetReport()
     
     Clipboard.Clear
@@ -745,26 +841,39 @@ End Sub
 
 Private Sub mnuCopyTable_Click()
 
-On Error Resume Next
-
     Dim li As ListItem
     Dim r
     Dim s As CScan
+    Dim ret() As String, i As Integer, tmp As String
     
+    On Error Resume Next
+    
+    For i = 1 To lv.ColumnHeaders.count
+        tmp = tmp & lv.ColumnHeaders(i).Text & ","
+    Next
+    
+    push ret, tmp & "file"
+    push ret, String(50, "-")
+        
     For Each li In lv.ListItems
-        r = r & li.Text & "  Detections: " & li.subItems(1) & "  ScanDate: " & li.subItems(2)
-        If vt.usingPrivateKey Then r = r & "  First Seen: " & li.subItems(3)
+        tmp = Trim(li.Text) & ","
+        
+        For i = 1 To lv.ColumnHeaders.count - 1
+            tmp = tmp & " " & Trim(li.subItems(i)) & ","
+        Next
         
         Set s = li.Tag
         If Not s Is Nothing Then
             If Len(s.LocalFilePath) > 0 Then
-                r = r & "  File: " & fso.FileNameFromPath(s.LocalFilePath)
+                tmp = tmp & " " & fso.FileNameFromPath(s.LocalFilePath)
             End If
         End If
         
-        r = r & vbCrLf
+        push ret, tmp
     Next
     
+    r = Join(ret, vbCrLf)
+
     Clipboard.Clear
     Clipboard.SetText r
     MsgBox Len(r) & " bytes copied to clipboard"
