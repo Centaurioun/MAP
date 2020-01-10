@@ -146,7 +146,7 @@ Dim dlg As New CCmnDlg
 
 Private Sub cmdBrowse_Click()
     Dim x As String
-    x = dlg.FolderDialog2()
+    x = dlg.FolderDialog2(txtDir)
     If Len(x) = 0 Then Exit Sub
     txtDir = x
 End Sub

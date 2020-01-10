@@ -237,6 +237,9 @@ Begin VB.Form Form1
       Begin VB.Menu mnuCopyAllProps 
          Caption         =   "Copy All w/FileProps"
       End
+      Begin VB.Menu mnuMoveSelected 
+         Caption         =   "Move Selected"
+      End
       Begin VB.Menu mnuSaveReports 
          Caption         =   "Save Reports to Files"
       End
@@ -307,7 +310,7 @@ Dim scan As CScan
 Dim dlg As New CCmnDlg
 Dim fso As New CFileSystem2
 
-Dim files As New Collection
+Dim files As New Collection 'of cfile
 
 Private Sub cmdAbort_Click()
     vt.abort = True
@@ -322,7 +325,7 @@ End Sub
 
 Private Sub cmdBrowse_Click()
     Dim f As String
-    f = dlg.FolderDialog2()
+    f = dlg.FolderDialog2(txtCacheDir)
     If Len(f) = 0 Then Exit Sub
     txtCacheDir = f
 End Sub
@@ -497,7 +500,7 @@ Private Sub mnuAddHashs_Click()
         End If
         x = Trim(x)
         If Len(x) > 0 Then
-            If InStr(x, ",") > 0 Then 'new "hash,path" format
+            If InStr(x, ",") > 0 Then 'new "hash,path" format (is hash always md5? probably...)
                 y = Split(x, ",")
                 Set f = New CFile
                 f.hash = y(0)
@@ -645,6 +648,8 @@ Private Sub Form_Load()
         End If
         Unload Me
     End If
+    
+    mnuMoveSelected.Visible = (files.count > 0)
     
     Exit Sub
 errorStartup:
@@ -880,12 +885,65 @@ Private Sub mnuCopyTable_Click()
     
 End Sub
 
+Private Sub mnuMoveSelected_Click()
+    
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim fpath As String
+    Dim newDir As String
+    Dim fName As String
+    Dim i As Long
+    Dim moved As Long, total As Long
+    
+    fpath = fileFromHash(lv.ListItems(1).Text)
+    If fso.FileExists(fpath) Then
+         fpath = fso.GetParentFolder(fpath)
+    Else
+         fpath = Empty
+    End If
+                
+    newDir = dlg.FolderDialog2(fpath)
+    If Len(newDir) = 0 Then Exit Sub
+    
+    For i = lv.ListItems.count To 1 Step -1
+        Set li = lv.ListItems(i)
+        If li.Selected Then
+            total = total + 1
+            fpath = fileFromHash(li.Text)
+            If fso.FileExists(fpath) Then
+                fName = "\" & fso.FileNameFromPath(fpath)
+                If Not fso.FileExists(newDir & fName) Then
+                    fso.Move fpath, newDir
+                    lv.ListItems.remove i
+                    moved = moved + 1
+                End If
+            End If
+        End If
+    Next
+    
+    MsgBox moved & "/" & total & " files moved", vbInformation
+    
+End Sub
+
+Function fileFromHash(hash, Optional remove As Boolean = True) As String
+    Dim f As CFile
+    For i = 1 To files.count
+        Set f = files(i)
+        If LCase(f.hash) = LCase(hash) Then
+            fileFromHash = f.path
+            If remove Then files.remove i
+            Exit Function
+        End If
+    Next
+End Function
+
 Private Sub mnuPrune_Click()
     Dim li As ListItem
     On Error Resume Next
     For i = lv.ListItems.count To 1 Step -1
         Set li = lv.ListItems(i)
-        If li.subItems(1) = "0" Then lv.ListItems.Remove i
+        If li.subItems(1) = "0" Then lv.ListItems.remove i
     Next
 End Sub
 
@@ -893,7 +951,7 @@ Private Sub mnuRemoveSelected_Click()
     On Error Resume Next
     
     For i = lv.ListItems.count To 1 Step -1
-        If lv.ListItems(i).Selected Then lv.ListItems.Remove i
+        If lv.ListItems(i).Selected Then lv.ListItems.remove i
     Next
     
 End Sub
@@ -902,7 +960,7 @@ Private Sub mnuRemoveUnsel_Click()
  On Error Resume Next
     
     For i = lv.ListItems.count To 1 Step -1
-        If Not lv.ListItems(i).Selected Then lv.ListItems.Remove i
+        If Not lv.ListItems(i).Selected Then lv.ListItems.remove i
     Next
     
 End Sub

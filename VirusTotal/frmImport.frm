@@ -9,6 +9,36 @@ Begin VB.Form frmImport
    ScaleHeight     =   7125
    ScaleWidth      =   14130
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton cmdUndo 
+      Caption         =   "Undo"
+      Height          =   315
+      Left            =   7800
+      TabIndex        =   12
+      Top             =   60
+      Width           =   615
+   End
+   Begin VB.CommandButton cmdReplace 
+      Caption         =   "Replace"
+      Height          =   315
+      Left            =   6960
+      TabIndex        =   11
+      Top             =   60
+      Width           =   795
+   End
+   Begin VB.TextBox txtReplace 
+      Height          =   285
+      Left            =   5880
+      TabIndex        =   10
+      Top             =   120
+      Width           =   795
+   End
+   Begin VB.TextBox txtFind 
+      Height          =   285
+      Left            =   4500
+      TabIndex        =   9
+      Top             =   120
+      Width           =   675
+   End
    Begin VB.TextBox txtElemIndex 
       Height          =   315
       Left            =   3000
@@ -77,6 +107,24 @@ Begin VB.Form frmImport
       Top             =   420
       Width           =   11235
    End
+   Begin VB.Label Label3 
+      Caption         =   "Find                 Replace"
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   8.25
+         Charset         =   0
+         Weight          =   400
+         Underline       =   -1  'True
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      ForeColor       =   &H00FF0000&
+      Height          =   315
+      Left            =   4140
+      TabIndex        =   8
+      Top             =   120
+      Width           =   2895
+   End
    Begin VB.Label Label2 
       Caption         =   "Elem Index"
       Height          =   255
@@ -100,6 +148,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
+Dim undo As String
 
 Private Sub cmdComplete_Click()
     Me.Visible = False
@@ -122,6 +171,33 @@ Function ImportHashs(Optional x = "") As String
     Unload Me
     
 End Function
+
+Private Sub cmdReplace_Click()
+    Dim r As String, f As String
+    
+    f = Replace(txtFind, "/tab", vbTab)
+    f = Replace(f, "/crlf", vbCrLf)
+    f = Replace(f, "/cr", vbCr)
+    f = Replace(f, "/lf", vbLf)
+    
+    r = Replace(txtReplace, "/tab", vbTab)
+    r = Replace(r, "/crlf", vbCrLf)
+    r = Replace(r, "/cr", vbCr)
+    r = Replace(r, "/lf", vbLf)
+     
+    undo = txtIn
+    txtIn = Replace(txtIn, f, r)
+    
+End Sub
+
+Private Sub cmdUndo_Click()
+    If Len(undo) > 0 Then
+        txtIn = undo
+        undo = Empty
+    Else
+        MsgBox "No undo action available did you do a replace?", vbInformation
+    End If
+End Sub
 
 Private Sub Command1_Click()
     Dim x, y() As String
@@ -168,3 +244,6 @@ Function standarize(x)
     standarize = x
 End Function
  
+Private Sub Label3_Click()
+    MsgBox "Supports /tab /crlf /cr /lf", vbInformation
+End Sub
