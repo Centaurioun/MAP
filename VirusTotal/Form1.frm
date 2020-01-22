@@ -273,10 +273,13 @@ Begin VB.Form Form1
       Begin VB.Menu mnuLoadH 
          Caption         =   "Load Hashs from"
          Begin VB.Menu mnuAddHashsFile 
-            Caption         =   "File"
+            Caption         =   "Text File"
          End
          Begin VB.Menu mnuAddHashs 
             Caption         =   "Clipboard"
+         End
+         Begin VB.Menu mnuHashForDir 
+            Caption         =   "Directory of Files"
          End
       End
       Begin VB.Menu mnuViewRaw 
@@ -321,6 +324,7 @@ Private Sub cmdClear_Click()
     lv.ListItems.Clear
     Text2 = Empty
     Set selli = Nothing
+    Set files = New Collection
 End Sub
 
 Private Sub cmdBrowse_Click()
@@ -885,6 +889,41 @@ Private Sub mnuCopyTable_Click()
     
 End Sub
 
+Private Sub mnuHashForDir_Click()
+    On Error Resume Next
+    Dim d As String, c() As String, x, isRecur As Boolean, li As ListItem, hash As New CWinHash, f As CFile
+    d = dlg.FolderDialog2()
+    If Len(d) = 0 Then Exit Sub
+    If Not AryIsEmpty(fso.GetSubFolders(d)) Then
+        isRecur = (MsgBox("Recursive search?", vbYesNo) = vbYes)
+    End If
+    c = fso.GetFolderFiles(d, , , isRecur)
+    If AryIsEmpty(c) Then Exit Sub
+    pb.Max = UBound(c)
+    pb.value = 0
+    For Each x In c
+        Set f = New CFile
+        f.hash = hash.HashFile(CStr(x))
+        f.path = x
+        lv.ListItems.Add , , f.hash
+        files.Add f
+        pb.value = pb.value + 1
+    Next
+    pb.value = 0
+    Me.Caption = pb.Max & " hashs added"
+End Sub
+
+
+
+Function AryIsEmpty(ary) As Boolean
+  On Error GoTo oops
+    Dim i
+    i = UBound(ary)  '<- throws error if not initalized
+    AryIsEmpty = False
+  Exit Function
+oops: AryIsEmpty = True
+End Function
+
 Private Sub mnuMoveSelected_Click()
     
     On Error Resume Next
@@ -943,7 +982,10 @@ Private Sub mnuPrune_Click()
     On Error Resume Next
     For i = lv.ListItems.count To 1 Step -1
         Set li = lv.ListItems(i)
-        If li.subItems(1) = "0" Then lv.ListItems.remove i
+        If li.subItems(1) = "0" Then
+            fileFromHash li.Text, True
+            lv.ListItems.remove i
+        End If
     Next
 End Sub
 
@@ -951,7 +993,10 @@ Private Sub mnuRemoveSelected_Click()
     On Error Resume Next
     
     For i = lv.ListItems.count To 1 Step -1
-        If lv.ListItems(i).Selected Then lv.ListItems.remove i
+        If lv.ListItems(i).Selected Then
+            fileFromHash li.Text, True
+            lv.ListItems.remove i
+        End If
     Next
     
 End Sub
@@ -960,7 +1005,10 @@ Private Sub mnuRemoveUnsel_Click()
  On Error Resume Next
     
     For i = lv.ListItems.count To 1 Step -1
-        If Not lv.ListItems(i).Selected Then lv.ListItems.remove i
+        If Not lv.ListItems(i).Selected Then
+            fileFromHash li.Text, True
+            lv.ListItems.remove i
+        End If
     Next
     
 End Sub

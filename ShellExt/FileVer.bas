@@ -37,6 +37,7 @@ Private Declare Function lstrcpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString
 Private Declare Function FindWindow Lib "user32" Alias "FindWindowA" (ByVal lpClassName As String, ByVal lpWindowName As String) As Long
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (hpvDest As Any, hpvSource As Any, ByVal cbCopy As Long)
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
+Private Declare Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
 
 
 Private Type COPYDATASTRUCT
@@ -103,10 +104,50 @@ Private Declare Function dieScanEx Lib "diedll.dll" Alias "_DIE_scanExA@20" (ByV
 Private Declare Function dieVer Lib "diedll.dll" Alias "_DIE_versionA@0" () As Long
 Private Declare Function SetDllDirectory Lib "kernel32" Alias "SetDllDirectoryA" (ByVal path As String) As Long
 
+'Enum vbKeys
+'    vbk_LeftMouseButton = 1
+'    vbk_MiddleMouseButton = 4
+'    vbk_RightMouseButton = 2
+'End Enum
+
 'Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function lstrlenA Lib "kernel32" (ByVal lpString As Long) As Long
 
 Global FileProps As New CFileProperties
+
+Function GetKeyState(k As KeyCodeConstants) As Boolean
+    If GetAsyncKeyState(k) Then GetKeyState = True
+End Function
+
+Public Function FileSize(fpathOrSize, Optional showBytes As Boolean = True) As String
+    Dim fsize As Long
+    Dim szName As String
+    On Error GoTo hell
+    
+    If fso.FileExists(CStr(fpathOrSize)) Then
+        fsize = FileLen(fpathOrSize)
+    Else
+        fsize = CLng(fpathOrSize)
+    End If
+    
+    If showBytes Then szName = " bytes"
+    
+    If fsize > 1024 Then
+        fsize = fsize / 1024
+        szName = " Kb"
+    End If
+    
+    If fsize > 1024 Then
+        fsize = fsize / 1024
+        szName = " Mb"
+    End If
+    
+    FileSize = fsize & szName
+    
+    Exit Function
+hell:
+    
+End Function
 
 'Private Type debugDir
 '    Characteristics As Long
@@ -187,7 +228,7 @@ Function DieVersion() As String
     
 End Function
 
-Function DiEScan(fPath As String, ByRef outVal) As Boolean
+Function DiEScan(fpath As String, ByRef outVal) As Boolean
     Dim v As Long
     Dim buf As String
     Dim flags As Long
@@ -204,7 +245,7 @@ Function DiEScan(fPath As String, ByRef outVal) As Boolean
     flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SINGLELINEOUTPUT 'Or DIE_SHOWENTROPY
     buf = String(1000, Chr(0))
     'v = DiEScanA(fPath, buf, Len(buf), flags)
-    v = dieScanEx(fPath, buf, Len(buf), flags, App.path & IIf(IsIde(), "\..", "") & "\die\db\")
+    v = dieScanEx(fpath, buf, Len(buf), flags, App.path & IIf(IsIde(), "\..", "") & "\die\db\")
     
     a = InStr(buf, Chr(0))
     If a > 0 Then buf = Left(buf, a - 1)
