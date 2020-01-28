@@ -145,7 +145,7 @@ Begin VB.Form Form1
       BackColor       =   -2147483643
       BorderStyle     =   1
       Appearance      =   1
-      NumItems        =   6
+      NumItems        =   7
       BeginProperty ColumnHeader(1) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          Text            =   "hash"
          Object.Width           =   7056
@@ -162,16 +162,21 @@ Begin VB.Form Form1
       EndProperty
       BeginProperty ColumnHeader(4) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   3
-         Text            =   "date"
+         Text            =   "size"
          Object.Width           =   2540
       EndProperty
       BeginProperty ColumnHeader(5) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   4
-         Text            =   "firstSeen"
+         Text            =   "date"
          Object.Width           =   2540
       EndProperty
       BeginProperty ColumnHeader(6) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   5
+         Text            =   "firstSeen"
+         Object.Width           =   2540
+      EndProperty
+      BeginProperty ColumnHeader(7) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
+         SubItemIndex    =   6
          Text            =   "description"
          Object.Width           =   2540
       EndProperty
@@ -313,8 +318,18 @@ Dim scan As CScan
 Dim dlg As New CCmnDlg
 Dim fso As New CFileSystem2
 
+Dim humanReadableSizes As Boolean
 Dim files As New Collection 'of cfile
+Private Declare Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
 
+'current subitems:
+    'li.subItems(1) = Right("   " & scan.positives, 3)
+    'li.subItems(2) = Right("   " & scan.times_submitted, 3)
+    'li.subItems(3) = lpad(scan.CodeSize, 12)
+    'li.subItems(4) = scan.scan_date
+    'li.subItems(5) = scan.first_seen
+    'li.subItems(6) = scan.verbose_msg
+            
 Private Sub cmdAbort_Click()
     vt.abort = True
 End Sub
@@ -376,8 +391,8 @@ Private Sub cmdQuery_Click()
     List1.AddItem "Max: " & pb.Max & " Interval: " & vt.delayInterval
     
     If Not vt.usingPrivateKey Then
-        lv.ColumnHeaders(2).Width = 0 'times submitted
-        lv.ColumnHeaders(3).Width = 0 'first seen only available w/ priv key
+        lv.ColumnHeaders(2).Width = 0 'times submitted 'codesize(3) avail to all?
+        lv.ColumnHeaders(5).Width = 0 'first seen only available w/ priv key
     End If
     
     For Each li In lv.ListItems
@@ -398,9 +413,10 @@ Private Sub cmdQuery_Click()
         If Not scan.HadError Then
             li.subItems(1) = Right("   " & scan.positives, 3)
             li.subItems(2) = Right("   " & scan.times_submitted, 3)
-            li.subItems(3) = scan.scan_date
-            li.subItems(4) = scan.first_seen
-            li.subItems(5) = scan.verbose_msg
+            li.subItems(3) = lpad(scan.CodeSize, 12)
+            li.subItems(4) = scan.scan_date
+            li.subItems(5) = scan.first_seen
+            li.subItems(6) = scan.verbose_msg
             Set li.Tag = scan
         Else
             li.subItems(1) = "Failure"
@@ -432,6 +448,15 @@ nextone:
  
 End Sub
 
+Function lpad(x, Optional cnt = 8) As String
+    
+    If Len(x) >= cnt Then
+        lpad = x
+    Else
+        lpad = String(cnt - Len(x), " ") & x
+    End If
+    
+End Function
 
 
 Private Sub Command2_Click()
@@ -680,9 +705,65 @@ Private Sub lv_ItemClick(ByVal Item As MSComctlLib.ListItem)
     End If
 End Sub
 
+Function GetKeyState(k As KeyCodeConstants) As Boolean
+    If GetAsyncKeyState(k) Then GetKeyState = True
+End Function
+
 Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
-    LV_ColumnSort lv, ColumnHeader
+    'LV_ColumnSort lv, ColumnHeader
+    On Error Resume Next
+    Dim li As ListItem, c As CScan
+    
+    If GetKeyState(vbKeyShift) Then
+        If humanReadableSizes Then
+            humanReadableSizes = False
+            For Each li In lv.ListItems
+                Set c = li.Tag
+                li.subItems(3) = lpad(c.CodeSize, 12)
+            Next
+        Else
+            humanReadableSizes = True
+            For Each li In lv.ListItems
+                Set c = li.Tag
+                li.subItems(3) = lpad(FileSize(c.CodeSize, False))
+            Next
+        End If
+    Else
+        LV_ColumnSort lv, ColumnHeader
+    End If
+    
 End Sub
+
+Public Function FileSize(fpathOrSize, Optional showBytes As Boolean = True) As String
+    Dim fsize As Long
+    Dim szName As String
+    On Error GoTo hell
+    
+    If fso.FileExists(CStr(fpathOrSize)) Then
+        fsize = FileLen(fpathOrSize)
+    Else
+        fsize = CLng(fpathOrSize)
+    End If
+    
+    If showBytes Then szName = " bytes"
+    
+    If fsize > 1024 Then
+        fsize = fsize / 1024
+        szName = " Kb"
+    End If
+    
+    If fsize > 1024 Then
+        fsize = fsize / 1024
+        szName = " Mb"
+    End If
+    
+    FileSize = fsize & szName
+    
+    Exit Function
+hell:
+    
+End Function
+
 
 Private Function PathForHash(hash As String) As String
     Dim f As CFile
@@ -1028,14 +1109,20 @@ Private Sub mnuRescanSelected_Click()
                 If Len(pth) > 0 Then scan.LocalFilePath = pth
                 
                 If Not scan.HadError Then
-                    li.subItems(1) = scan.positives
-                    li.subItems(2) = scan.scan_date
-                    li.subItems(3) = scan.verbose_msg
+                    li.subItems(1) = Right("   " & scan.positives, 3)
+                    li.subItems(2) = Right("   " & scan.times_submitted, 3)
+                    li.subItems(3) = lpad(scan.CodeSize, 12)
+                    li.subItems(4) = scan.scan_date
+                    li.subItems(5) = scan.first_seen
+                    li.subItems(6) = scan.verbose_msg
                     Set li.Tag = scan
                 Else
                     li.subItems(1) = "Failure"
                     li.subItems(2) = Empty
                     li.subItems(3) = Empty
+                    li.subItems(4) = Empty
+                    li.subItems(5) = Empty
+                    li.subItems(6) = Empty
                     Set li.Tag = Nothing
                     Set vt = New CVirusTotal
                 End If

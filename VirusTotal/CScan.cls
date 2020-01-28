@@ -51,6 +51,7 @@ Public total
 Public md5
 Public first_seen
 Public times_submitted
+Public CodeSize
 
 Public LocalFilePath 'not part of VT response, we add manually for UI
 
@@ -179,6 +180,7 @@ Private Function setbyname(name As Variant, value As Variant)
         Case "md5": md5 = value
         Case "first_seen": first_seen = value
         Case "times_submitted": times_submitted = value
+        Case "codesize": CodeSize = value
     End Select
     
 End Function
