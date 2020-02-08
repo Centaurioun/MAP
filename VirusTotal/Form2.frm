@@ -232,7 +232,7 @@ Public Function StartFromFile(fpath As String)
     txtHash = md5.HashFile(fpath)
     Set scan = vt.GetReport(txtHash)
     Text1 = scan.GetReport()
-
+ 
 End Function
 
 
@@ -256,7 +256,7 @@ Public Function StartFromHash(hash As String)
     txtHash = hash
     Set scan = vt.GetReport(hash)
     Text1 = scan.GetReport()
-    
+  
 End Function
 
 Private Function FileExists(p) As Boolean

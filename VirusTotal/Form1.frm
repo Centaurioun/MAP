@@ -316,7 +316,7 @@ Dim vt As New CVirusTotal
 Dim selli As ListItem
 Dim scan As CScan
 Dim dlg As New CCmnDlg
-Dim fso As New CFileSystem2
+'Dim fso As New CFileSystem2
 
 Dim humanReadableSizes As Boolean
 Dim files As New Collection 'of cfile
@@ -350,7 +350,7 @@ Private Sub cmdBrowse_Click()
 End Sub
 
 
-Private Sub cmdQuery_Click()
+Sub cmdQuery_Click()
     Dim limit As Long
     Dim report As String
     Dim detections As Long
@@ -498,7 +498,7 @@ Private Sub Form_Unload(Cancel As Integer)
     SaveSetting "vt", "settings", "usecache", chkCache.value
 End Sub
 
-Private Sub mnuAddHashs_Click()
+Sub mnuAddHashs_Click()
     On Error Resume Next
     Dim f As CFile
     Dim tmp
@@ -608,6 +608,13 @@ Function IsIde() As Boolean
 out: IsIde = Err
 End Function
 
+Sub errorStartup()
+    List1.AddItem "Designed to be run from right click menus in explorer."
+    List1.AddItem "You can add bulk hash lists to lookup by right click on listview"
+    List1.AddItem "If you have a private api key set, you can use Options->Bulk Download"
+    Me.Show
+End Sub
+
 Private Sub Form_Load()
     
     On Error Resume Next
@@ -633,59 +640,10 @@ Private Sub Form_Load()
     
     lv.ColumnHeaders(5).Width = lv.Width - lv.ColumnHeaders(5).Left - 150
     
-    'bulk can be a raw crlf hash list, or it can be a crlf hash,file list in which case submit is available, as well as file path included in report..
-    If InStr(Command, "/bulk") > 0 Then
-       If InStr(Command, "/bulktest") > 0 Then
-            Clipboard.Clear
-            limit = 4
-            Clipboard.SetText Join(Split("f99e279d071fedc77073c4f979672a3c,e9e63cbcee86fa508856c84fdd5a8438,55c8660374ba2e76aa56012f0e48fbbf,6e7a8fe5ca03d765c1aebf9df7461da9,2f52937aab6f97dbf2b20b3d4a4b1226,c31b2f42c15d3c0080c8c694c569e8,e069c340a2237327e270d9bd5b9ed1dc,ab1de766e7fca8269efe04c9d6f91af0,142b70232a81a067673784e4e99e8165,60bf1bace9662117d5e0f1b2a825e5f3,6e6c35ad1d5271be255b2776f848521,bb41f3db526e35d722409086e3a7d111,00bdaecd9c8493b24488d5be0ff7393a,7b83a45568a8f8d8cdffcef70b95cb05,aa1e8e25bd36c313f4febe200c575fc7,f6e5d212dd791931d7138a106c42376c,e6c129c0694c043d8dda1afa60791cbf,3e4d1b61653fedeba122b33d15e1377d,48821e738e56d8802a89e28e1cab224d", ",", limit), vbCrLf)
-       End If
-       Me.Show
-       mnuAddHashs_Click
-       cmdQuery_Click
-       
-    ElseIf InStr(Command, "/submit") > 0 Then
-        
-        If InStr(Command, "/submitbulk") > 0 Then
-            frmSubmit.SubmitBulk
-        Else
-           path = Replace(Command, """", Empty)
-           path = Replace(path, "/submit", Empty)
-           path = Trim(path)
-           If Not fso.FileExists(path) Then
-                MsgBox "File not found for /submit path=" & path, vbInformation
-                End
-           End If
-           frmSubmit.SubmitFile CStr(path)
-        End If
-        
-        Unload Me
-        
-    Else
-        hash_mode = IIf(InStr(Command, "/hash") > 0, True, False)
-        path = Replace(Command, """", Empty)
-        If hash_mode Then path = Replace(path, "/hash", Empty)
-        path = Trim(path)
-        
-        If Len(path) = 0 Then GoTo errorStartup
-            
-        If hash_mode Then
-            Form2.StartFromHash path
-        Else
-            If Not fso.FileExists(path) Then GoTo errorStartup
-            Form2.StartFromFile path
-        End If
-        Unload Me
-    End If
-    
     mnuMoveSelected.Visible = (files.count > 0)
     
     Exit Sub
-errorStartup:
-    List1.AddItem "Designed to be run from right click menus in explorer."
-    List1.AddItem "You can add bulk hash lists to lookup by right click on listview"
-    List1.AddItem "If you have a private api key set, you can use Options->Bulk Download"
-    Me.Show
+
 End Sub
 
 
@@ -735,29 +693,29 @@ Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
 End Sub
 
 Public Function FileSize(fpathOrSize, Optional showBytes As Boolean = True) As String
-    Dim fsize As Long
+    Dim fSize As Long
     Dim szName As String
     On Error GoTo hell
     
     If fso.FileExists(CStr(fpathOrSize)) Then
-        fsize = FileLen(fpathOrSize)
+        fSize = FileLen(fpathOrSize)
     Else
-        fsize = CLng(fpathOrSize)
+        fSize = CLng(fpathOrSize)
     End If
     
     If showBytes Then szName = " bytes"
     
-    If fsize > 1024 Then
-        fsize = fsize / 1024
+    If fSize > 1024 Then
+        fSize = fSize / 1024
         szName = " Kb"
     End If
     
-    If fsize > 1024 Then
-        fsize = fsize / 1024
+    If fSize > 1024 Then
+        fSize = fSize / 1024
         szName = " Mb"
     End If
     
-    FileSize = fsize & szName
+    FileSize = fSize & szName
     
     Exit Function
 hell:

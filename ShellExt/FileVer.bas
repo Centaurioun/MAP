@@ -228,7 +228,7 @@ Function DieVersion() As String
     
 End Function
 
-Function DiEScan(fpath As String, ByRef outVal) As Boolean
+Function DiEScan(fPath As String, ByRef outVal) As Boolean
     Dim v As Long
     Dim buf As String
     Dim flags As Long
@@ -245,7 +245,7 @@ Function DiEScan(fpath As String, ByRef outVal) As Boolean
     flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SINGLELINEOUTPUT 'Or DIE_SHOWENTROPY
     buf = String(1000, Chr(0))
     'v = DiEScanA(fPath, buf, Len(buf), flags)
-    v = dieScanEx(fpath, buf, Len(buf), flags, App.path & IIf(IsIde(), "\..", "") & "\die\db\")
+    v = dieScanEx(fPath, buf, Len(buf), flags, App.path & IIf(IsIde(), "\..", "") & "\die\db\")
     
     a = InStr(buf, Chr(0))
     If a > 0 Then buf = Left(buf, a - 1)

@@ -1,0 +1,5 @@
+this is version 2.05
+/db - 1.19mb, 1166 files
+qt5, runs down to XP SP3
+
+not active version used yet

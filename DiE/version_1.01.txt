@@ -1,0 +1,3 @@
+this is version 1.01 
+/db - 1.06mb, 1025 files
+qt4, runs down to XP SP1

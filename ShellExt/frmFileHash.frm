@@ -104,6 +104,9 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuPEVerInfo 
          Caption         =   "PE Version Info"
       End
+      Begin VB.Menu mnuSectionEntropy 
+         Caption         =   "Section Entropy"
+      End
       Begin VB.Menu mnuSpacer 
          Caption         =   "-"
          Visible         =   0   'False
@@ -215,7 +218,7 @@ Dim scan As CScan
 Dim vt As New CVirusTotal
 Dim hashs() 'checked menu names (infolevel)
 Dim vt_cache As String
-Dim pe As New CPEEditor
+Dim pe As New sppe3.CPEEditor
 
 'Dim WithEvents subclass As CSubclass2
 'Dim kanal As CWindow
@@ -246,11 +249,23 @@ Enum opts
     oImpHash
 End Enum
 
-
-
-
 Private Sub mnuDllChar_Click()
     frmDllCharacteristics.LoadFile LoadedFile
+End Sub
+
+Private Sub mnuSectionEntropy_Click()
+    
+   Dim cs As sppe3.CSection
+   Dim tmp() As String
+    
+   If Not pe.isLoaded Then Exit Sub
+   
+   For Each cs In pe.Sections
+        push tmp, rpad(cs.nameSec) & fileEntropy(pe.LoadedFile, pe.RvaToOffset(cs.PointerToRawData), cs.SizeOfRawData)
+   Next
+   
+   frmPEVersion.ShowReport "", Join(tmp, vbCrLf)
+   
 End Sub
 
 Private Sub Text1_Click()
@@ -382,11 +397,12 @@ Function ShowFileStats(fPath As String, Optional fromAutomation As Boolean = Fal
     Dim tmp As String
     Dim isX64 As Boolean
     Dim a, b
-           
+    Dim peLoaded As Boolean
+    
     LoadedFile = fPath
     fs = DisableRedir()
     myMd5 = hash.HashFile(fPath)
-    pe.LoadFile fPath
+    peLoaded = pe.LoadFile(fPath)
     
     If myMd5 = fso.FileNameFromPath(fPath) Then
         mnuNameMD5.Enabled = False
@@ -499,7 +515,12 @@ Function ShowFileStats(fPath As String, Optional fromAutomation As Boolean = Fal
     mnuFileProps.Enabled = isPE
     mnuOffsetCalc.Enabled = isPE
     mnuPEVerInfo.Enabled = isPE
-     
+    mnuSectionEntropy.Enabled = isPE
+    
+    'If Not pe.isLoaded Then
+    '    push ret, "sppe3 Error: " & pe.errMessage
+    'End If
+    
     Text1 = Join(ret, vbCrLf)
     ShowFileStats = Text1.text
     
@@ -965,3 +986,4 @@ Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, Y 
     Screen.MousePointer = vbNormal
         
 End Sub
+
