@@ -67,3 +67,71 @@ Sub Main()
     End If
 
 End Sub
+
+Function lvGetAllElements(lv As Object) As String
+    Dim ret() As String, i As Integer, tmp As String
+    Dim lI 'As ListItem
+    
+    On Error Resume Next
+    
+    For i = 1 To lv.ColumnHeaders.count
+        tmp = tmp & lv.ColumnHeaders(i).Text & vbTab
+    Next
+    
+    push ret, tmp
+    push ret, String(50, "-")
+        
+    For Each lI In lv.ListItems
+        tmp = lI.Text & vbTab
+        For i = 1 To lv.ColumnHeaders.count - 1
+            tmp = tmp & lI.subItems(i) & vbTab
+        Next
+        push ret, tmp
+    Next
+    
+    lvGetAllElements = Join(ret, vbCrLf)
+    
+End Function
+
+Public Sub lvColumnSort(ListViewControl As Object, Column As Object)
+    On Error Resume Next
+    Const lvwAscending As Long = 0
+    Const lvwDescending As Long = 1
+     
+    With ListViewControl
+       If .SortKey <> Column.index - 1 Then
+             .SortKey = Column.index - 1
+             .SortOrder = lvwAscending
+       Else
+             If .SortOrder = lvwAscending Then
+              .SortOrder = lvwDescending
+             Else
+              .SortOrder = lvwAscending
+             End If
+       End If
+       .Sorted = -1
+    End With
+End Sub
+
+Sub push(ary, Value) 'this modifies parent ary object
+    On Error GoTo Init
+    Dim X
+       
+    X = UBound(ary)
+    ReDim Preserve ary(X + 1)
+    
+    If IsObject(Value) Then
+        Set ary(X + 1) = Value
+    Else
+        ary(X + 1) = Value
+    End If
+    
+    Exit Sub
+Init:
+    ReDim ary(0)
+    If IsObject(Value) Then
+        Set ary(0) = Value
+    Else
+        ary(0) = Value
+    End If
+End Sub

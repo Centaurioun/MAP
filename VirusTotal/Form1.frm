@@ -11,6 +11,13 @@ Begin VB.Form Form1
    ScaleHeight     =   7770
    ScaleWidth      =   11910
    StartUpPosition =   2  'CenterScreen
+   Begin InetCtlsObjects.Inet Inet1 
+      Left            =   11100
+      Top             =   120
+      _ExtentX        =   1005
+      _ExtentY        =   1005
+      _Version        =   393216
+   End
    Begin VB.TextBox txtLimit 
       Height          =   285
       Left            =   8520
@@ -43,13 +50,6 @@ Begin VB.Form Form1
       Top             =   4590
       Width           =   8385
    End
-   Begin InetCtlsObjects.Inet Inet1 
-      Left            =   10485
-      Top             =   495
-      _ExtentX        =   1005
-      _ExtentY        =   1005
-      _Version        =   393216
-   End
    Begin VB.CommandButton cmdBrowse 
       Caption         =   "..."
       Height          =   285
@@ -77,8 +77,8 @@ Begin VB.Form Form1
    Begin VB.Timer tmrDelay 
       Enabled         =   0   'False
       Interval        =   4500
-      Left            =   8700
-      Top             =   540
+      Left            =   11100
+      Top             =   720
    End
    Begin VB.CommandButton cmdAbort 
       Caption         =   "Abort"
@@ -354,7 +354,7 @@ Sub cmdQuery_Click()
     Dim limit As Long
     Dim report As String
     Dim detections As Long
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim scan As CScan
     Dim pth As String
     
@@ -370,13 +370,13 @@ Sub cmdQuery_Click()
     
     vt.report_cache_dir = Empty
     
-    If chkCache.value = 1 Then        'currently sets cache_dir to exist or not once at start of sub, cant change during operation..
+    If chkCache.Value = 1 Then        'currently sets cache_dir to exist or not once at start of sub, cant change during operation..
         If Len(txtCacheDir) = 0 Then
-            chkCache.value = 0
+            chkCache.Value = 0
         Else
             If Not fso.FolderExists(txtCacheDir) Then
                 If Not fso.buildPath(txtCacheDir) Then
-                    chkCache.value = 0
+                    chkCache.Value = 0
                 End If
             End If
         End If
@@ -385,7 +385,7 @@ Sub cmdQuery_Click()
         
     
     vt.abort = False
-    pb.value = 0
+    pb.Value = 0
     pb.Max = lv.ListItems.count
     vt.delayInterval = IIf(pb.Max < 5, 2500, 17300) 'cant exceed 4 requests per minute...
     List1.AddItem "Max: " & pb.Max & " Interval: " & vt.delayInterval
@@ -395,46 +395,46 @@ Sub cmdQuery_Click()
         lv.ColumnHeaders(5).Width = 0 'first seen only available w/ priv key
     End If
     
-    For Each li In lv.ListItems
+    For Each lI In lv.ListItems
     
         If vt.abort Then Exit For
         
         If limit > 0 Then
-            If pb.value >= limit Then Exit For
+            If pb.Value >= limit Then Exit For
         End If
         
-        If Len(Trim(li.Text)) = 0 Then GoTo nextone
+        If Len(Trim(lI.Text)) = 0 Then GoTo nextone
         
-        Set scan = vt.GetReport(li.Text)
+        Set scan = vt.GetReport(lI.Text)
         
-        pth = PathForHash(li.Text)
+        pth = PathForHash(lI.Text)
         If Len(pth) > 0 Then scan.LocalFilePath = pth
     
         If Not scan.HadError Then
-            li.subItems(1) = Right("   " & scan.positives, 3)
-            li.subItems(2) = Right("   " & scan.times_submitted, 3)
-            li.subItems(3) = lpad(scan.CodeSize, 12)
-            li.subItems(4) = scan.scan_date
-            li.subItems(5) = scan.first_seen
-            li.subItems(6) = scan.verbose_msg
-            Set li.Tag = scan
+            lI.subItems(1) = Right("   " & scan.positives, 3)
+            lI.subItems(2) = Right("   " & scan.times_submitted, 3)
+            lI.subItems(3) = lpad(scan.CodeSize, 12)
+            lI.subItems(4) = scan.scan_date
+            lI.subItems(5) = scan.first_seen
+            lI.subItems(6) = scan.verbose_msg
+            Set lI.Tag = scan
         Else
-            li.subItems(1) = "Failure"
-            li.subItems(2) = Empty
-            li.subItems(3) = Empty
-            Set li.Tag = Nothing
+            lI.subItems(1) = "Failure"
+            lI.subItems(2) = Empty
+            lI.subItems(3) = Empty
+            Set lI.Tag = Nothing
 '            Set vt = New CVirusTotal
 '            Set vt.Timer1 = tmrDelay
 '            Set vt.winInet = Inet1
 '            Set vt.debugLog = List1
         End If
         
-        li.EnsureVisible
+        lI.EnsureVisible
         DoEvents
         Me.Refresh
-        pb.value = pb.value + 1
-        Me.Caption = pb.value & "/" & pb.Max
-        If pb.value = lv.ListItems.count Then GoTo nextone
+        pb.Value = pb.Value + 1
+        Me.Caption = pb.Value & "/" & pb.Max
+        If pb.Value = lv.ListItems.count Then GoTo nextone
         
 nextone:
     Next
@@ -442,18 +442,18 @@ nextone:
     lv.ListItems(1).EnsureVisible
     lv.ListItems(1).Selected = True
     lv_ItemClick lv.ListItems(1)
-    pb.value = 0
+    pb.Value = 0
     'MsgBox "Queries Complete" & vbCrLf & vbcrllf & "Click on an item to view report.", vbInformation
  
  
 End Sub
 
-Function lpad(x, Optional cnt = 8) As String
+Function lpad(X, Optional cnt = 8) As String
     
-    If Len(x) >= cnt Then
-        lpad = x
+    If Len(X) >= cnt Then
+        lpad = X
     Else
-        lpad = String(cnt - Len(x), " ") & x
+        lpad = String(cnt - Len(X), " ") & X
     End If
     
 End Function
@@ -495,7 +495,7 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
     abort = True
     SaveSetting "vt", "settings", "cachedir", txtCacheDir.Text
-    SaveSetting "vt", "settings", "usecache", chkCache.value
+    SaveSetting "vt", "settings", "usecache", chkCache.Value
 End Sub
 
 Sub mnuAddHashs_Click()
@@ -504,46 +504,46 @@ Sub mnuAddHashs_Click()
     Dim tmp
     Dim useLF As Boolean
     
-    x = Clipboard.GetText
-    x = Replace(x, " ", Empty)
-    x = Replace(x, vbTab, Empty)
-    If InStr(Command, "/bulk") < 1 Then x = Replace(x, ",", Empty) '/bulk command line from shellext uses hash,path\r\n format
-    x = Replace(x, "'", Empty)
-    x = Replace(x, """", Empty)
-    x = Replace(x, ";", Empty)
-    x = Replace(x, "}", Empty)
-    x = Replace(x, ")", Empty)
+    X = Clipboard.GetText
+    X = Replace(X, " ", Empty)
+    X = Replace(X, vbTab, Empty)
+    If InStr(Command, "/bulk") < 1 Then X = Replace(X, ",", Empty) '/bulk command line from shellext uses hash,path\r\n format
+    X = Replace(X, "'", Empty)
+    X = Replace(X, """", Empty)
+    X = Replace(X, ";", Empty)
+    X = Replace(X, "}", Empty)
+    X = Replace(X, ")", Empty)
     
-    If Len(x) > 1000 Then
-        If InStr(Mid(x, 1, 1000), vbCrLf) < 1 Then useLF = True
+    If Len(X) > 1000 Then
+        If InStr(Mid(X, 1, 1000), vbCrLf) < 1 Then useLF = True
     Else
-        If InStr(x, vbCrLf) < 1 Then useLF = True
+        If InStr(X, vbCrLf) < 1 Then useLF = True
     End If
     
-    tmp = Split(x, IIf(useLF, vbLf, vbCrLf))
+    tmp = Split(X, IIf(useLF, vbLf, vbCrLf))
     pb.Max = UBound(tmp)
-    pb.value = 0
-    For Each x In tmp
-        If InStr(x, ":") > 0 And InStr(x, ",") < 1 Then
-            x = Split(x, ":")(1) 'its from yara match output? sigName:hash
+    pb.Value = 0
+    For Each X In tmp
+        If InStr(X, ":") > 0 And InStr(X, ",") < 1 Then
+            X = Split(X, ":")(1) 'its from yara match output? sigName:hash
         End If
-        x = Trim(x)
-        If Len(x) > 0 Then
-            If InStr(x, ",") > 0 Then 'new "hash,path" format (is hash always md5? probably...)
-                y = Split(x, ",")
+        X = Trim(X)
+        If Len(X) > 0 Then
+            If InStr(X, ",") > 0 Then 'new "hash,path" format (is hash always md5? probably...)
+                y = Split(X, ",")
                 Set f = New CFile
                 f.hash = y(0)
                 f.path = y(1)
                 lv.ListItems.Add , , f.hash
                 If fso.FileExists(f.path) Then files.Add f
             Else
-                lv.ListItems.Add , , x
+                lv.ListItems.Add , , X
             End If
         End If
-        pb.value = pb.value + 1
+        pb.Value = pb.Value + 1
     Next
     
-    pb.value = 0
+    pb.Value = 0
     Me.Caption = lv.ListItems.count & " hashs added"
     
 End Sub
@@ -554,7 +554,7 @@ Private Sub Form_Resize()
     Text2.Width = List1.Width
     lv.Width = List1.Width
     pb.Width = List1.Width
-    Text2.Height = Me.Height - Text2.Top - 700
+    Text2.Height = Me.Height - Text2.Top - 900
     txtFilter.Width = Me.Width - txtFilter.Left - 200
 End Sub
 
@@ -577,7 +577,7 @@ End Sub
 
 Function lvGetAllElements(lv As Object, Optional divider As String = vbTab) As String
     Dim ret() As String, i As Integer, tmp As String
-    Dim li 'As ListItem
+    Dim lI 'As ListItem
     
     On Error Resume Next
     
@@ -588,10 +588,10 @@ Function lvGetAllElements(lv As Object, Optional divider As String = vbTab) As S
     push ret, tmp
     push ret, String(50, "-")
         
-    For Each li In lv.ListItems
-        tmp = Trim(li.Text) & divider
+    For Each lI In lv.ListItems
+        tmp = Trim(lI.Text) & divider
         For i = 1 To lv.ColumnHeaders.count - 1
-            tmp = tmp & " " & Trim(li.subItems(i)) & divider
+            tmp = tmp & " " & Trim(lI.subItems(i)) & divider
         Next
         If Right(tmp, Len(divider)) = divider Then tmp = Left(tmp, Len(tmp) - Len(divider))
         push ret, tmp
@@ -636,14 +636,10 @@ Private Sub Form_Load()
     Set vt.debugLog = List1
     
     txtCacheDir = GetSetting("vt", "settings", "cachedir", App.path & "\VT_Cache")
-    chkCache.value = GetSetting("vt", "settings", "usecache", 0)
+    chkCache.Value = GetSetting("vt", "settings", "usecache", 0)
     
     lv.ColumnHeaders(5).Width = lv.Width - lv.ColumnHeaders(5).Left - 150
     
-    mnuMoveSelected.Visible = (files.count > 0)
-    
-    Exit Sub
-
 End Sub
 
 
@@ -653,8 +649,8 @@ Private Sub lv_ItemClick(ByVal Item As MSComctlLib.ListItem)
     Set scan = Item.Tag
     If scan Is Nothing Then Exit Sub
     If Len(txtFilter) > 0 Then
-        If chkSearchAll.value = 1 Then
-            chkSearchAll.value = 0 'this will trigger the filter change itself
+        If chkSearchAll.Value = 1 Then
+            chkSearchAll.Value = 0 'this will trigger the filter change itself
         Else
             txtFilter_Change
         End If
@@ -670,20 +666,20 @@ End Function
 Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
     'LV_ColumnSort lv, ColumnHeader
     On Error Resume Next
-    Dim li As ListItem, c As CScan
+    Dim lI As ListItem, c As CScan
     
     If GetKeyState(vbKeyShift) Then
         If humanReadableSizes Then
             humanReadableSizes = False
-            For Each li In lv.ListItems
-                Set c = li.Tag
-                li.subItems(3) = lpad(c.CodeSize, 12)
+            For Each lI In lv.ListItems
+                Set c = lI.Tag
+                lI.subItems(3) = lpad(c.CodeSize, 12)
             Next
         Else
             humanReadableSizes = True
-            For Each li In lv.ListItems
-                Set c = li.Tag
-                li.subItems(3) = lpad(FileSize(c.CodeSize, False))
+            For Each lI In lv.ListItems
+                Set c = lI.Tag
+                lI.subItems(3) = lpad(FileSize(c.CodeSize, False))
             Next
         End If
     Else
@@ -733,8 +729,11 @@ Private Function PathForHash(hash As String) As String
     Next
 End Function
 
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
-    If Button = 2 Then PopupMenu mnuPopup
+Private Sub lv_MouseDown(Button As Integer, Shift As Integer, X As Single, y As Single)
+    If Button = 2 Then
+        'mnuMoveSelected.Visible = lv.selCount > 0
+        PopupMenu mnuPopup
+    End If
 End Sub
 
 
@@ -777,7 +776,7 @@ Private Sub mnuClearList_Click()
 End Sub
 
 Private Sub mnuClearSelectedFromCache_Click()
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim fpath As String
     
     If MsgBox("Are you sure you want to delete all cached reports? They take a while to query?", vbYesNo + vbInformation) = vbNo Then
@@ -785,13 +784,13 @@ Private Sub mnuClearSelectedFromCache_Click()
     End If
     
     If fso.FolderExists(txtCacheDir) Then
-        For Each li In lv.ListItems
-            If li.Selected Then
-                fpath = txtCacheDir & "\" & li.Text & ".txt"
+        For Each lI In lv.ListItems
+            If lI.Selected Then
+                fpath = txtCacheDir & "\" & lI.Text & ".txt"
                 If fso.FileExists(fpath) Then fso.DeleteFile fpath
-                li.subItems(1) = Empty
-                li.subItems(2) = Empty
-                li.subItems(3) = Empty
+                lI.subItems(1) = Empty
+                lI.subItems(2) = Empty
+                lI.subItems(3) = Empty
             End If
         Next
     End If
@@ -799,7 +798,7 @@ Private Sub mnuClearSelectedFromCache_Click()
 End Sub
 
 Private Sub mnuCopyAll_Click()
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim r
     Dim scan As CScan
     
@@ -808,8 +807,8 @@ Private Sub mnuCopyAll_Click()
     r = lvGetAllElements(lv, ",")
     r = r & vbCrLf & vbCrLf
     
-    For Each li In lv.ListItems
-        Set scan = li.Tag
+    For Each lI In lv.ListItems
+        Set scan = lI.Tag
         r = r & scan.GetReport() & vbCrLf & String(60, "-") & vbCrLf & vbCrLf
     Next
     
@@ -824,7 +823,7 @@ End Sub
 
 Private Sub mnuCopyAllProps_Click()
     
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim r
     Dim s As CScan
     Dim ret() As String, i As Integer, tmp() As String
@@ -839,14 +838,14 @@ Private Sub mnuCopyAllProps_Click()
     fs.WriteLine vbCrLf & "This is a temp file saveAs to save"
     fs.WriteDivider
     
-    For Each li In lv.ListItems
-        fs.WriteLine "Hash: " & Trim(li.Text)
+    For Each lI In lv.ListItems
+        fs.WriteLine "Hash: " & Trim(lI.Text)
         
         For i = 2 To lv.ColumnHeaders.count
-            fs.WriteLine lv.ColumnHeaders(i).Text & ": " & Trim(li.subItems(i - 1))
+            fs.WriteLine lv.ColumnHeaders(i).Text & ": " & Trim(lI.subItems(i - 1))
         Next
         
-        Set s = li.Tag
+        Set s = lI.Tag
         If Not s Is Nothing Then
             If fso.FileExists(s.LocalFilePath) Then
                 fs.WriteLine "File: " & fso.FileNameFromPath(s.LocalFilePath)
@@ -876,9 +875,9 @@ Private Sub mnuCopyResult_Click()
     Set scan = selli.Tag
     
     r = selli.Text & "  Detections: " & selli.subItems(1)
-    If vt.usingPrivateKey Then r = r & "  Submissions: " & li.subItems(2)
-    r = r & "  ScanDate: " & li.subItems(3)
-    If vt.usingPrivateKey Then r = r & "  First Seen: " & li.subItems(4)
+    If vt.usingPrivateKey Then r = r & "  Submissions: " & lI.subItems(2)
+    r = r & "  ScanDate: " & lI.subItems(3)
+    If vt.usingPrivateKey Then r = r & "  First Seen: " & lI.subItems(4)
     r = r & vbCrLf & String(50, "-") & vbCrLf & scan.GetReport()
     
     Clipboard.Clear
@@ -889,7 +888,7 @@ End Sub
 
 Private Sub mnuCopyTable_Click()
 
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim r
     Dim s As CScan
     Dim ret() As String, i As Integer, tmp As String
@@ -903,14 +902,14 @@ Private Sub mnuCopyTable_Click()
     push ret, tmp & "file"
     push ret, String(50, "-")
         
-    For Each li In lv.ListItems
-        tmp = Trim(li.Text) & ","
+    For Each lI In lv.ListItems
+        tmp = Trim(lI.Text) & ","
         
         For i = 1 To lv.ColumnHeaders.count - 1
-            tmp = tmp & " " & Trim(li.subItems(i)) & ","
+            tmp = tmp & " " & Trim(lI.subItems(i)) & ","
         Next
         
-        Set s = li.Tag
+        Set s = lI.Tag
         If Not s Is Nothing Then
             If Len(s.LocalFilePath) > 0 Then
                 tmp = tmp & " " & fso.FileNameFromPath(s.LocalFilePath)
@@ -930,7 +929,7 @@ End Sub
 
 Private Sub mnuHashForDir_Click()
     On Error Resume Next
-    Dim d As String, c() As String, x, isRecur As Boolean, li As ListItem, hash As New CWinHash, f As CFile
+    Dim d As String, c() As String, X, isRecur As Boolean, lI As ListItem, hash As New CWinHash, f As CFile
     d = dlg.FolderDialog2()
     If Len(d) = 0 Then Exit Sub
     If Not AryIsEmpty(fso.GetSubFolders(d)) Then
@@ -939,16 +938,16 @@ Private Sub mnuHashForDir_Click()
     c = fso.GetFolderFiles(d, , , isRecur)
     If AryIsEmpty(c) Then Exit Sub
     pb.Max = UBound(c)
-    pb.value = 0
-    For Each x In c
+    pb.Value = 0
+    For Each X In c
         Set f = New CFile
-        f.hash = hash.HashFile(CStr(x))
-        f.path = x
+        f.hash = hash.HashFile(CStr(X))
+        f.path = X
         lv.ListItems.Add , , f.hash
         files.Add f
-        pb.value = pb.value + 1
+        pb.Value = pb.Value + 1
     Next
-    pb.value = 0
+    pb.Value = 0
     Me.Caption = pb.Max & " hashs added"
 End Sub
 
@@ -967,7 +966,7 @@ Private Sub mnuMoveSelected_Click()
     
     On Error Resume Next
     
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim fpath As String
     Dim newDir As String
     Dim fName As String
@@ -985,10 +984,10 @@ Private Sub mnuMoveSelected_Click()
     If Len(newDir) = 0 Then Exit Sub
     
     For i = lv.ListItems.count To 1 Step -1
-        Set li = lv.ListItems(i)
-        If li.Selected Then
+        Set lI = lv.ListItems(i)
+        If lI.Selected Then
             total = total + 1
-            fpath = fileFromHash(li.Text)
+            fpath = fileFromHash(lI.Text)
             If fso.FileExists(fpath) Then
                 fName = "\" & fso.FileNameFromPath(fpath)
                 If Not fso.FileExists(newDir & fName) Then
@@ -1017,12 +1016,12 @@ Function fileFromHash(hash, Optional remove As Boolean = True) As String
 End Function
 
 Private Sub mnuPrune_Click()
-    Dim li As ListItem
+    Dim lI As ListItem
     On Error Resume Next
     For i = lv.ListItems.count To 1 Step -1
-        Set li = lv.ListItems(i)
-        If li.subItems(1) = "0" Then
-            fileFromHash li.Text, True
+        Set lI = lv.ListItems(i)
+        If lI.subItems(1) = "0" Then
+            fileFromHash lI.Text, True
             lv.ListItems.remove i
         End If
     Next
@@ -1033,7 +1032,7 @@ Private Sub mnuRemoveSelected_Click()
     
     For i = lv.ListItems.count To 1 Step -1
         If lv.ListItems(i).Selected Then
-            fileFromHash li.Text, True
+            fileFromHash lI.Text, True
             lv.ListItems.remove i
         End If
     Next
@@ -1045,7 +1044,7 @@ Private Sub mnuRemoveUnsel_Click()
     
     For i = lv.ListItems.count To 1 Step -1
         If Not lv.ListItems(i).Selected Then
-            fileFromHash li.Text, True
+            fileFromHash lI.Text, True
             lv.ListItems.remove i
         End If
     Next
@@ -1053,39 +1052,39 @@ Private Sub mnuRemoveUnsel_Click()
 End Sub
 
 Private Sub mnuRescanSelected_Click()
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim scan As CScan
     
-    For Each li In lv.ListItems
+    For Each lI In lv.ListItems
 
-        If li.Selected Then
-            If Len(Trim(li.Text)) > 0 Then
+        If lI.Selected Then
+            If Len(Trim(lI.Text)) > 0 Then
             
-                Set scan = vt.GetReport(li.Text)
+                Set scan = vt.GetReport(lI.Text)
                 
-                pth = PathForHash(li.Text)
+                pth = PathForHash(lI.Text)
                 If Len(pth) > 0 Then scan.LocalFilePath = pth
                 
                 If Not scan.HadError Then
-                    li.subItems(1) = Right("   " & scan.positives, 3)
-                    li.subItems(2) = Right("   " & scan.times_submitted, 3)
-                    li.subItems(3) = lpad(scan.CodeSize, 12)
-                    li.subItems(4) = scan.scan_date
-                    li.subItems(5) = scan.first_seen
-                    li.subItems(6) = scan.verbose_msg
-                    Set li.Tag = scan
+                    lI.subItems(1) = Right("   " & scan.positives, 3)
+                    lI.subItems(2) = Right("   " & scan.times_submitted, 3)
+                    lI.subItems(3) = lpad(scan.CodeSize, 12)
+                    lI.subItems(4) = scan.scan_date
+                    lI.subItems(5) = scan.first_seen
+                    lI.subItems(6) = scan.verbose_msg
+                    Set lI.Tag = scan
                 Else
-                    li.subItems(1) = "Failure"
-                    li.subItems(2) = Empty
-                    li.subItems(3) = Empty
-                    li.subItems(4) = Empty
-                    li.subItems(5) = Empty
-                    li.subItems(6) = Empty
-                    Set li.Tag = Nothing
+                    lI.subItems(1) = "Failure"
+                    lI.subItems(2) = Empty
+                    lI.subItems(3) = Empty
+                    lI.subItems(4) = Empty
+                    lI.subItems(5) = Empty
+                    lI.subItems(6) = Empty
+                    Set lI.Tag = Nothing
                     Set vt = New CVirusTotal
                 End If
                 
-                li.EnsureVisible
+                lI.EnsureVisible
                 DoEvents
                 
             End If
@@ -1098,7 +1097,7 @@ End Sub
 Private Sub mnuSaveReports_Click()
     
     On Error Resume Next
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim pf As String
     Dim scan As CScan
     Dim report As String
@@ -1106,15 +1105,15 @@ Private Sub mnuSaveReports_Click()
     pf = dlg.FolderDialog()
     If Len(pf) = 0 Then Exit Sub
     
-    For Each li In lv.ListItems
-        hash = li.Text
-        Set scan = li.Tag
+    For Each lI In lv.ListItems
+        hash = lI.Text
+        Set scan = lI.Tag
         
-        report = "Hash: " & li.Text & vbCrLf & _
-                 "Detections: " & li.subItems(1) & vbCrLf & _
-                 "ScanDate: " & li.subItems(2) & vbCrLf
+        report = "Hash: " & lI.Text & vbCrLf & _
+                 "Detections: " & lI.subItems(1) & vbCrLf & _
+                 "ScanDate: " & lI.subItems(2) & vbCrLf
                  
-        If vt.usingPrivateKey Then report = report & "  First Seen: " & li.subItems(3) & vbCrLf
+        If vt.usingPrivateKey Then report = report & "  First Seen: " & lI.subItems(3) & vbCrLf
         
         report = report & String(50, "-") & vbCrLf & vbCrLf & scan.GetReport()
                  
@@ -1133,7 +1132,7 @@ Function StartsWith(blob, prefix) As Boolean
 End Function
 
 Private Sub mnuSearch_Click()
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim likeSearch As Boolean, NotLikeSearch As Boolean
     Dim cs As CScan
     Dim found As Long
@@ -1164,31 +1163,31 @@ Private Sub mnuSearch_Click()
     
     push tmp(), "Search for '" & find & "' " & lv.ListItems.count & " samples - " & Now & vbCrLf
     
-    For Each li In lv.ListItems
-        li.Selected = False
-        If IsObject(li.Tag) Then
+    For Each lI In lv.ListItems
+        lI.Selected = False
+        If IsObject(lI.Tag) Then
             tested = tested + 1
-            Set cs = li.Tag
+            Set cs = lI.Tag
             r = LCase(cs.GetReport())
             If NotLikeSearch Then
                 If Not r Like find Then
-                    li.Selected = True
+                    lI.Selected = True
                     push tmp(), cs.GetReport()
                 End If
             ElseIf likeSearch Then
                 If r Like find Then
-                    li.Selected = True
+                    lI.Selected = True
                     push tmp(), cs.extractDetectionsFor(find, True)
                 End If
             Else
                 If InStr(1, r, find, vbTextCompare) > 0 Then
-                    li.Selected = True
+                    lI.Selected = True
                     push tmp(), cs.extractDetectionsFor(find)
                 End If
             End If
-            If li.Selected Then
+            If lI.Selected Then
                 found = found + 1
-                li.EnsureVisible
+                lI.EnsureVisible
             End If
         End If
     Next
@@ -1210,29 +1209,29 @@ End Sub
 
 Private Sub mnuSubmitSelected_Click()
 
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim scan As CScan
     Dim pth As String
     
     List1.Clear
     List1.AddItem "Submitting selected files"
     
-    For Each li In lv.ListItems
+    For Each lI In lv.ListItems
 
-        If li.Selected Then
-            If Len(Trim(li.Text)) > 0 Then
+        If lI.Selected Then
+            If Len(Trim(lI.Text)) > 0 Then
             
-                pth = PathForHash(li.Text)
+                pth = PathForHash(lI.Text)
                 If Len(pth) > 0 Then
                     Set scan = vt.SubmitFile(pth)
                     scan.response_code = 2 'manually overridden for getreport() display purposes..
-                    li.subItems(1) = scan.verbose_msg
-                    Set li.Tag = scan
+                    lI.subItems(1) = scan.verbose_msg
+                    Set lI.Tag = scan
                 Else
-                    List1.AddItem "No file path found for " & li.Text
+                    List1.AddItem "No file path found for " & lI.Text
                 End If
                 
-                li.EnsureVisible
+                lI.EnsureVisible
                 DoEvents
                 
             End If
@@ -1242,15 +1241,15 @@ Private Sub mnuSubmitSelected_Click()
 End Sub
 
 Private Sub mnuUsePrivateKey_Click()
-    Dim x As String
+    Dim X As String
     
-    x = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
+    X = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
                  "Enter an empty string or hit cancel to clear the private key." & vbCrLf & vbCrLf & "Your key will be stored in the registry.", _
                  "Enter private api key", _
                  vt.ReadPrivateApiKey _
         )
                  
-    vt.SetPrivateApiKey x
+    vt.SetPrivateApiKey X
     mnuUsePrivateKey.Checked = vt.usingPrivateKey
     
     If vt.usingPrivateKey Then
@@ -1274,13 +1273,13 @@ Private Sub mnuViewRaw_Click()
 End Sub
 
 
-Sub push(ary, value) 'this modifies parent ary object
-    On Error GoTo init
-    x = UBound(ary) '<-throws Error If Not initalized
+Sub push(ary, Value) 'this modifies parent ary object
+    On Error GoTo Init
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = value
+    ary(UBound(ary)) = Value
     Exit Sub
-init:     ReDim ary(0): ary(0) = value
+Init:     ReDim ary(0): ary(0) = Value
 End Sub
 '
 'Private Sub txtFilter_KeyDown(KeyCode As Integer, Shift As Integer)
@@ -1304,7 +1303,7 @@ End Sub
 Private Sub txtFilter_Change()
     On Error Resume Next
     
-    If chkSearchAll.value = 0 And scan Is Nothing Then
+    If chkSearchAll.Value = 0 And scan Is Nothing Then
         Text2 = Empty
         Exit Sub
     End If
@@ -1319,19 +1318,19 @@ Private Sub txtFilter_Change()
     End If
     
     Dim ret() As String, r As String, hitCounter As Long, selCount As Long
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim s As CScan
     
-    If chkSearchAll.value = 1 Then
-        For Each li In lv.ListItems
-            Set s = li.Tag
+    If chkSearchAll.Value = 1 Then
+        For Each lI In lv.ListItems
+            Set s = lI.Tag
             r = searchScan(s, txtFilter, hitCounter)
             If Len(r) Then
                 push ret, vbCrLf & String(75, "-") & vbCrLf & vbCrLf & r
                 selCount = selCount + 1
-                li.Selected = True
+                lI.Selected = True
             Else
-                li.Selected = False
+                lI.Selected = False
             End If
         Next
         Text2 = hitCounter & " hits across " & selCount & " samples for " & txtFilter & vbCrLf & vbCrLf & Join(ret, vbCrLf)
@@ -1343,7 +1342,7 @@ End Sub
 
 Private Function searchScan(s As CScan, csvText As String, Optional ByRef hitCounter As Long) As String
     
-    Dim ret(), tmp() As String, x
+    Dim ret(), tmp() As String, X
     Dim matches() As String, m
     Dim hits As Long
     
@@ -1355,11 +1354,11 @@ Private Function searchScan(s As CScan, csvText As String, Optional ByRef hitCou
         push ret, tmp(i)
     Next
     
-    For Each x In tmp
+    For Each X In tmp
         For Each m In matches
             If Len(m) > 0 Then
-                If InStr(1, x, m, vbTextCompare) > 0 Then
-                   push ret, x
+                If InStr(1, X, m, vbTextCompare) > 0 Then
+                   push ret, X
                    hits = hits + 1
                    hitCounter = hitCounter + 1
                    Exit For

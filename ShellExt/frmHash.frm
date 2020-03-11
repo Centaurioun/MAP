@@ -78,29 +78,26 @@ Begin VB.Form frmHash
       Begin VB.Menu mnuSaveTable 
          Caption         =   "Save Table"
       End
-      Begin VB.Menu mnuCopyTable 
-         Caption         =   "Copy Table"
-      End
-      Begin VB.Menu mnuCopyTableCSV 
-         Caption         =   "Copy Table (CSV)"
-      End
-      Begin VB.Menu mnuCopyHashs 
-         Caption         =   "Copy Hashs"
-      End
-      Begin VB.Menu mnuCopySelected 
-         Caption         =   "Copy Selected"
-      End
-      Begin VB.Menu mnuCopyDetailed 
-         Caption         =   "Copy Detailed"
+      Begin VB.Menu mnuCopyTop 
+         Caption         =   "Copy"
+         Begin VB.Menu mnuCopyTable 
+            Caption         =   "All"
+         End
+         Begin VB.Menu mnuCopySelected 
+            Caption         =   "Selected"
+         End
+         Begin VB.Menu mnuCopyTableCSV 
+            Caption         =   "CSV"
+         End
+         Begin VB.Menu mnuCopyHashs 
+            Caption         =   "Hashs"
+         End
+         Begin VB.Menu mnuCopyDetailed 
+            Caption         =   "Detailed"
+         End
       End
       Begin VB.Menu mnuDiv 
          Caption         =   "-"
-      End
-      Begin VB.Menu mnuUniqueImpHash 
-         Caption         =   "Unique ImpHash"
-      End
-      Begin VB.Menu mnuDisplayUnique 
-         Caption         =   "Display unique"
       End
       Begin VB.Menu mnuRenameToMD5 
          Caption         =   "Rename All to MD5"
@@ -120,20 +117,41 @@ Begin VB.Form frmHash
       Begin VB.Menu mnuMoveSelected 
          Caption         =   "Move Selected to SubFolder"
       End
-      Begin VB.Menu mnuFilePropsReport 
-         Caption         =   "File Property Report"
+      Begin VB.Menu mnuReports 
+         Caption         =   "Reports"
+         Begin VB.Menu mnuDisplayUnique 
+            Caption         =   "Display unique"
+         End
+         Begin VB.Menu mnuUniqueImpHash 
+            Caption         =   "Unique ImpHash"
+         End
+         Begin VB.Menu mnuFilePropsReport 
+            Caption         =   "File Property Report"
+         End
+         Begin VB.Menu mnuDieReport 
+            Caption         =   "DiE Report"
+         End
+         Begin VB.Menu mnuSectNameReport 
+            Caption         =   "Section Names"
+         End
+         Begin VB.Menu mnuStringsDumpAll 
+            Caption         =   "Strings Dump"
+         End
       End
       Begin VB.Menu mnuSpacer33 
          Caption         =   "-"
       End
-      Begin VB.Menu mnuVTAll 
-         Caption         =   "Virus Total Lookup On All"
-      End
-      Begin VB.Menu mnuVTLookupSelected 
-         Caption         =   "Virus Total Lookup On Selected"
-      End
-      Begin VB.Menu mnuSubmitSelToVT 
-         Caption         =   "Submit Selected to Virus Total"
+      Begin VB.Menu mnuVTTop 
+         Caption         =   "VT"
+         Begin VB.Menu mnuVTAll 
+            Caption         =   "Lookup All"
+         End
+         Begin VB.Menu mnuVTLookupSelected 
+            Caption         =   "Lookup Selected"
+         End
+         Begin VB.Menu mnuSubmitSelToVT 
+            Caption         =   "Submit Selected"
+         End
       End
       Begin VB.Menu mnuGoogleSelected 
          Caption         =   "Google Selected"
@@ -280,12 +298,64 @@ Function lvSelCount(lv As ListView) As Long
     lvSelCount = i
 End Function
 
+Private Sub mnuDieReport_Click()
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim fPath As String
+    Dim selOnly As Boolean
+    Dim doit As Boolean
+    Dim fs As New clsFileStream
+    Dim report As String
+    Dim tmp As String
+    
+    report = fso.GetFreeFileName(Environ("temp"))
+    fs.fOpen report, otwriting
+    fs.WriteLine vbCrLf & "This is a temp file saveAs to save"
+    fs.WriteDivider
+    
+    selOnly = (lvSelCount(lv) > 1)
+    
+    pb.value = 0
+    If selOnly Then
+        pb.max = lvSelCount(lv)
+    Else
+        pb.max = lv.ListItems.Count
+    End If
+    
+    For Each li In lv.ListItems
+        doit = False
+        If selOnly Then
+            If li.selected Then doit = True
+        Else
+            doit = True
+        End If
+        If doit Then
+            fPath = li.Tag
+            If fso.FileExists(fPath) Then
+                fs.WriteLine "File: " & fPath
+                 If DiEScan(fPath, tmp) Then
+                    fs.WriteLine "DiE:      " & tmp
+                 Else
+                    fs.WriteLine "DiE Error " & tmp
+                 End If
+                fs.WriteDivider
+            End If
+        End If
+        pb.value = pb.value + 1
+    Next
+    
+    pb.value = 0
+    fs.fClose
+    Shell "notepad.exe """ & report & """", vbNormalFocus
+End Sub
+
 Private Sub mnuFilePropsReport_Click()
     
     On Error Resume Next
     
     Dim li As ListItem
-    Dim fpath As String
+    Dim fPath As String
     Dim selOnly As Boolean
     Dim doit As Boolean
     Dim fs As New clsFileStream
@@ -306,10 +376,10 @@ Private Sub mnuFilePropsReport_Click()
             doit = True
         End If
         If doit Then
-            fpath = li.Tag
-            If fso.FileExists(fpath) Then
-                fs.WriteLine "File: " & fpath
-                fs.WriteLine FileProps.FileInfo(fpath).asStr
+            fPath = li.Tag
+            If fso.FileExists(fPath) Then
+                fs.WriteLine "File: " & fPath
+                fs.WriteLine FileProps.FileInfo(fPath).asStr
                 fs.WriteDivider
             End If
         End If
@@ -324,7 +394,7 @@ Private Sub mnuMoveSelected_Click()
     On Error Resume Next
     
     Dim li As ListItem
-    Dim fpath As String
+    Dim fPath As String
     Dim newDir As String
     Dim fname As String
     Dim i As Long
@@ -337,10 +407,10 @@ Private Sub mnuMoveSelected_Click()
         Set li = lv.ListItems(i)
         If li.selected Then
             total = total + 1
-            fpath = li.Tag
-            fname = "\" & fso.FileNameFromPath(fpath)
+            fPath = li.Tag
+            fname = "\" & fso.FileNameFromPath(fPath)
             If Not fso.FileExists(newDir & fname) Then
-                fso.Move fpath, newDir
+                fso.Move fPath, newDir
                 lv.ListItems.Remove i
                 moved = moved + 1
             End If
@@ -355,13 +425,79 @@ Private Sub mnuRecursiveHash_Click()
     frmRecursiveHashFiles.RecursiveHashDir path
 End Sub
 
+Private Sub mnuSectNameReport_Click()
+    
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim fPath As String
+    Dim selOnly As Boolean
+    Dim doit As Boolean
+    Dim fs As New clsFileStream
+    Dim report As String
+    Dim tmp As String
+    Dim pe2 As New sppe3.CPEEditor
+    
+    report = fso.GetFreeFileName(Environ("temp"))
+    fs.fOpen report, otwriting
+    fs.WriteLine vbCrLf & "This is a temp file saveAs to save"
+    fs.WriteDivider
+    
+    selOnly = (lvSelCount(lv) > 1)
+    
+    pb.value = 0
+    If selOnly Then
+        pb.max = lvSelCount(lv)
+    Else
+        pb.max = lv.ListItems.Count
+    End If
+    
+    For Each li In lv.ListItems
+        doit = False
+        If selOnly Then
+            If li.selected Then doit = True
+        Else
+            doit = True
+        End If
+        If doit Then
+            fPath = li.Tag
+            If fso.FileExists(fPath) Then
+                fs.WriteLine "File: " & fPath
+                 If pe2.LoadFile(fPath) Then
+                    fs.WriteLine sectNamesList(pe2.Sections)
+                 Else
+                    fs.WriteLine "DiE Error " & tmp
+                 End If
+                fs.WriteDivider
+            End If
+        End If
+        pb.value = pb.value + 1
+    Next
+    
+    pb.value = 0
+    fs.fClose
+    Shell "notepad.exe """ & report & """", vbNormalFocus
+    
+End Sub
+
+Private Function sectNamesList(c As Collection) As String
+    On Error Resume Next
+    Dim cs As sppe3.CSection, tmp As String
+    For Each cs In c
+        tmp = tmp & "," & cs.nameSec
+    Next
+    sectNamesList = Mid(tmp, 2)
+End Function
+
+
+
 Private Sub mnuUniqueImpHash_Click()
     
     On Error Resume Next
     Dim li As ListItem
     Dim c As New CollectionEx 'key = imphash, val = csv md5 list
     Dim pe As New CPEEditor
-    Dim ih As String, fpath As String
+    Dim ih As String, fPath As String
     Dim i As Long
     Dim r() As String
     Dim k() As String
@@ -374,8 +510,8 @@ Private Sub mnuUniqueImpHash_Click()
     push r, vbTab & "sample md5" & vbCrLf
     
     For Each li In lv.ListItems
-        fpath = li.Tag
-        If pe.LoadFile(fpath) Then
+        fPath = li.Tag
+        If pe.LoadFile(fPath) Then
                 ih = LCase(pe.impHash())
                 If c.keyExists(ih) Then
                     c(ih, 1) = c(ih) & "," & li.text 'did i mention i love CollectionEx?
@@ -630,9 +766,9 @@ Private Sub mnuCustomExtension_Click()
     
     For Each li In lv.ListItems
         i = 1
-        fpath = li.Tag
+        fPath = li.Tag
         fname = li.text
-        pdir = fso.GetParentFolder(fpath) & "\"
+        pdir = fso.GetParentFolder(fPath) & "\"
         
         If InStrRev(fname, ".") > 1 Then
             fname = Mid(fname, 1, InStrRev(fname, ".") - 1)
@@ -648,7 +784,7 @@ Private Sub mnuCustomExtension_Click()
             i = i + 1
         Wend
         
-        Name fpath As pdir & h
+        Name fPath As pdir & h
     
         li.text = h
         li.Tag = pdir & h
@@ -1003,9 +1139,9 @@ Private Sub mnuMakeExtSafe_Click()
     
     For Each li In lv.ListItems
         i = 1
-        fpath = li.Tag
+        fPath = li.Tag
         fname = li.text
-        pdir = fso.GetParentFolder(fpath) & "\"
+        pdir = fso.GetParentFolder(fPath) & "\"
         h = fname & "_"
         
         If LCase(VBA.Right(fname, 4)) = ".txt" Then GoTo nextone  'txt files are fine..
@@ -1017,7 +1153,7 @@ Private Sub mnuMakeExtSafe_Click()
             i = i + 1
         Wend
         
-        Name fpath As pdir & h
+        Name fPath As pdir & h
     
         li.text = h
         li.Tag = pdir & h
@@ -1036,13 +1172,13 @@ Private Sub mnuMakeSubFolders_Click()
     Dim li As ListItem
     Dim pdir As String
     Dim baseName As String
-    Dim fpath As String
+    Dim fPath As String
     
     For Each li In lv.ListItems
-        fpath = li.Tag
+        fPath = li.Tag
         fname = li.text
-        pdir = fso.GetParentFolder(fpath) & "\"
-        baseName = fso.GetBaseName(fpath)
+        pdir = fso.GetParentFolder(fPath) & "\"
+        baseName = fso.GetBaseName(fPath)
         MkDir pdir & baseName
     Next
         
@@ -1062,10 +1198,10 @@ Private Sub mnuRenameToMD5_Click()
     
     For Each li In lv.ListItems
         i = 2
-        fpath = li.Tag
+        fPath = li.Tag
         fname = li.text
         h = li.SubItems(2)
-        pdir = fso.GetParentFolder(fpath) & "\"
+        pdir = fso.GetParentFolder(fPath) & "\"
         
         If InStr(h, "Error") >= 1 Then GoTo nextone
         If LCase(fname) = LCase(h) Then GoTo nextone
@@ -1075,7 +1211,7 @@ Private Sub mnuRenameToMD5_Click()
         Wend
         
         rlog = rlog & fname & vbTab & "->" & vbTab & h & vbCrLf
-        Name fpath As pdir & h
+        Name fPath As pdir & h
     
         li.text = h
         li.Tag = pdir & h

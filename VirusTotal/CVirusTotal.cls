@@ -147,6 +147,8 @@ Public Function DownloadFile(hash As String, toDir As String) As Boolean
     Dim hFile As Long
     Dim path As String
     Dim fSize As Long
+    Dim hadErr As Boolean
+    Dim tmp As String
     
     URL = "https://www.virustotal.com/vtapi/v2/file/download?apikey=" & API_KEY & "&hash=" & hash
     path = toDir & "\" & hash
@@ -166,6 +168,12 @@ Public Function DownloadFile(hash As String, toDir As String) As Boolean
         b() = .GetChunk(1024, icByteArray)
         'If Err.Number = 0 Then
             If UBound(b) <> -1 Then
+                
+                tmp = StrConv(b, vbUnicode, LANG_US)
+                If InStr(1, tmp, "<Error>", vbTextCompare) > 0 Then
+                   Exit Function 'save err message somewhere?
+                End If
+        
                 hFile = FreeFile
                 Open path For Binary As hFile
                 Put hFile, , b()

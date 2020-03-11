@@ -314,7 +314,7 @@ Private Sub Form_Resize()
     On Error Resume Next
     List1.Width = Me.Width - List1.Left - 200
     Text1.Width = Me.Width - Text1.Left - 200
-    Text1.Height = Me.Height - Text1.Top - 400
+    Text1.Height = Me.Height - Text1.Top - 800
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
@@ -331,7 +331,7 @@ Private Sub Label4_Click()
     'If Err.Number <> 0 Then MsgBox Err.Description
 End Sub
 
-Private Sub List1_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub List1_MouseUp(Button As Integer, Shift As Integer, X As Single, y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
@@ -342,7 +342,6 @@ End Sub
 Private Sub mnuBulkScan_Click()
     On Error Resume Next
     Form1.Show
-    Unload Me
 End Sub
 
 Private Sub mnuCopyTable_Click()
@@ -368,15 +367,15 @@ Private Sub mnuSearch_Click()
 End Sub
 
 Private Sub mnuUsePrivKey_Click()
-    Dim x As String
+    Dim X As String
     
-    x = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
+    X = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
                  "Enter an empty string or hit cancel to clear the private key." & vbCrLf & vbCrLf & "Your key will be stored in the registry.", _
                  "Enter private api key", _
                  vt.ReadPrivateApiKey _
         )
                  
-    vt.SetPrivateApiKey x
+    vt.SetPrivateApiKey X
     mnuUsePrivKey.Checked = vt.usingPrivateKey
     
     If vt.usingPrivateKey Then
@@ -404,7 +403,7 @@ Private Sub txtFilter_Change()
         Exit Sub
     End If
     
-    Dim ret(), tmp() As String, x
+    Dim ret(), tmp() As String, X
     Dim matches() As String, m
     
     matches = Split(txtFilter, ",")
@@ -414,11 +413,11 @@ Private Sub txtFilter_Change()
         push ret, tmp(i)
     Next
     
-    For Each x In tmp
+    For Each X In tmp
         For Each m In matches
             If Len(m) > 0 Then
-                If InStr(1, x, m, vbTextCompare) > 0 Then
-                   push ret, x
+                If InStr(1, X, m, vbTextCompare) > 0 Then
+                   push ret, X
                    Exit For
                 End If
             End If
@@ -436,13 +435,13 @@ End Sub
 
 
 
-Sub push(ary, value) 'this modifies parent ary object
-    On Error GoTo init
-    x = UBound(ary) '<-throws Error If Not initalized
+Sub push(ary, Value) 'this modifies parent ary object
+    On Error GoTo Init
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = value
+    ary(UBound(ary)) = Value
     Exit Sub
-init:     ReDim ary(0): ary(0) = value
+Init:     ReDim ary(0): ary(0) = Value
 End Sub
 
 

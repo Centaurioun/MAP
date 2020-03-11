@@ -36,7 +36,7 @@ Source: loadlib64.exe; DestDir: {win}; Flags: ignoreversion
 Source: proc_watch.exe; DestDir: {app}; Flags: ignoreversion
 Source: dirwatch_ui.exe; DestDir: {app}; Flags: ignoreversion
 Source: dir_watch.dll; DestDir: {app}; Flags: ignoreversion
-Source: shellext.external.txt; DestDir: {app}
+Source: shellext.external.txt; DestDir: {app}; Flags: onlyifdoesntexist
 Source: pecarve.exe; DestDir: {app}; Flags: ignoreversion
 Source: sniff_hit.exe; DestDir: {app}; Flags: ignoreversion
 Source: fakeDNS.exe; DestDir: {app}; Flags: ignoreversion

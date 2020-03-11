@@ -3,13 +3,13 @@ Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Object = "{48E59290-9880-11CF-9754-00AA00C00908}#1.0#0"; "MSINET.OCX"
 Begin VB.Form frmBulkDownload 
    Caption         =   "Bulk Download"
-   ClientHeight    =   6000
+   ClientHeight    =   6030
    ClientLeft      =   60
-   ClientTop       =   345
-   ClientWidth     =   10410
+   ClientTop       =   645
+   ClientWidth     =   11415
    LinkTopic       =   "Form3"
-   ScaleHeight     =   6000
-   ScaleWidth      =   10410
+   ScaleHeight     =   6030
+   ScaleWidth      =   11415
    StartUpPosition =   2  'CenterScreen
    Begin VB.TextBox txtLimit 
       Height          =   285
@@ -20,21 +20,21 @@ Begin VB.Form frmBulkDownload
       Width           =   615
    End
    Begin VB.Timer Timer1 
-      Left            =   4560
-      Top             =   2760
+      Left            =   10380
+      Top             =   120
    End
    Begin InetCtlsObjects.Inet Inet1 
-      Left            =   9720
-      Top             =   1080
+      Left            =   10800
+      Top             =   0
       _ExtentX        =   1005
       _ExtentY        =   1005
       _Version        =   393216
    End
    Begin MSComctlLib.ProgressBar pb 
       Height          =   285
-      Left            =   4005
+      Left            =   4920
       TabIndex        =   6
-      Top             =   495
+      Top             =   480
       Width           =   6315
       _ExtentX        =   11139
       _ExtentY        =   503
@@ -43,9 +43,9 @@ Begin VB.Form frmBulkDownload
    End
    Begin MSComctlLib.ListView lv 
       Height          =   5100
-      Left            =   3960
+      Left            =   4920
       TabIndex        =   5
-      Top             =   810
+      Top             =   780
       Width           =   6360
       _ExtentX        =   11218
       _ExtentY        =   8996
@@ -60,6 +60,15 @@ Begin VB.Form frmBulkDownload
       BackColor       =   -2147483643
       BorderStyle     =   1
       Appearance      =   1
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+         Name            =   "Courier"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
       NumItems        =   2
       BeginProperty ColumnHeader(1) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          Text            =   "hash"
@@ -97,13 +106,22 @@ Begin VB.Form frmBulkDownload
       Width           =   3435
    End
    Begin VB.TextBox txtHash 
+      BeginProperty Font 
+         Name            =   "Courier"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
       Height          =   5415
       Left            =   90
       MultiLine       =   -1  'True
       ScrollBars      =   3  'Both
       TabIndex        =   1
       Top             =   450
-      Width           =   3750
+      Width           =   4710
    End
    Begin VB.Label Label2 
       Caption         =   "import"
@@ -131,6 +149,12 @@ Begin VB.Form frmBulkDownload
       Top             =   180
       Width           =   5010
    End
+   Begin VB.Menu mnuPopup 
+      Caption         =   "mnuPopup"
+      Begin VB.Menu mnuCopy 
+         Caption         =   "Copy"
+      End
+   End
 End
 Attribute VB_Name = "frmBulkDownload"
 Attribute VB_GlobalNameSpace = False
@@ -145,10 +169,10 @@ Dim dlg As New CCmnDlg
 'todo: async download with progress bar instead of blocking
 
 Private Sub cmdBrowse_Click()
-    Dim x As String
-    x = dlg.FolderDialog2(txtDir)
-    If Len(x) = 0 Then Exit Sub
-    txtDir = x
+    Dim X As String
+    X = dlg.FolderDialog2(txtDir)
+    If Len(X) = 0 Then Exit Sub
+    txtDir = X
 End Sub
 
 Function getLimit() As Long
@@ -161,7 +185,7 @@ End Function
 
 Private Sub cmdDownload_Click()
     
-    Dim li As ListItem
+    Dim lI As ListItem
     Dim limit As Long
     
     limit = getLimit()
@@ -179,39 +203,40 @@ Private Sub cmdDownload_Click()
     txtHash = Trim(Replace(txtHash, vbCrLf & vbCrLf, vbCrLf))
     
     lv.ListItems.Clear
-    pb.value = 0
+    pb.Value = 0
     
     tmp = Split(txtHash, vbCrLf)
     pb.Max = UBound(tmp) + 1
     
-    For Each x In tmp
+    For Each X In tmp
         If limit > 0 Then
-            If pb.value > limit Then Exit For
+            If pb.Value > limit Then Exit For
         End If
-        x = Trim(x)
-        If Len(x) > 0 Then
-            Set li = lv.ListItems.Add(, , x)
+        X = Trim(X)
+        If Len(X) > 0 Then
+            Set lI = lv.ListItems.Add(, , X)
             lv.Refresh
-            If fso.FileExists(txtDir & "\" & x) Then
-                li.subItems(1) = "Exists"
+            If fso.FileExists(txtDir & "\" & X) Then
+                lI.subItems(1) = "Exists"
             Else
-                li.subItems(1) = vt.DownloadFile(CStr(x), txtDir)
+                lI.subItems(1) = vt.DownloadFile(CStr(X), txtDir)
             End If
             lv.Refresh
         End If
         DoEvents
         Me.Refresh
-        pb.value = pb.value + 1
-        Me.Caption = pb.value & "/" & pb.Max
+        pb.Value = pb.Value + 1
+        Me.Caption = pb.Value & "/" & pb.Max
     Next
     
-    pb.value = 0
+    pb.Value = 0
         
 End Sub
 
 Private Sub Form_Load()
     Set vt.Timer1 = Timer1
     Set vt.winInet = Inet1
+    mnuPopup.Visible = False
 End Sub
 
 Private Sub Label2_Click()
@@ -222,12 +247,25 @@ Private Sub Label2_Click()
     End If
 End Sub
 
+Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
+    lvColumnSort lv, ColumnHeader
+End Sub
+
+Private Sub lv_MouseUp(Button As Integer, Shift As Integer, X As Single, y As Single)
+    If Button = 2 Then PopupMenu mnuPopup
+End Sub
+
+Private Sub mnuCopy_Click()
+    Clipboard.Clear
+    Clipboard.SetText lvGetAllElements(lv)
+End Sub
+
 Private Sub txtDir_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, xx As Single, y As Single)
     On Error Resume Next
-    Dim x As String
-    x = Data.files(1)
-    If fso.FolderExists(x) Then
-        txtDir = x
+    Dim X As String
+    X = Data.files(1)
+    If fso.FolderExists(X) Then
+        txtDir = X
     End If
 End Sub
 

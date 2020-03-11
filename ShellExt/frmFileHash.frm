@@ -75,6 +75,7 @@ Begin VB.Form frmFileHash
       _Version        =   393217
       BackColor       =   -2147483633
       BorderStyle     =   0
+      Enabled         =   -1  'True
       Appearance      =   0
       TextRTF         =   $"frmFileHash.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -106,6 +107,9 @@ Begin VB.Form frmFileHash
       End
       Begin VB.Menu mnuSectionEntropy 
          Caption         =   "Section Entropy"
+      End
+      Begin VB.Menu mnuRichHeader 
+         Caption         =   "Rich Header"
       End
       Begin VB.Menu mnuSpacer 
          Caption         =   "-"
@@ -253,6 +257,14 @@ Private Sub mnuDllChar_Click()
     frmDllCharacteristics.LoadFile LoadedFile
 End Sub
 
+Private Sub mnuRichHeader_Click()
+    Dim rh As CRichHeader
+    If Not pe.isLoaded Then Exit Sub
+    Set rh = New CRichHeader
+    Call rh.Load(LoadedFile)
+    frmPEVersion.ShowReport "", rh.dump
+End Sub
+
 Private Sub mnuSectionEntropy_Click()
     
    Dim cs As sppe3.CSection
@@ -375,8 +387,8 @@ End Function
 
 Function hasInterestingResources() As Boolean
     Dim r As CResData, i As Long
-    For i = 1 To pe.Resources.Entries.Count
-        Set r = pe.Resources.Entries(i)
+    For i = 1 To pe.Resources.entries.Count
+        Set r = pe.Resources.entries(i)
         If InStr(1, r.path, "icon", vbTextCompare) < 1 And InStr(1, r.path, "version", vbTextCompare) < 1 Then
             hasInterestingResources = True
             Exit Function
@@ -477,7 +489,7 @@ Function ShowFileStats(fPath As String, Optional fromAutomation As Boolean = Fal
     
     If pe.isLoaded Then
         If pe.Exports.functions.Count > 0 Then push ret(), "Exports:  " & pe.Exports.functions.Count
-        If hasInterestingResources Then push ret(), "Resources: " & pe.Resources.Entries.Count & " - " & pe.Resources.size & " bytes"
+        If hasInterestingResources Then push ret(), "Resources: " & pe.Resources.entries.Count & " - " & pe.Resources.size & " bytes"
     End If
     
     If isPE And isOpt(oPEVer) Then push ret(), PEVersionReport(pe, True)

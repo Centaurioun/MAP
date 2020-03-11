@@ -9,6 +9,14 @@ Begin VB.Form Form1
    ScaleHeight     =   4260
    ScaleWidth      =   9330
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton Command1 
+      Caption         =   "Command1"
+      Height          =   255
+      Left            =   8040
+      TabIndex        =   1
+      Top             =   3960
+      Width           =   1215
+   End
    Begin VB.TextBox Text1 
       BeginProperty Font 
          Name            =   "Courier New"
@@ -72,15 +80,52 @@ Function DieVersion() As String
     End If
 End Function
 
-Function FileExists(path As String) As Boolean
+Function FileExists(Path As String) As Boolean
   On Error GoTo hell
     
-  If Len(path) = 0 Then Exit Function
-  If Right(path, 1) = "\" Then Exit Function
-  If Dir(path, vbHidden Or vbNormal Or vbReadOnly Or vbSystem) <> "" Then FileExists = True
+  If Len(Path) = 0 Then Exit Function
+  If Right(Path, 1) = "\" Then Exit Function
+  If Dir(Path, vbHidden Or vbNormal Or vbReadOnly Or vbSystem) <> "" Then FileExists = True
   
   Exit Function
 hell: FileExists = False
+End Function
+
+Private Sub Command1_Click()
+    Dim c As Collection, tmp() As String, i As Long
+    
+    Set c = fso.GetFolderFiles("C:\Users\home\Desktop\go_malware\samples")
+    
+    For Each f In c
+        push tmp, f
+        push tmp, doScan(f)
+        push tmp, String(50, "-")
+        DoEvents
+        Me.Caption = i & "/" & c.Count
+        i = i + 1
+        Me.Refresh
+    Next
+    
+    Text1 = Join(tmp, vbCrLf)
+    
+End Sub
+
+Function doScan(ByVal Path As String) As String
+    Dim v As Long
+    Dim buf As String
+    Dim flags As Long
+    Dim a As Long
+    
+    flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SHOWENTROPY Or DIE_SINGLELINEOUTPUT Or DIE_DEEPSCAN
+    buf = String(1000, Chr(0))
+    'v = DiEScan(path, buf, Len(buf), flags)
+    v = dieScanEx(Path, buf, Len(buf), flags, App.Path & "\db\")
+    
+    a = InStr(buf, Chr(0))
+    If a > 0 Then buf = Left(buf, a - 1)
+    buf = Replace(Replace(buf, vbLf, vbCrLf), "; ", vbCrLf)
+    doScan = buf
+    
 End Function
 
 Private Sub Form_Load()
@@ -89,24 +134,24 @@ Private Sub Form_Load()
     Dim buf As String
     Dim flags As Long
     Dim a As Long
-    Dim path As String
+    Dim Path As String
     
     If Len(Command) > 0 Then
-        path = Replace(Command, """", Empty)
+        Path = Replace(Command, """", Empty)
     End If
     
-    If Not FileExists(path) Then path = "C:\windows\notepad.exe"
+    If Not FileExists(Path) Then Path = "C:\windows\notepad.exe"
     
     flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SHOWENTROPY Or DIE_SINGLELINEOUTPUT Or DIE_DEEPSCAN
     buf = String(1000, Chr(0))
     'v = DiEScan(path, buf, Len(buf), flags)
-    v = dieScanEx(path, buf, Len(buf), flags, App.path & "\db\")
+    v = dieScanEx(Path, buf, Len(buf), flags, App.Path & "\db\")
     
     a = InStr(buf, Chr(0))
     If a > 0 Then buf = Left(buf, a - 1)
     buf = Replace(Replace(buf, vbLf, vbCrLf), "; ", vbCrLf)
     
-    Text1 = "DiE v" & DieVersion() & vbCrLf & "File: " & path & vbCrLf & buf
+    Text1 = "DiE v" & DieVersion() & vbCrLf & "File: " & Path & vbCrLf & buf
     
 End Sub
 

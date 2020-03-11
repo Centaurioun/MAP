@@ -7,6 +7,7 @@
 
 PeID   = C:\tools\PEiD\peid.exe %1
 LordPE = C:\tools\LordPE\lordpe.exe /PEEDIT"%1"
+CFF Explorer = C:\Program Files\NTCore\Explorer Suite\CFF Explorer.exe %1
 ResHack= C:\tools\reshack\reshacker.exe %1
 Winhex = C:\tools\winhex\winhex.exe %1
 fuzzy  = D:\_hashing\hash.bat %1 && notepad %1.hash
