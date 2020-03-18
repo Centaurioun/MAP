@@ -1,4 +1,5 @@
 VERSION 5.00
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
 Begin VB.Form frmCompareHashSets 
    Caption         =   "Compare Hash Sets"
    ClientHeight    =   7650
@@ -9,6 +10,26 @@ Begin VB.Form frmCompareHashSets
    ScaleHeight     =   7650
    ScaleWidth      =   17490
    StartUpPosition =   2  'CenterScreen
+   Begin MSComctlLib.ProgressBar pb 
+      Height          =   375
+      Left            =   60
+      TabIndex        =   10
+      Top             =   240
+      Visible         =   0   'False
+      Width           =   5535
+      _ExtentX        =   9763
+      _ExtentY        =   661
+      _Version        =   393216
+      Appearance      =   1
+   End
+   Begin VB.CommandButton mnuSelectHashs 
+      Caption         =   "Select In Main UI"
+      Height          =   375
+      Left            =   120
+      TabIndex        =   9
+      Top             =   7080
+      Width           =   1755
+   End
    Begin VB.CommandButton cmdUnique 
       Caption         =   "Unique Only"
       Height          =   435
@@ -88,6 +109,24 @@ Begin VB.Form frmCompareHashSets
       TabIndex        =   0
       Top             =   690
       Width           =   5445
+   End
+   Begin VB.Label lblSelHelp 
+      Caption         =   "?"
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   8.25
+         Charset         =   0
+         Weight          =   400
+         Underline       =   -1  'True
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      ForeColor       =   &H00FF0000&
+      Height          =   255
+      Left            =   2040
+      TabIndex        =   11
+      Top             =   7140
+      Width           =   135
    End
    Begin VB.Label Label3 
       Caption         =   "Comparison Report"
@@ -267,17 +306,68 @@ Private Sub Form_Load()
     Me.Icon = myIcon
 End Sub
 
-Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub lblSelHelp_Click()
+    MsgBox "Enter a list of MD5s to try to find and select in dir hash UI. Then you can Move Selected or take other action", vbInformation
+End Sub
+
+Private Sub mnuSelectHashs_Click()
     On Error Resume Next
-    If fso.FileExists(Data.Files(1)) Then
-        Text1 = fso.ReadFile(Data.Files(1))
+    Dim tmp() As String, x, li As ListItem, found As Boolean, miss() As String, hits As Long, t() As String
+    
+    If Len(Text1.text) = 0 Then
+        MsgBox "Paste the md5s you want to select above", vbInformation
+        Exit Sub
+    End If
+        
+    tmp = Split(Replace(Text1.text, vbTab, Empty), vbCrLf)
+    
+    For Each li In frmHash.lv.ListItems
+        li.selected = False
+    Next
+    
+    pb.max = UBound(tmp)
+    pb.Visible = True
+    pb.value = 0
+    
+    For Each li In frmHash.lv.ListItems 'probably less hashs than listitems..
+        found = False
+        pb.value = pb.value + 1
+        For Each x In tmp
+            If LCase(li.SubItems(2)) = LCase(trim(x)) Then
+                li.selected = True
+                found = True
+                hits = hits + 1
+                Exit For
+            End If
+        Next
+        If Not found Then push miss, x
+        DoEvents
+    Next
+    
+    push t, hits & "/" & UBound(tmp) - 1 & " selected "
+    
+    If Not AryIsEmpty(miss) Then
+        push t, "Misses: "
+        push t, Join(miss, vbCrLf)
+    End If
+    
+    pb.value = 0
+    pb.Visible = False
+    Text2 = Join(t, vbCrLf)
+    
+End Sub
+
+Private Sub Text1_OLEDragDrop(data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
+    On Error Resume Next
+    If fso.FileExists(data.Files(1)) Then
+        Text1 = fso.ReadFile(data.Files(1))
     End If
 End Sub
 
-Private Sub Text2_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub Text2_OLEDragDrop(data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
     On Error Resume Next
-    If fso.FileExists(Data.Files(1)) Then
-        Text2 = fso.ReadFile(Data.Files(1))
+    If fso.FileExists(data.Files(1)) Then
+        Text2 = fso.ReadFile(data.Files(1))
     End If
 End Sub
 

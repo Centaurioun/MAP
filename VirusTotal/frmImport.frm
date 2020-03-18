@@ -154,15 +154,15 @@ Private Sub cmdComplete_Click()
     Me.Visible = False
 End Sub
 
-Function ImportHashs(Optional x = "") As String
+Function ImportHashs(Optional X = "") As String
 
-    If Len(x) = 0 Then
-        x = standarize(Clipboard.GetText())
+    If Len(X) = 0 Then
+        X = standarize(Clipboard.GetText())
     Else
-        x = standarize(x)
+        X = standarize(X)
     End If
         
-    txtIn.Text = x
+    txtIn.Text = X
     txtIn.SelStart = 0
     txtIn.SelLength = Len(txtIn)
     
@@ -200,7 +200,7 @@ Private Sub cmdUndo_Click()
 End Sub
 
 Private Sub Command1_Click()
-    Dim x, y() As String
+    Dim X, y() As String
     Dim tmp() As String
     Dim index As Long
     
@@ -209,39 +209,39 @@ Private Sub Command1_Click()
     txtElemIndex = index
     
     tmp = Split(txtIn, vbCrLf)
-    For Each x In tmp
-        If InStr(x, txtDivider) > 0 Then
-             x = Split(x, txtDivider)(index)
+    For Each X In tmp
+        If InStr(X, txtDivider) > 0 Then
+             X = Split(X, txtDivider)(index)
         End If
-        push y(), x
+        push y(), X
     Next
     
     txtOut = Join(y, vbCrLf)
         
 End Sub
 
-Sub push(ary, value) 'this modifies parent ary object
-    Dim x
-    On Error GoTo init
-    x = UBound(ary) '<-throws Error If Not initalized
+Sub push(ary, Value) 'this modifies parent ary object
+    Dim X
+    On Error GoTo Init
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
-    ary(UBound(ary)) = value
+    ary(UBound(ary)) = Value
     Exit Sub
-init:     ReDim ary(0): ary(0) = value
+Init:     ReDim ary(0): ary(0) = Value
 End Sub
 
-Function standarize(x)
-    x = Replace(x, vbTab, " ")
+Function standarize(X)
+    X = Replace(X, vbTab, " ")
     'If InStr(Command, "/bulk") < 1 Then x = Replace(x, ",", Empty) '/bulk command line from shellext uses hash,path\r\n format
-    x = Replace(x, "'", Empty)
-    x = Replace(x, """", Empty)
-    x = Replace(x, ";", Empty)
-    x = Replace(x, "}", Empty)
-    x = Replace(x, ")", Empty)
-    x = Replace(x, vbCr, Chr(5))
-    x = Replace(x, vbLf, Empty)
-    x = Replace(x, Chr(5), vbCrLf)
-    standarize = x
+    X = Replace(X, "'", Empty)
+    X = Replace(X, """", Empty)
+    X = Replace(X, ";", Empty)
+    X = Replace(X, "}", Empty)
+    X = Replace(X, ")", Empty)
+    X = Replace(X, vbCr, Chr(5))
+    X = Replace(X, vbLf, Empty)
+    X = Replace(X, Chr(5), vbCrLf)
+    standarize = X
 End Function
  
 Private Sub Label3_Click()

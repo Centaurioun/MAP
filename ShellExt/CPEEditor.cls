@@ -99,8 +99,8 @@ Private Type IMAGEDOSHEADER
 End Type
 
 Private Type IMAGE_SECTION_HEADER
-    nameSec As String * 6
-    PhysicalAddress As Integer
+    nameSec As String * 8
+    'PhysicalAddress As Integer
     VirtualSize As Long
     VirtualAddress As Long
     SizeOfRawData As Long
@@ -497,7 +497,7 @@ Private Sub LoadSections(fHand As Long, numSections As Integer, Optional section
         Set CSect = New CSection
         With udtSH
             CSect.nameSec = Replace(.nameSec, Chr(0), "")
-            CSect.PhysicalAddress = .PhysicalAddress
+            'CSect.PhysicalAddress = .PhysicalAddress
             CSect.VirtualSize = .VirtualSize
             CSect.VirtualAddress = .VirtualAddress
             CSect.SizeOfRawData = .SizeOfRawData

@@ -420,6 +420,19 @@ Sub SetLiColor(li As ListItem, newcolor As Long)
     Next
 End Sub
 
+Function c2a(c As Collection) As String()
+    Dim t() As String, f
+    For Each f In c
+        push t, f
+    Next
+    c2a = t
+End Function
+
+Function c2s(c As Collection, Optional delimiter = vbCrLf) As String
+    c2s = Join(c2a(c), delimiter)
+End Function
+
+
 'ported from Detect It Easy - Binary::calculateEntropy
 '   https://github.com/horsicq/DIE-engine/blob/master/binary.cpp#L2319
 Function fileEntropy(pth As String, Optional offset As Long = 0, Optional leng As Long = -1) As Single

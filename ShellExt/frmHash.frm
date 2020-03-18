@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmHash 
    Caption         =   "Directory File Hasher - Right Click on ListView for Menu Options"
    ClientHeight    =   4080
@@ -126,7 +126,7 @@ Begin VB.Form frmHash
             Caption         =   "Unique ImpHash"
          End
          Begin VB.Menu mnuFilePropsReport 
-            Caption         =   "File Property Report"
+            Caption         =   "File Properties"
          End
          Begin VB.Menu mnuDieReport 
             Caption         =   "DiE Report"
@@ -136,6 +136,15 @@ Begin VB.Form frmHash
          End
          Begin VB.Menu mnuStringsDumpAll 
             Caption         =   "Strings Dump"
+         End
+         Begin VB.Menu mnuRichReport 
+            Caption         =   "Rich Headers"
+         End
+         Begin VB.Menu mnuDumpImports 
+            Caption         =   "Imports"
+         End
+         Begin VB.Menu mnuDumpExports 
+            Caption         =   "Exports"
          End
       End
       Begin VB.Menu mnuSpacer33 
@@ -219,7 +228,181 @@ Private humanReadableSizes As Boolean
 
 Private Sub Form_Unload(Cancel As Integer)
     abort = True
+    'SaveSetting "shellext", "settings", "mnuIncludeFileName", mnuIncludeFileName.Checked
     sc.DetatchMessage Me.hwnd, WM_SYSCOMMAND
+End Sub
+
+Private Sub mnuDumpExports_Click()
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim fPath As String
+    Dim selOnly As Boolean
+    Dim doit As Boolean
+    Dim fs As New clsFileStream
+    Dim report As String
+    Dim tmp As String
+    Dim pe2 As New sppe3.CPEEditor
+
+    report = fso.GetFreeFileName(Environ("temp"))
+    fs.fOpen report, otwriting
+    fs.WriteLine vbCrLf & "This is a temp file saveAs to save"
+    fs.WriteDivider
+    
+    selOnly = (lvSelCount(lv) > 1)
+    
+    pb.value = 0
+    If selOnly Then
+        pb.max = lvSelCount(lv)
+    Else
+        pb.max = lv.ListItems.Count
+    End If
+    
+    For Each li In lv.ListItems
+        doit = False
+        If selOnly Then
+            If li.selected Then doit = True
+        Else
+            doit = True
+        End If
+        If doit Then
+            fPath = li.Tag
+            If fso.FileExists(fPath) Then
+                fs.WriteLine "File: " & fPath
+                If Not pe2.LoadFile(fPath) Then
+                    fs.WriteLine "Error: " & pe2.errMessage
+                Else
+                    If pe2.Exports.functions.Count = 0 Then
+                        fs.WriteLine "No Exports"
+                    Else
+                        fs.WriteLine c2s(pe2.Exports.dumpNames, ", ")
+                    End If
+                End If
+                fs.WriteLine rh.dump
+                fs.WriteDivider
+            End If
+        End If
+        pb.value = pb.value + 1
+    Next
+    
+    pb.value = 0
+    fs.fClose
+    Shell "notepad.exe """ & report & """", vbNormalFocus
+
+End Sub
+
+Private Sub mnuDumpImports_Click()
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim fPath As String
+    Dim selOnly As Boolean
+    Dim doit As Boolean
+    Dim fs As New clsFileStream
+    Dim report As String
+    Dim tmp As String
+    Dim pe2 As New sppe3.CPEEditor
+    Dim rh As CRichHeader
+    
+    report = fso.GetFreeFileName(Environ("temp"))
+    fs.fOpen report, otwriting
+    fs.WriteLine vbCrLf & "This is a temp file saveAs to save"
+    fs.WriteDivider
+    
+    selOnly = (lvSelCount(lv) > 1)
+    
+    pb.value = 0
+    If selOnly Then
+        pb.max = lvSelCount(lv)
+    Else
+        pb.max = lv.ListItems.Count
+    End If
+    
+    For Each li In lv.ListItems
+        doit = False
+        If selOnly Then
+            If li.selected Then doit = True
+        Else
+            doit = True
+        End If
+        If doit Then
+            fPath = li.Tag
+            If fso.FileExists(fPath) Then
+                fs.WriteLine "File: " & fPath
+                If Not pe2.LoadFile(fPath) Then
+                    fs.WriteLine "Error: " & pe2.errMessage
+                Else
+                    If pe2.Imports.Modules.Count = 0 Then
+                        fs.WriteLine "No Imports ?"
+                    Else
+                        Dim ci As CImport
+                        For Each ci In pe2.Imports.Modules
+                            fs.WriteLine ci.DllName & ": " & c2s(ci.functions, ", ")
+                        Next
+                    End If
+                End If
+                fs.WriteLine rh.dump
+                fs.WriteDivider
+            End If
+        End If
+        pb.value = pb.value + 1
+    Next
+    
+    pb.value = 0
+    fs.fClose
+    Shell "notepad.exe """ & report & """", vbNormalFocus
+End Sub
+
+Private Sub mnuRichReport_Click()
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim fPath As String
+    Dim selOnly As Boolean
+    Dim doit As Boolean
+    Dim fs As New clsFileStream
+    Dim report As String
+    Dim tmp As String
+    Dim pe2 As New sppe3.CPEEditor
+    Dim rh As CRichHeader
+    
+    report = fso.GetFreeFileName(Environ("temp"))
+    fs.fOpen report, otwriting
+    fs.WriteLine vbCrLf & "This is a temp file saveAs to save"
+    fs.WriteDivider
+    
+    selOnly = (lvSelCount(lv) > 1)
+    
+    pb.value = 0
+    If selOnly Then
+        pb.max = lvSelCount(lv)
+    Else
+        pb.max = lv.ListItems.Count
+    End If
+    
+    For Each li In lv.ListItems
+        doit = False
+        If selOnly Then
+            If li.selected Then doit = True
+        Else
+            doit = True
+        End If
+        If doit Then
+            fPath = li.Tag
+            If fso.FileExists(fPath) Then
+                fs.WriteLine "File: " & fPath
+                Set rh = New CRichHeader
+                Call rh.Load(fPath)
+                fs.WriteLine rh.dump
+                fs.WriteDivider
+            End If
+        End If
+        pb.value = pb.value + 1
+    Next
+    
+    pb.value = 0
+    fs.fClose
+    Shell "notepad.exe """ & report & """", vbNormalFocus
 End Sub
 
 Private Sub mnuStringsDumpAll_Click()
@@ -533,10 +716,21 @@ Private Sub mnuUniqueImpHash_Click()
         push r, vbCrLf
     Next
     
-    Clipboard.Clear
-    Clipboard.SetText Join(r, vbCrLf)
-    MsgBox c.Count & " unique imphashs copied for " & pb.max & " samples"
+    'Clipboard.Clear
+    'Clipboard.SetText Join(r, vbCrLf)
     
+    Dim report As String, fs As New clsFileStream
+    
+    report = fso.GetFreeFileName(Environ("temp"))
+    fs.fOpen report, otwriting
+    fs.WriteLine vbCrLf & "This is a temp file saveAs to save" & vbCrLf
+    fs.WriteLine c.Count & " unique imphashs copied for " & pb.max & " samples"
+    fs.WriteDivider
+    fs.WriteLine Join(r, vbCrLf)
+    fs.fClose
+    
+    Shell "notepad.exe """ & report & """", vbNormalFocus
+
 End Sub
 
 Private Sub sc_MessageReceived(hwnd As Long, wMsg As Long, wParam As Long, lParam As Long, Cancel As Boolean)
@@ -556,6 +750,7 @@ Sub Form_Load()
     
     mnuPopup.Visible = False
     lv.ColumnHeaders(1).Width = lv.Width - lv.ColumnHeaders(2).Width - 400 - lv.ColumnHeaders(3).Width - lv.ColumnHeaders(4).Width
+    'mnuIncludeFileName.Checked = GetSetting("shellext", "settings", "mnuIncludeFileName", 1)
     
     If sc Is Nothing Then
         Set sc = New CSubclass2
