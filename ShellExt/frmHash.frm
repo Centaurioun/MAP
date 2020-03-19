@@ -137,11 +137,25 @@ Begin VB.Form frmHash
          Begin VB.Menu mnuStringsDumpAll 
             Caption         =   "Strings Dump"
          End
-         Begin VB.Menu mnuRichReport 
-            Caption         =   "Rich Headers"
+         Begin VB.Menu mnuRich 
+            Caption         =   "Rich Header"
+            Begin VB.Menu mnuRichBasic 
+               Caption         =   "Basic"
+            End
+            Begin VB.Menu mnuRichReport 
+               Caption         =   "Detailed"
+            End
          End
-         Begin VB.Menu mnuDumpImports 
+         Begin VB.Menu mnuImportsTop 
             Caption         =   "Imports"
+            Begin VB.Menu mnuDumpImports 
+               Caption         =   "Dlls"
+               Index           =   0
+            End
+            Begin VB.Menu mnuDumpImports 
+               Caption         =   "All"
+               Index           =   1
+            End
          End
          Begin VB.Menu mnuDumpExports 
             Caption         =   "Exports"
@@ -291,7 +305,7 @@ Private Sub mnuDumpExports_Click()
 
 End Sub
 
-Private Sub mnuDumpImports_Click()
+Private Sub mnuDumpImports_Click(index As Integer)
     On Error Resume Next
     
     Dim li As ListItem
@@ -337,11 +351,64 @@ Private Sub mnuDumpImports_Click()
                     Else
                         Dim ci As CImport
                         For Each ci In pe2.Imports.Modules
-                            fs.WriteLine ci.DllName & ": " & c2s(ci.functions, ", ")
+                            If index = 1 Then tmp = ": " & c2s(ci.functions, ", ")
+                            fs.WriteLine ci.DllName & tmp
                         Next
                     End If
                 End If
                 fs.WriteLine rh.dump
+                fs.WriteDivider
+            End If
+        End If
+        pb.value = pb.value + 1
+    Next
+    
+    pb.value = 0
+    fs.fClose
+    Shell "notepad.exe """ & report & """", vbNormalFocus
+End Sub
+
+Private Sub mnuRichBasic_Click()
+On Error Resume Next
+    
+    Dim li As ListItem
+    Dim fPath As String
+    Dim selOnly As Boolean
+    Dim doit As Boolean
+    Dim fs As New clsFileStream
+    Dim report As String
+    Dim tmp As String
+    Dim pe2 As New sppe3.CPEEditor
+    Dim rh As CRichHeader
+    
+    report = fso.GetFreeFileName(Environ("temp"))
+    fs.fOpen report, otwriting
+    fs.WriteLine vbCrLf & "This is a temp file saveAs to save"
+    fs.WriteDivider
+    
+    selOnly = (lvSelCount(lv) > 1)
+    
+    pb.value = 0
+    If selOnly Then
+        pb.max = lvSelCount(lv)
+    Else
+        pb.max = lv.ListItems.Count
+    End If
+    
+    For Each li In lv.ListItems
+        doit = False
+        If selOnly Then
+            If li.selected Then doit = True
+        Else
+            doit = True
+        End If
+        If doit Then
+            fPath = li.Tag
+            If fso.FileExists(fPath) Then
+                fs.WriteLine "File: " & fPath
+                Set rh = New CRichHeader
+                Call rh.Load(fPath)
+                fs.WriteLine "Exists: " & rh.Exists & "       CheckSumOk: " & rh.checkSumOk & "       Entries: " & rh.entries.Count
                 fs.WriteDivider
             End If
         End If

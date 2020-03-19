@@ -33,6 +33,7 @@ Form=frmSelectFont.frm
 Module=modFont; modFont.bas
 Form=frmResViewer.frm
 Form=frmDllCharacteristics .frm
+Form=frmTimeStamp.frm
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""

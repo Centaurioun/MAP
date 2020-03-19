@@ -189,6 +189,9 @@ Begin VB.Form frmFileHash
       Begin VB.Menu mnuDllChar 
          Caption         =   "Dll Characteristics"
       End
+      Begin VB.Menu mnuDateToStamp 
+         Caption         =   "Calculate TimeStamp"
+      End
       Begin VB.Menu mnuSearchFileName 
          Caption         =   "Google File Name"
       End
@@ -252,6 +255,10 @@ Enum opts
     oDiE
     oImpHash
 End Enum
+
+Private Sub mnuDateToStamp_Click()
+    frmTimeStamp.Show
+End Sub
 
 Private Sub mnuDllChar_Click()
     frmDllCharacteristics.LoadFile LoadedFile

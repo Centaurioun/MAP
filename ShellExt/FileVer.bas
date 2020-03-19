@@ -432,6 +432,29 @@ Function c2s(c As Collection, Optional delimiter = vbCrLf) As String
     c2s = Join(c2a(c), delimiter)
 End Function
 
+Function DatetoTimeStamp(d As Date) As Long
+
+    On Error Resume Next
+    Dim base As Date
+    Dim compiled As Date
+    
+    base = DateSerial(1970, 1, 1)
+    DatetoTimeStamp = DateDiff("s", base, d)
+
+End Function
+
+Function timeStampToDate(timestamp As Long, Optional formatStr As String = "mmm d yyyy h:nn:ss") As String
+
+    On Error Resume Next
+    Dim base As Date
+    Dim compiled As Date
+    
+    base = DateSerial(1970, 1, 1)
+    compiled = DateAdd("s", timestamp, base)
+    timeStampToDate = Format(compiled, formatStr)
+
+End Function
+
 
 'ported from Detect It Easy - Binary::calculateEntropy
 '   https://github.com/horsicq/DIE-engine/blob/master/binary.cpp#L2319

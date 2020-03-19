@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Object = "{48E59290-9880-11CF-9754-00AA00C00908}#1.0#0"; "MSINET.OCX"
 Begin VB.Form frmBulkDownload 
    Caption         =   "Bulk Download"
@@ -11,6 +11,14 @@ Begin VB.Form frmBulkDownload
    ScaleHeight     =   6030
    ScaleWidth      =   11415
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton cmdAbort 
+      Caption         =   "Abort"
+      Height          =   315
+      Left            =   9210
+      TabIndex        =   9
+      Top             =   120
+      Width           =   855
+   End
    Begin VB.TextBox txtLimit 
       Height          =   285
       Left            =   3300
@@ -20,12 +28,12 @@ Begin VB.Form frmBulkDownload
       Width           =   615
    End
    Begin VB.Timer Timer1 
-      Left            =   10380
-      Top             =   120
+      Left            =   11040
+      Top             =   1740
    End
    Begin InetCtlsObjects.Inet Inet1 
-      Left            =   10800
-      Top             =   0
+      Left            =   10860
+      Top             =   1020
       _ExtentX        =   1005
       _ExtentY        =   1005
       _Version        =   393216
@@ -83,9 +91,9 @@ Begin VB.Form frmBulkDownload
    Begin VB.CommandButton cmdDownload 
       Caption         =   "Download"
       Height          =   330
-      Left            =   9270
+      Left            =   10140
       TabIndex        =   4
-      Top             =   135
+      Top             =   120
       Width           =   1095
    End
    Begin VB.CommandButton cmdBrowse 
@@ -165,6 +173,11 @@ Attribute VB_Exposed = False
 Dim fso As New CFileSystem2
 Dim vt As New CVirusTotal
 Dim dlg As New CCmnDlg
+Dim abort As Boolean
+
+Private Sub cmdAbort_Click()
+    abort = True
+End Sub
 
 'todo: async download with progress bar instead of blocking
 
@@ -188,6 +201,7 @@ Private Sub cmdDownload_Click()
     Dim lI As ListItem
     Dim limit As Long
     
+    abort = False
     limit = getLimit()
     
     If Not fso.FolderExists(txtDir) Then
@@ -209,6 +223,7 @@ Private Sub cmdDownload_Click()
     pb.Max = UBound(tmp) + 1
     
     For Each X In tmp
+        If abort Then Exit For
         If limit > 0 Then
             If pb.Value > limit Then Exit For
         End If

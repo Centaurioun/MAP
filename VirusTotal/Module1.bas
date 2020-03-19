@@ -8,6 +8,8 @@ Sub Main()
     Dim path As String
     Dim hash_mode As Boolean
     
+    '3.18.20 - noticed if Form1 loaded first, then loads form2 and form1 unloads app terminates? because of submain ?
+    
     '2.8.2020 - form1.form_load kept being called over and over again by the runtime
     '           when it was the startup object and we tried to call unload me with another form open
     '           from form_load itself. now moved this to its own submain...
@@ -67,6 +69,40 @@ Sub Main()
     End If
 
 End Sub
+
+Function GetCompileTime(Optional ByVal exe As String) As String
+    
+    Dim f As Long, i As Integer
+    Dim stamp As Long, e_lfanew As Long
+    Dim base As Date, compiled As Date
+
+    On Error GoTo errExit
+    
+    FileLen exe 'throw error if not exist
+    
+    f = FreeFile
+    Open exe For Binary Access Read As f
+    Get f, , i
+    
+    If i <> &H5A4D Then GoTo errExit 'MZ check
+     
+    Get f, 60 + 1, e_lfanew
+    Get f, e_lfanew + 1, i
+    
+    If i <> &H4550 Then GoTo errExit 'PE check
+    
+    Get f, e_lfanew + 9, stamp
+    Close f
+    
+    base = DateSerial(1970, 1, 1)
+    compiled = DateAdd("s", stamp, base)
+    GetCompileTime = Format(compiled, "ddd, mmm d yyyy, h:nn:ss ")
+    
+    Exit Function
+errExit:
+    Close f
+        
+End Function
 
 Function lvGetAllElements(lv As Object) As String
     Dim ret() As String, i As Integer, tmp As String
