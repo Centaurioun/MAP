@@ -225,7 +225,7 @@ Begin VB.Form Form1
          Caption         =   "-"
       End
       Begin VB.Menu mnuUsePrivateKey 
-         Caption         =   "Use Private API Key"
+         Caption         =   "Set API Key"
       End
    End
    Begin VB.Menu mnuPopup 
@@ -312,7 +312,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-Dim vt As New CVirusTotal
+Public vt As New CVirusTotal
 Dim selli As ListItem
 Dim scan As CScan
 Dim dlg As New CCmnDlg
@@ -1241,27 +1241,7 @@ Private Sub mnuSubmitSelected_Click()
 End Sub
 
 Private Sub mnuUsePrivateKey_Click()
-    Dim X As String
-    
-    X = InputBox("By default we use a rate limited public API key. If you have access to a private api key, you may enter it here to avoid delays. " & _
-                 "Enter an empty string or hit cancel to clear the private key." & vbCrLf & vbCrLf & "Your key will be stored in the registry.", _
-                 "Enter private api key", _
-                 vt.ReadPrivateApiKey _
-        )
-                 
-    vt.SetPrivateApiKey X
-    mnuUsePrivateKey.Checked = vt.usingPrivateKey
-    
-    If vt.usingPrivateKey Then
-        MsgBox "Private key successfull set", vbInformation
-        mnuBulkDownload.Enabled = True
-        mnuSearchVT.Enabled = True
-    Else
-        MsgBox "You are now using the default public key which is rate limited and free for non-commercial use. " & vbCrLf & vbCrLf & "Please see the VirusTotal terms of service.", vbInformation
-        mnuBulkDownload.Enabled = False
-        mnuSearchVT.Enabled = False
-    End If
-    
+    frmApiKey.init Me.vt
 End Sub
 
 Private Sub mnuViewRaw_Click()
@@ -1274,12 +1254,12 @@ End Sub
 
 
 Sub push(ary, Value) 'this modifies parent ary object
-    On Error GoTo Init
+    On Error GoTo init
     X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = Value
     Exit Sub
-Init:     ReDim ary(0): ary(0) = Value
+init:     ReDim ary(0): ary(0) = Value
 End Sub
 '
 'Private Sub txtFilter_KeyDown(KeyCode As Integer, Shift As Integer)
