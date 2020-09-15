@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "richtx32.ocx"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmStrings 
    Caption         =   "Strings"
    ClientHeight    =   5340
@@ -126,6 +126,7 @@ Begin VB.Form frmStrings
       _ExtentX        =   14737
       _ExtentY        =   8281
       _Version        =   393217
+      Enabled         =   -1  'True
       HideSelection   =   0   'False
       ScrollBars      =   3
       TextRTF         =   $"frmPeek.frx":0000
@@ -432,7 +433,7 @@ End Sub
 
 Private Sub Form_Resize()
     On Error Resume Next
-    rtf.move 100, rtf.top, Me.Width - 400, Me.Height - rtf.top - 650
+    rtf.Move 100, rtf.top, Me.Width - 400, Me.Height - rtf.top - 650
     pb.Width = rtf.Width
 End Sub
  

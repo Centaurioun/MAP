@@ -75,7 +75,6 @@ Begin VB.Form frmFileHash
       _Version        =   393217
       BackColor       =   -2147483633
       BorderStyle     =   0
-      Enabled         =   -1  'True
       Appearance      =   0
       TextRTF         =   $"frmFileHash.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -394,8 +393,8 @@ End Function
 
 Function hasInterestingResources() As Boolean
     Dim r As CResData, i As Long
-    For i = 1 To pe.Resources.entries.Count
-        Set r = pe.Resources.entries(i)
+    For i = 1 To pe.Resources.Entries.Count
+        Set r = pe.Resources.Entries(i)
         If InStr(1, r.path, "icon", vbTextCompare) < 1 And InStr(1, r.path, "version", vbTextCompare) < 1 Then
             hasInterestingResources = True
             Exit Function
@@ -496,7 +495,7 @@ Function ShowFileStats(fPath As String, Optional fromAutomation As Boolean = Fal
     
     If pe.isLoaded Then
         If pe.Exports.functions.Count > 0 Then push ret(), "Exports:  " & pe.Exports.functions.Count
-        If hasInterestingResources Then push ret(), "Resources: " & pe.Resources.entries.Count & " - " & pe.Resources.size & " bytes"
+        If hasInterestingResources Then push ret(), "Resources: " & pe.Resources.Entries.Count & " - " & pe.Resources.size & " bytes"
     End If
     
     If isPE And isOpt(oPEVer) Then push ret(), PEVersionReport(pe, True)
@@ -767,7 +766,7 @@ End Sub
 
 Private Sub mnuOffsetCalc_Click()
     On Error Resume Next
-    Dim pe As New CPEEditor
+    Dim pe As New sppe3.CPEEditor
     If pe.LoadFile(LoadedFile) Then
         pe.ShowOffsetCalculator
         'frmOffsets.Initilize pe
