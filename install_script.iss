@@ -42,13 +42,13 @@ Source: sniff_hit.exe; DestDir: {app}; Flags: ignoreversion
 Source: fakeDNS.exe; DestDir: {app}; Flags: ignoreversion
 Source: IDCDumpFix.exe; DestDir: {app}; Flags: ignoreversion
 Source: mail_pot.exe; DestDir: {app}; Flags: ignoreversion
-
 Source: ShellExt.exe; DestDir: {app}; Flags: ignoreversion
 Source: tlbViewer.exe; DestDir: {app}; Flags: ignoreversion
 Source: map_help.chm; DestDir: {app}
 Source: KANAL.dll; DestDir: {app}
 Source: delphi_filter.txt; DestDir: {app}
 Source: corflags.exe; DestDir: {app}
+
 Source: DiE\db\Binary\7z.1.sg; DestDir: {app}\DiE\db\Binary
 Source: DiE\db\Binary\ACE.1.sg; DestDir: {app}\DiE\db\Binary
 Source: DiE\db\Binary\ANI.1.sg; DestDir: {app}\DiE\db\Binary
