@@ -164,7 +164,7 @@ Option Explicit
 
 Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Integer, ByVal lParam As Any) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
+Private Declare Sub SetWindowPos Lib "user32" (ByVal hwnd As Long, ByVal hWndInsertAfter As Long, ByVal X As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long)
 Private Const HWND_TOPMOST = -1
 
 'constants for searching the ListBox
@@ -200,7 +200,7 @@ End Sub
 Function SelectFont(cmndlg As CCmnDlg, Optional obj As Object) As CFont
     On Error Resume Next
     
-    Dim x As Long
+    Dim X As Long
     Dim f As New CFont
     
     Set dlg = cmndlg
@@ -216,16 +216,16 @@ Function SelectFont(cmndlg As CCmnDlg, Optional obj As Object) As CFont
         If f.Strikethrough Then Check4.value = 1
         If Len(f.Name) > 0 Then txtFont = f.Name
         If f.size <> 0 Then Text1 = f.size
-        If f.color <> 0 Then
-            Label3.BackColor = f.color
-            lblFont.ForeColor = f.color
+        If f.Color <> 0 Then
+            Label3.BackColor = f.Color
+            lblFont.ForeColor = f.Color
         End If
     
-        For x = 0 To List2.ListCount - 1
-            If f.size = val(List2.List(x)) Then
-                List2.ListIndex = x
-                lblFont.FontSize = val(List2.List(x))
-                Text1.Text = List2.List(x)
+        For X = 0 To List2.ListCount - 1
+            If f.size = val(List2.List(X)) Then
+                List2.ListIndex = X
+                lblFont.FontSize = val(List2.List(X))
+                Text1.text = List2.List(X)
                 Exit For
             End If
         Next
@@ -254,7 +254,7 @@ Function SelectFont(cmndlg As CCmnDlg, Optional obj As Object) As CFont
         .Strikethrough = lblFont.FontStrikethru
         .Name = lblFont.fontname
         .size = lblFont.FontSize
-        .color = lblFont.ForeColor
+        .Color = lblFont.ForeColor
     End With
     
     Unload Me
@@ -270,12 +270,12 @@ Private Sub Command2_Click()
 End Sub
 
 Private Sub Form_Load()
-    Dim x As Long
+    Dim X As Long
     
     If List1.ListCount > 0 Then Exit Sub
       
-    For x = 0 To Screen.FontCount - 1
-       List1.AddItem Screen.Fonts(x)
+    For X = 0 To Screen.FontCount - 1
+       List1.AddItem Screen.Fonts(X)
     Next
                
 End Sub
@@ -295,42 +295,42 @@ End Sub
 
 Private Sub List1_Click()
     On Error Resume Next
-    Dim c As Collection, x
+    Dim c As Collection, X
     List2.Clear
     lblFont.fontname = List1.List(List1.ListIndex)
     Set c = EnumFontSizes(lblFont.fontname)
-    For Each x In c
-        List2.AddItem x
+    For Each X In c
+        List2.AddItem X
     Next
     center
 End Sub
 
 Private Sub List2_Click()
-    Text1.Text = List2.List(List2.ListIndex)
-    lblFont.FontSize = val(Text1.Text)
+    Text1.text = List2.List(List2.ListIndex)
+    lblFont.FontSize = val(Text1.text)
     center
 End Sub
 
 Private Sub Text1_Change()
-    Dim x As Long
+    Dim X As Long
     
     On Error Resume Next
     
-    For x = 0 To List2.ListCount - 1
-        If val(Text1.Text) = val(List2.List(x)) Then
-             List2.ListIndex = x
+    For X = 0 To List2.ListCount - 1
+        If val(Text1.text) = val(List2.List(X)) Then
+             List2.ListIndex = X
              
              Exit For
         End If
     Next
     
-    lblFont.FontSize = val(Text1.Text)
+    lblFont.FontSize = val(Text1.text)
     
 End Sub
 
 Private Sub txtFont_Change()
     On Error Resume Next
-    List1.ListIndex = GetListBoxIndex(List1.hwnd, txtFont.Text)
+    List1.ListIndex = GetListBoxIndex(List1.hwnd, txtFont.text)
 End Sub
 
 'function to get find an item in the Listbox
@@ -354,11 +354,11 @@ Function center()
         h = Picture1.Height
         
         If h > .Height Then
-            .Top = ((h - .Height) / 2) - 50
+            .top = ((h - .Height) / 2) - 50
         Else
-            .Top = 0
+            .top = 0
             Picture1.Height = lh
-            Me.Height = Picture1.Top + Picture1.Height + 600
+            Me.Height = Picture1.top + Picture1.Height + 600
         End If
         
         If w > .Width Then
@@ -372,7 +372,7 @@ End Function
 
 
 Private Sub SetWindowTopMost(f As Form)
-   SetWindowPos f.hwnd, HWND_TOPMOST, f.Left / 15, f.Top / 15, f.Width / 15, f.Height / 15, Empty
+   SetWindowPos f.hwnd, HWND_TOPMOST, f.Left / 15, f.top / 15, f.Width / 15, f.Height / 15, Empty
 End Sub
 
 

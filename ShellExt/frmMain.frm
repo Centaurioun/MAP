@@ -2,7 +2,7 @@ VERSION 5.00
 Begin VB.Form frmMain 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Install Shell Extensions"
-   ClientHeight    =   4110
+   ClientHeight    =   4620
    ClientLeft      =   45
    ClientTop       =   330
    ClientWidth     =   5745
@@ -10,7 +10,7 @@ Begin VB.Form frmMain
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   4110
+   ScaleHeight     =   4620
    ScaleWidth      =   5745
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
@@ -18,8 +18,8 @@ Begin VB.Form frmMain
    Begin VB.Timer tmrCloseWithHexEditor 
       Enabled         =   0   'False
       Interval        =   1000
-      Left            =   2520
-      Top             =   3690
+      Left            =   0
+      Top             =   3645
    End
    Begin VB.PictureBox pict 
       AutoRedraw      =   -1  'True
@@ -43,11 +43,29 @@ Begin VB.Form frmMain
       Width           =   5565
    End
    Begin VB.Frame Frame1 
-      Height          =   615
+      Caption         =   " Options "
+      Height          =   1110
       Left            =   90
       TabIndex        =   2
       Top             =   3000
       Width           =   5595
+      Begin VB.CheckBox chkUseSha256 
+         Caption         =   "Use SHA256 as Default"
+         BeginProperty Font 
+            Name            =   "Courier"
+            Size            =   9.75
+            Charset         =   0
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
+         Height          =   240
+         Left            =   855
+         TabIndex        =   7
+         Top             =   630
+         Width           =   2940
+      End
       Begin VB.CommandButton cmdMinLen 
          Caption         =   "Set"
          Height          =   285
@@ -77,18 +95,19 @@ Begin VB.Form frmMain
             Strikethrough   =   0   'False
          EndProperty
          Height          =   255
+         Index           =   0
          Left            =   870
          TabIndex        =   3
-         Top             =   240
+         Top             =   225
          Width           =   2955
       End
    End
    Begin VB.CommandButton cmdInstallRegKeys 
       Caption         =   "Install"
       Height          =   315
-      Left            =   4620
+      Left            =   4635
       TabIndex        =   1
-      Top             =   3720
+      Top             =   4230
       Width           =   1035
    End
    Begin VB.CommandButton cmdRemoveRegKeys 
@@ -96,8 +115,26 @@ Begin VB.Form frmMain
       Height          =   315
       Left            =   3240
       TabIndex        =   0
-      Top             =   3720
+      Top             =   4230
       Width           =   1035
+   End
+   Begin VB.Label Label2 
+      Caption         =   "Shell extensions:"
+      BeginProperty Font 
+         Name            =   "Courier"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Height          =   255
+      Index           =   1
+      Left            =   1035
+      TabIndex        =   8
+      Top             =   4275
+      Width           =   2100
    End
 End
 Attribute VB_Name = "frmMain"
@@ -167,10 +204,11 @@ Const tlb2 = "ocxfile\shell\Type Library Viewer\command"
 Const tlb3 = "tlbfile\shell\Type Library Viewer\command"
 
 Private autoInstall As Boolean
+Private formLoaded As Boolean
 
 Function ap() As String
     ap = App.path
-    If IsIde() Then ap = fso.GetParentFolder(ap)
+    If isIde() Then ap = fso.GetParentFolder(ap)
 End Function
 
 Sub InstallRegKeys()
@@ -254,6 +292,11 @@ hell: If Not autoInstall Then MsgBox "Error adding keys: " & Err.Description
 
 End Sub
 
+
+Private Sub chkUseSha256_Click()
+    If Not formLoaded Then Exit Sub
+    SaveMySetting "mnuUseSHA256.Checked", chkUseSha256.value
+End Sub
 
 Private Sub cmdInstallRegKeys_Click()
     
@@ -370,6 +413,8 @@ Function RemoveRegKeys()
 End Function
 
 Private Sub Form_Load()
+
+    On Error Resume Next
     
     Dim mode As Long
     Dim cmd As String
@@ -397,10 +442,9 @@ Private Sub Form_Load()
                " CHM Files: Decompile"
 
                  
-
     lastCmd = GetMySetting("lastCMD", "")
     
-    If IsIde() And Len(lastCmd) > 0 Then
+    If isIde() And Len(lastCmd) > 0 Then
         cmd = Replace(lastCmd, """", "")
         isLastCmd = True
     Else
@@ -462,7 +506,9 @@ Private Sub Form_Load()
        Unload Me
         
     Else
+        chkUseSha256.value = IIf(CBool(GetMySetting("mnuUseSHA256.Checked", 0)), 1, 0)
         Me.Visible = True
+        formLoaded = True
     End If
     
     

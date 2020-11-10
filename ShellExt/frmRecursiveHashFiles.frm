@@ -1,5 +1,4 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmRecursiveHashFiles 
    Caption         =   "Hash all files below "
    ClientHeight    =   5895
@@ -10,6 +9,15 @@ Begin VB.Form frmRecursiveHashFiles
    ScaleHeight     =   5895
    ScaleWidth      =   14460
    StartUpPosition =   2  'CenterScreen
+   Begin ShellExt.ucFilterList lv 
+      Height          =   5280
+      Left            =   45
+      TabIndex        =   3
+      Top             =   450
+      Width           =   14235
+      _ExtentX        =   25109
+      _ExtentY        =   9313
+   End
    Begin VB.CommandButton Command1 
       Caption         =   "Hash Files Below"
       BeginProperty Font 
@@ -23,7 +31,7 @@ Begin VB.Form frmRecursiveHashFiles
       EndProperty
       Height          =   375
       Left            =   11925
-      TabIndex        =   2
+      TabIndex        =   1
       Top             =   0
       Width           =   2490
    End
@@ -40,53 +48,10 @@ Begin VB.Form frmRecursiveHashFiles
       Height          =   330
       Left            =   900
       OLEDropMode     =   1  'Manual
-      TabIndex        =   1
+      TabIndex        =   0
       Text            =   "drop here"
       Top             =   45
       Width           =   10995
-   End
-   Begin MSComctlLib.ListView lv 
-      Height          =   5280
-      Left            =   45
-      TabIndex        =   0
-      Top             =   450
-      Width           =   14280
-      _ExtentX        =   25188
-      _ExtentY        =   9313
-      View            =   3
-      LabelEdit       =   1
-      LabelWrap       =   -1  'True
-      HideSelection   =   0   'False
-      GridLines       =   -1  'True
-      _Version        =   393217
-      ForeColor       =   -2147483640
-      BackColor       =   -2147483643
-      BorderStyle     =   1
-      Appearance      =   1
-      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-         Name            =   "Courier"
-         Size            =   12
-         Charset         =   0
-         Weight          =   400
-         Underline       =   0   'False
-         Italic          =   0   'False
-         Strikethrough   =   0   'False
-      EndProperty
-      NumItems        =   3
-      BeginProperty ColumnHeader(1) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
-         Text            =   "Hash"
-         Object.Width           =   8467
-      EndProperty
-      BeginProperty ColumnHeader(2) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
-         SubItemIndex    =   1
-         Text            =   "Size"
-         Object.Width           =   2540
-      EndProperty
-      BeginProperty ColumnHeader(3) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
-         SubItemIndex    =   2
-         Text            =   "File"
-         Object.Width           =   2540
-      EndProperty
    End
    Begin VB.Label Label1 
       Caption         =   "Folder"
@@ -101,7 +66,7 @@ Begin VB.Form frmRecursiveHashFiles
       EndProperty
       Height          =   330
       Left            =   0
-      TabIndex        =   3
+      TabIndex        =   2
       Top             =   45
       Width           =   1365
    End
@@ -138,6 +103,7 @@ End Sub
 Private Sub Command1_Click()
     
     On Error Resume Next
+    Dim useSha256 As Boolean
     
     If Not fso.FolderExists(Text1) Then
         MsgBox "No folder found"
@@ -148,12 +114,13 @@ Private Sub Command1_Click()
     ff() = fso.GetFolderFiles(Text1, , , True)
     
     lv.ListItems.Clear
+    useSha256 = CBool(GetMySetting("mnuUseSHA256.Checked", 0)) 'set in frmHash (hashDir)
     
     For Each f In ff
         Set li = lv.ListItems.Add()
-        li.text = hash.HashFile(CStr(f))
-        li.SubItems(1) = pad(Hex(FileLen(CStr(f))))
-        li.SubItems(2) = f
+        li.text = hash.HashFile(CStr(f), IIf(useSha256, 256, md5))
+        li.subItems(1) = pad(Hex(FileLen(CStr(f))))
+        li.subItems(2) = f
         DoEvents
     Next
     
@@ -165,68 +132,70 @@ End Sub
 
 Private Sub Form_Resize()
     On Error Resume Next
-    lv.Width = Me.Width - lv.Left - 200
-    lv.Height = Me.Height - lv.top - 400
-    sizeLvCol lv
+    lv.Width = Me.Width - lv.Left - 300
+    lv.Height = Me.Height - lv.top - 500
+    'sizeLvCol lv
 End Sub
 
-Private Sub lv_MouseUp(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub lv_MouseUp(Button As Integer, Shift As Integer, X As Single, y As Single)
     If Button = 2 Then PopupMenu mnuPopup
 End Sub
 
 Private Sub mnuCopyHashs_Click()
     Dim li As ListItem
-    Dim x()
+    Dim X()
     
-    push x, "hashs for: " & Text1 & vbCrLf
+    push X, "hashs for: " & Text1 & vbCrLf
     
     For Each li In lv.ListItems
-        push x, li.text
+        push X, li.text
     Next
     
     Clipboard.Clear
-    Clipboard.SetText Join(x, vbCrLf)
+    Clipboard.SetText Join(X, vbCrLf)
     
 End Sub
 
 Private Sub mnuCopyCSV_Click()
     Dim li As ListItem
-    Dim x()
+    Dim X()
     
-    push x, "hash,hexSize,path"
+    push X, "hash,hexSize,path"
     
     For Each li In lv.ListItems
-        push x, li.text & "," & li.SubItems(1) & "," & li.SubItems(2)
+        push X, li.text & "," & li.subItems(1) & "," & li.subItems(2)
     Next
     
     Clipboard.Clear
-    Clipboard.SetText Join(x, vbCrLf)
+    Clipboard.SetText Join(X, vbCrLf)
 End Sub
 
 Private Sub Form_Load()
     mnuPopup.Visible = False
-    sizeLvCol lv
+    lv.SetColumnHeaders "Hash,Size,File*", "4000,1500"
+    lv.SetFont "Courier", 12
+    'sizeLvCol lv
 End Sub
 
 Private Sub mnuCopyReport_Click()
     Dim li As ListItem
-    Dim x()
+    Dim X()
     Dim mbr As VbMsgBoxResult
     
     mbr = MsgBox("One item per line?", vbYesNo)
     
     For Each li In lv.ListItems
         If mbr = vbYes Then
-            push x, pad(li.SubItems(1), 6) & "   " & li.text & "   " & li.SubItems(2)
+            push X, pad(li.subItems(1), 6) & "   " & li.text & "   " & li.subItems(2)
         Else
-            push x, rpad("File: ") & li.SubItems(2)
-            push x, rpad("Size: ") & li.SubItems(1)
-            push x, rpad("MD5: ") & li.text & vbCrLf
+            push X, rpad("File: ") & li.subItems(2)
+            push X, rpad("Size: ") & li.subItems(1)
+            push X, rpad("MD5: ") & li.text & vbCrLf
         End If
     Next
     
     Clipboard.Clear
-    Clipboard.SetText Join(x, vbCrLf)
+    Clipboard.SetText Join(X, vbCrLf)
 End Sub
 
 Private Sub mnuStringsForAll_Click()
@@ -245,7 +214,7 @@ Private Sub mnuStringsForAll_Click()
         li.selected = True
         Err.Clear
         If VBA.Left(li.text, 4) <> "str_" Then
-            f = li.SubItems(2)
+            f = li.subItems(2)
             If fso.FileExists(f) Then
                 frmStrings.ParseFile f
                 frmStrings.AutoSave
@@ -263,11 +232,11 @@ Private Sub mnuStringsForAll_Click()
     
 End Sub
 
-Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub Text1_OLEDragDrop(data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, y As Single)
     On Error Resume Next
-    If Not fso.FolderExists(Data.Files(1)) Then Exit Sub
+    If Not fso.FolderExists(data.Files(1)) Then Exit Sub
     If Err.Number <> 0 Then Exit Sub
-    Text1 = Data.Files(1)
+    Text1 = data.Files(1)
 End Sub
 
 
@@ -276,7 +245,7 @@ End Sub
 
 Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
-    x = UBound(ary) '<-throws Error If Not initalized
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = value
     Exit Sub

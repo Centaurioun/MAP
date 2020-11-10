@@ -1,5 +1,5 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmMD5FileSearch 
    Caption         =   "File Hash Search"
    ClientHeight    =   4965
@@ -349,8 +349,8 @@ End Sub
 
 Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
-    Dim x As Long
-    x = UBound(ary) '<-throws Error If Not initalized
+    Dim X As Long
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = value
     Exit Sub
@@ -375,6 +375,7 @@ Function loadHashSize()
 End Function
 
 Private Sub Form_Load()
+    On Error Resume Next
     Me.Icon = myIcon
     cmdDefault_Click
     txtExt = GetSetting("shellext", "settings", "txtExt", txtExt.text)
@@ -382,7 +383,11 @@ Private Sub Form_Load()
     cboHash.AddItem "SHA1"
     cboHash.AddItem "SHA256"
     cboHash.AddItem "SHA512"
-    cboHash.ListIndex = 0
+    If Not CBool(GetMySetting("mnuUseSHA256.Checked", 0)) Then
+        cboHash.ListIndex = 0
+    Else
+        cboHash.ListIndex = 2
+    End If
 End Sub
 
 Private Sub Form_Resize()
@@ -407,11 +412,11 @@ Private Sub lblHash_Click()
     End If
 End Sub
 
-Private Sub txtBaseDir_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub txtBaseDir_OLEDragDrop(data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, y As Single)
     On Error Resume Next
     
-    If fso.FolderExists(Data.Files(1)) Then
-        txtBaseDir.text = Data.Files(1)
+    If fso.FolderExists(data.Files(1)) Then
+        txtBaseDir.text = data.Files(1)
     Else
         MsgBox "Only drop folders in here..", vbInformation
     End If
@@ -422,10 +427,10 @@ End Sub
 
 
 
-Private Sub txtHash_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub txtHash_OLEDragDrop(data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, y As Single)
     On Error Resume Next
     Dim f As String
-    f = Data.Files(1)
+    f = data.Files(1)
     If fso.FileExists(f) Then
         LoadedFile = f
         loadHashSize

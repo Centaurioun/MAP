@@ -6,72 +6,30 @@ Begin VB.Form frmHash
    ClientLeft      =   60
    ClientTop       =   630
    ClientWidth     =   12060
+   KeyPreview      =   -1  'True
    LinkTopic       =   "Form1"
    ScaleHeight     =   4080
    ScaleWidth      =   12060
    StartUpPosition =   2  'CenterScreen
+   Begin ShellExt.ucFilterList lv 
+      Height          =   3660
+      Left            =   90
+      TabIndex        =   1
+      Top             =   315
+      Width           =   11895
+      _ExtentX        =   20981
+      _ExtentY        =   6456
+   End
    Begin MSComctlLib.ProgressBar pb 
       Height          =   225
       Left            =   30
-      TabIndex        =   1
+      TabIndex        =   0
       Top             =   0
       Width           =   11955
       _ExtentX        =   21087
       _ExtentY        =   397
       _Version        =   393216
       Appearance      =   1
-   End
-   Begin MSComctlLib.ListView lv 
-      Height          =   3735
-      Left            =   0
-      TabIndex        =   0
-      Top             =   240
-      Width           =   11955
-      _ExtentX        =   21087
-      _ExtentY        =   6588
-      View            =   3
-      LabelEdit       =   1
-      MultiSelect     =   -1  'True
-      LabelWrap       =   0   'False
-      HideSelection   =   0   'False
-      OLEDropMode     =   1
-      FullRowSelect   =   -1  'True
-      GridLines       =   -1  'True
-      _Version        =   393217
-      ForeColor       =   -2147483640
-      BackColor       =   -2147483643
-      BorderStyle     =   1
-      Appearance      =   1
-      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-         Name            =   "MS Sans Serif"
-         Size            =   8.25
-         Charset         =   0
-         Weight          =   400
-         Underline       =   0   'False
-         Italic          =   0   'False
-         Strikethrough   =   0   'False
-      EndProperty
-      OLEDropMode     =   1
-      NumItems        =   4
-      BeginProperty ColumnHeader(1) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
-         Text            =   "File"
-         Object.Width           =   3528
-      EndProperty
-      BeginProperty ColumnHeader(2) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
-         SubItemIndex    =   1
-         Text            =   "Byte Size"
-         Object.Width           =   2647
-      EndProperty
-      BeginProperty ColumnHeader(3) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
-         SubItemIndex    =   2
-         Text            =   "md5"
-         Object.Width           =   5292
-      EndProperty
-      BeginProperty ColumnHeader(4) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
-         SubItemIndex    =   3
-         Text            =   "CompileDate (GMT)"
-         Object.Width           =   4410
-      EndProperty
    End
    Begin VB.Menu mnuPopup 
       Caption         =   "mnuPopup"
@@ -100,7 +58,7 @@ Begin VB.Form frmHash
          Caption         =   "-"
       End
       Begin VB.Menu mnuRenameToMD5 
-         Caption         =   "Rename All to MD5"
+         Caption         =   "Rename All to Hash"
       End
       Begin VB.Menu mnuMakeExtSafe 
          Caption         =   "Make All Extensions Safe"
@@ -191,6 +149,19 @@ Begin VB.Form frmHash
       Begin VB.Menu mnuHashDiff 
          Caption         =   "Hash Diff against.."
       End
+      Begin VB.Menu mnuOptions 
+         Caption         =   "Options"
+         Begin VB.Menu mnuSetFont 
+            Caption         =   "Set Font"
+         End
+         Begin VB.Menu mnuUseSHA256 
+            Caption         =   "Use SHA256"
+         End
+         Begin VB.Menu mnuHumanReadableSizes 
+            Caption         =   "KB/MB Sizes"
+            Shortcut        =   ^M
+         End
+      End
    End
 End
 Attribute VB_Name = "frmHash"
@@ -218,6 +189,7 @@ Attribute VB_Exposed = False
 '4-19-12 moved buttons to right click menu options, integrated VirusTotal.exe options
 '5.17.12 added progress bar, fixed integer overflow in vbDevKit.CWinHash
 '9.18.12 added x64 file system redirection awareness to main hashing routines (not to all right click options..)
+'Implements IExtColSort
 
 Private Declare Function GetWindowLong Lib "User" (ByVal hwnd As Long, ByVal nIndex As Long) As Long
 Private Declare Function SetWindowLong Lib "User" (ByVal hwnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
@@ -234,16 +206,29 @@ Const WM_SYSCOMMAND = &H112
    
 Dim WithEvents sc As CSubclass2
 Attribute sc.VB_VarHelpID = -1
- 
+
 Public path As String
 Public isComplete As Boolean
 Dim abort As Boolean
-Private humanReadableSizes As Boolean
+
+Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
+    'Debug.Print KeyCode & " " & Shift
+    If KeyCode = 77 And Shift = 2 Then 'Ctrl-M
+        mnuHumanReadableSizes_Click
+    End If
+End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
     abort = True
     'SaveSetting "shellext", "settings", "mnuIncludeFileName", mnuIncludeFileName.Checked
     sc.DetatchMessage Me.hwnd, WM_SYSCOMMAND
+    SaveMySetting "mnuUseSHA256.Checked", mnuUseSHA256.Checked
+End Sub
+
+
+
+Private Sub lv_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
+    If Button = vbRightButton Then PopupMenu mnuPopup
 End Sub
 
 Private Sub mnuDumpExports_Click()
@@ -368,6 +353,21 @@ Private Sub mnuDumpImports_Click(index As Integer)
     Shell "notepad.exe """ & report & """", vbNormalFocus
 End Sub
 
+Private Sub mnuHumanReadableSizes_Click()
+    mnuHumanReadableSizes.Checked = Not mnuHumanReadableSizes.Checked
+    If lv.ListItems.Count > 0 Then
+         If Not mnuHumanReadableSizes.Checked Then
+            For Each li In lv.ListItems
+                li.subItems(1) = pad(FileLen(li.Tag))
+            Next
+        Else
+            For Each li In lv.ListItems
+                li.subItems(1) = pad(FileSize(li.Tag, False))
+            Next
+        End If
+    End If
+End Sub
+
 Private Sub mnuRichBasic_Click()
 On Error Resume Next
     
@@ -472,6 +472,44 @@ Private Sub mnuRichReport_Click()
     Shell "notepad.exe """ & report & """", vbNormalFocus
 End Sub
 
+Private Sub mnuSetFont_Click()
+    On Error Resume Next
+    Dim s() As String, sz As Long, tmp As String, msg As String
+
+    Dim f As CFont, c As New CCmnDlg
+    Set f = frmSelectFont.SelectFont(c, lv.currentLV)
+    If f Is Nothing Then Exit Sub
+    SetFont f.Name & "," & f.Size
+    
+'    tmp = GetMySetting("lvFont", "MS Sans Serif,8")
+'
+'tryAgain:
+'    tmp = InputBox("Enter FontName,Size to use " & msg, , tmp)
+'    If Len(tmp) = 0 Then Exit Sub
+'
+'    s = Split(tmp, ",")
+'    If UBound(s) >= 1 Then sz = CLng(s(1))
+'    If sz = 0 Then
+'        msg = "Invalid Size! specified!"
+'        GoTo tryAgain
+'    End If
+    
+'    SetFont tmp
+    
+End Sub
+
+Function SetFont(csvNameSize) As Boolean
+    On Error Resume Next
+    Dim s() As String, sz As Long
+    If Len(csvNameSize) = 0 Then Exit Function
+    s = Split(csvNameSize, ",")
+    If UBound(s) >= 1 Then sz = CLng(s(1))
+    If sz = 0 Then sz = 8
+    lv.SetFont s(0), sz
+    SetFont = (Err.Number = 0)
+    If Err.Number = 0 Then SaveMySetting "lvFont", csvNameSize
+End Function
+
 Private Sub mnuStringsDumpAll_Click()
     
     On Error Resume Next
@@ -497,26 +535,26 @@ End Sub
 
 Private Sub mnuCopyDetailed_Click()
     
-    Dim selOnly As Boolean, li As ListItem, ret() As String, tmp As String, selCount As Long, org As String
+    Dim selOnly As Boolean, li As ListItem, ret() As String, tmp As String, SelCount As Long, org As String
     
     org = Me.Caption
     pb.value = 0
     frmFileHash.Visible = False
    
-    selCount = lv_selCount(lv)
-    If selCount > 1 Then selOnly = True
+    SelCount = lv_selCount(lv)
+    If SelCount > 1 Then selOnly = True
     
     If selOnly Then
-         pb.max = selCount
+         pb.max = SelCount
     Else
          pb.max = lv.ListItems.Count
     End If
     
     For Each li In lv.ListItems
         If selOnly Then
-            If li.selected Then GoSub addItem
+            If li.selected Then GoSub AddItem
         Else
-            GoSub addItem 'i never use it and its there so... wtf not
+            GoSub AddItem 'i never use it and its there so... wtf not
         End If
     Next
     
@@ -528,7 +566,7 @@ Private Sub mnuCopyDetailed_Click()
     
 Exit Sub
 
-addItem:
+AddItem:
     Me.Caption = "Processing: " & li.text
     tmp = Replace(frmFileHash.ShowFileStats(path & "\" & li.text, True), vbCrLf & vbCrLf, vbCrLf)
     If Right(tmp, 2) = vbCrLf Then tmp = Mid(tmp, 1, Len(tmp) - 2)
@@ -800,6 +838,14 @@ Private Sub mnuUniqueImpHash_Click()
 
 End Sub
 
+Private Sub mnuUseSHA256_Click()
+    On Error Resume Next
+    mnuUseSHA256.Checked = Not mnuUseSHA256.Checked
+    SaveMySetting "mnuUseSHA256.Checked", mnuUseSHA256.Checked
+    lv.ChangeColHeaderText 3, IIf(mnuUseSHA256.Checked, "SHA256", "MD5")
+    HashDir path
+End Sub
+
 Private Sub sc_MessageReceived(hwnd As Long, wMsg As Long, wParam As Long, lParam As Long, Cancel As Boolean)
     If wParam = IDM_COMPARE Then frmCompareHashSets.Show
     If wParam = IDM_HASHSEARCH Then
@@ -815,8 +861,13 @@ Sub Form_Load()
     Me.Icon = myIcon
     'Me.Icon = frmMain.Icon   'can not do this as frmMain has code in form_load and its already unloaded by this point (if we use the diff feature only) !! I so confuzzzed..
     
+    
     mnuPopup.Visible = False
-    lv.ColumnHeaders(1).Width = lv.Width - lv.ColumnHeaders(2).Width - 400 - lv.ColumnHeaders(3).Width - lv.ColumnHeaders(4).Width
+    'Set lv.ExternalColumnSorter = Me
+    lv.SetColumnHeaders "File*,ByteSize,MD5,CompileDate (GMT)", "2000,1500,3000,2500"
+    SetFont GetMySetting("lvFont", "MS Sans Serif,8")
+    
+    'lv.ColumnHeaders(1).Width = lv.Width - lv.ColumnHeaders(2).Width - 400 - lv.ColumnHeaders(3).Width - lv.ColumnHeaders(4).Width
     'mnuIncludeFileName.Checked = GetSetting("shellext", "settings", "mnuIncludeFileName", 1)
     
     If sc Is Nothing Then
@@ -827,16 +878,23 @@ Sub Form_Load()
         AppendMenu GetSystemMenu(Me.hwnd, 0), MF_STRING, IDM_STRINGDUMP, "Generate Strings Dump for All"
     End If
     
+    mnuUseSHA256.Checked = GetMySetting("mnuUseSHA256.Checked", 0)
+    If mnuUseSHA256.Checked Then
+        'lv.ColumnHeaders(3).text = "SHA256"
+        lv.ChangeColHeaderText 3, "SHA256"
+    End If
+    
 End Sub
 
 Private Sub Form_Resize()
     On Error Resume Next
-    lv.Width = Me.Width - lv.Left - 140
-    lv.Height = Me.Height - lv.top - 450
+    lv.Width = Me.Width - lv.Left - 400
+    lv.Height = Me.Height - lv.top - 550
     pb.Width = lv.Width
-    lv.ColumnHeaders(lv.ColumnHeaders.Count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.Count).Left - 100
+   'lv.ColumnHeaders(lv.ColumnHeaders.Count).Width = lv.Width - lv.ColumnHeaders(lv.ColumnHeaders.Count).Left - 100
 End Sub
 
+'md5 or sha256 depending on mode
 Public Function GetFilesForHash(md5, Optional ByRef totalHits As Long, Optional includeCount As Boolean = True) As String    ' returns csv of file names or nothing
 
     Dim li As ListItem
@@ -846,7 +904,7 @@ Public Function GetFilesForHash(md5, Optional ByRef totalHits As Long, Optional 
     md5 = CStr(md5)
     
     For Each li In lv.ListItems
-        If li.SubItems(2) = md5 Then
+        If li.subItems(2) = md5 Then
             ret = ret & li.text & " , "
             cnt = cnt + 1
         End If
@@ -887,6 +945,7 @@ Sub HashDir(dPath As String, Optional diffMode As Boolean = False)
     path = dPath
     pf = fso.GetParentFolder(path) & "\"
     pf = Replace(path, pf, Empty)
+    lv.ListItems.Clear
     
     Me.Caption = Me.Caption & "    Folder: " & pf
         
@@ -952,36 +1011,33 @@ Function KeyExistsInCollection(c As Collection, val As String) As Boolean
 nope: KeyExistsInCollection = False
 End Function
 
-Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
-    Dim li As ListItem
-    On Error Resume Next
-    If GetKeyState(vbKeyShift) Then
-        If humanReadableSizes Then
-            humanReadableSizes = False
-            For Each li In lv.ListItems
-                li.SubItems(1) = pad(FileLen(li.Tag))
-            Next
-        Else
-            humanReadableSizes = True
-            For Each li In lv.ListItems
-                li.SubItems(1) = pad(FileSize(li.Tag, False))
-            Next
-        End If
-    Else
-        LV_ColumnSort lv, ColumnHeader
-    End If
-End Sub
-
-Private Sub lv_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
-    If Button = vbRightButton Then PopupMenu mnuPopup
-End Sub
+'Private Sub IExtColSort_ExternalColumnSort(lv As MSComctlLib.IListView, Column As MSComctlLib.IColumnHeader)
+''Private Sub lv_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
+'    Dim li As ListItem
+'    On Error Resume Next
+'    If GetKeyState(vbKeyShift) Then
+'        If humanReadableSizes Then
+'            humanReadableSizes = False
+'            For Each li In lv.ListItems
+'                li.subItems(1) = pad(FileLen(li.Tag))
+'            Next
+'        Else
+'            humanReadableSizes = True
+'            For Each li In lv.ListItems
+'                li.subItems(1) = pad(FileSize(li.Tag, False))
+'            Next
+'        End If
+'    Else
+'        LV_ColumnSort lv, Column
+'    End If
+'End Sub
 
 Private Sub mnuCopyHashs_Click()
     Dim li As ListItem
     Dim t As String
     
     For Each li In lv.ListItems
-        t = t & li.SubItems(2) & vbCrLf
+        t = t & li.subItems(2) & vbCrLf
     Next
     
     Clipboard.Clear
@@ -999,7 +1055,7 @@ Private Sub mnuCopySelected_Click()
     
     For Each li In lv.ListItems
         If li.selected Then
-            t = t & rpad(li.text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & vbCrLf
+            t = t & rpad(li.text, ln) & vbTab & li.subItems(1) & vbTab & li.subItems(2) & vbTab & li.subItems(3) & vbCrLf
         End If
     Next
     
@@ -1051,7 +1107,7 @@ Private Sub mnuCustomExtension_Click()
         li.text = h
         li.Tag = pdir & h
         li.EnsureVisible
-        lv.Refresh
+        'lv.Refresh
         DoEvents
         
 nextone:
@@ -1073,7 +1129,7 @@ Private Sub mnuDeleteDuplicates_Click()
     If MsgBox(msg, vbYesNo) = vbNo Then Exit Sub
     
     For Each li In lv.ListItems
-        h = li.SubItems(2)
+        h = li.subItems(2)
         If InStr(h, "Error") < 1 Then
             If KeyExistsInCollection(hashs, h) Then
                 li.Tag = "DeleteMe"
@@ -1122,7 +1178,7 @@ Private Sub mnuDisplayUnique_Click()
      ReDim b(0)
      
      For Each li In lv.ListItems
-        hash = li.SubItems(2)
+        hash = li.subItems(2)
         If KeyExistsInCollection(hashs, hash) Then
             i = hashs(hash)
             h(i) = h(i) + 1
@@ -1210,7 +1266,7 @@ Private Sub mnuCopyTable_Click()
     'this logic below is reused in copy table csv and just post processed.
     allNamedMD5 = True
     For Each li In lv.ListItems
-        If InStr(1, li.text, li.SubItems(2), vbTextCompare) < 1 Then
+        If InStr(1, li.text, li.subItems(2), vbTextCompare) < 1 Then
             If LCase(fso.GetExtension(li.text)) <> ".txt" Then
                 allNamedMD5 = False
                 Exit For
@@ -1225,9 +1281,9 @@ Private Sub mnuCopyTable_Click()
         End If
         'subitems2 = md5
         If allNamedMD5 Then
-            t = t & "  " & rpad(li.text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(3) & sig & vbCrLf
+            t = t & "  " & rpad(li.text, ln) & vbTab & li.subItems(1) & vbTab & li.subItems(3) & sig & vbCrLf
         Else
-            t = t & "  " & rpad(li.text, ln) & vbTab & li.SubItems(1) & vbTab & li.SubItems(2) & vbTab & li.SubItems(3) & sig & vbCrLf
+            t = t & "  " & rpad(li.text, ln) & vbTab & li.subItems(1) & vbTab & li.subItems(2) & vbTab & li.subItems(3) & sig & vbCrLf
         End If
     Next
     
@@ -1241,17 +1297,28 @@ Sub handleFile(f As String)
     Dim h  As String
     Dim li As ListItem
     Dim e, fs As Long
-    Dim sz As Long
+    Dim sz As String
     Dim v As SigResults
     
     On Error Resume Next
     
     fs = DisableRedir()
-    h = LCase(hash.HashFile(f))
-    v = VerifyFileSignature(f) 'can be slow on large files but most viruses are small and they are our target workign set. option to disable?
-    sz = FileLen(f)
-    RevertRedir fs
     
+    If mnuUseSHA256.Checked Then
+        h = LCase(hash.HashFile(f, 256))
+    Else
+        h = LCase(hash.HashFile(f))
+    End If
+    
+    v = VerifyFileSignature(f) 'can be slow on large files but most viruses are small and they are our target workign set. option to disable?
+    
+    If mnuHumanReadableSizes.Checked Then
+        sz = FileSize(f, False)
+    Else
+        sz = FileLen(f)
+    End If
+        
+    RevertRedir fs
    
     Dim ss As String
     
@@ -1262,9 +1329,9 @@ Sub handleFile(f As String)
     End If
     
     Set li = lv.ListItems.Add(, , fso.FileNameFromPath(f))
-    li.SubItems(1) = pad(sz)
-    li.SubItems(2) = h
-    li.SubItems(3) = GetCompileDateOrType(f)
+    li.subItems(1) = pad(sz)
+    li.subItems(2) = h
+    li.subItems(3) = GetCompileDateOrType(f)
     li.Tag = f
     
     If isSigned(v) Then
@@ -1286,9 +1353,9 @@ Private Sub mnuGoogleSelected_Click()
     
     For Each li In lv.ListItems
         If li.selected Then
-            h = li.SubItems(2)
+            h = li.subItems(2)
             If Len(h) > 0 And InStr(h, "Error") < 1 Then
-                push hashs, li.SubItems(2)
+                push hashs, li.subItems(2)
                 i = i + 1
             End If
         End If
@@ -1337,7 +1404,7 @@ Private Sub mnuHashDiff_Click()
     
     'build a unique list of hashs in base directory set..
     For Each li In lv.ListItems
-        h = li.SubItems(2)
+        h = li.subItems(2)
         If Not KeyExistsInCollection(hashs, CStr(h)) Then
             hashs.Add h, CStr(h)
         End If
@@ -1345,7 +1412,7 @@ Private Sub mnuHashDiff_Click()
      
      'build a unique list of hashs in compare directory set..
      For Each li In f.lv.ListItems
-        h = li.SubItems(2)
+        h = li.subItems(2)
         If Not KeyExistsInCollection(hashs2, CStr(h)) Then
             hashs2.Add h, CStr(h)
         End If
@@ -1420,7 +1487,7 @@ Private Sub mnuMakeExtSafe_Click()
         li.text = h
         li.Tag = pdir & h
         li.EnsureVisible
-        lv.Refresh
+        'lv.Refresh
         DoEvents
         
 nextone:
@@ -1462,13 +1529,13 @@ Private Sub mnuRenameToMD5_Click()
         i = 2
         fPath = li.Tag
         fname = li.text
-        h = li.SubItems(2)
+        h = li.subItems(2)
         pdir = fso.GetParentFolder(fPath) & "\"
         
         If InStr(h, "Error") >= 1 Then GoTo nextone
         If LCase(fname) = LCase(h) Then GoTo nextone
         While fso.FileExists(pdir & h) 'dont delete dups, but append counter onto end..
-            h = li.SubItems(2) & "_" & i
+            h = li.subItems(2) & "_" & i
             i = i + 1
         Wend
         
@@ -1478,7 +1545,7 @@ Private Sub mnuRenameToMD5_Click()
         li.text = h
         li.Tag = pdir & h
         li.EnsureVisible
-        lv.Refresh
+        'lv.Refresh
         DoEvents
         
 nextone:
@@ -1559,7 +1626,7 @@ Private Sub mnuVTAll_Click()
     For Each li In lv.ListItems
         If InStr(h, "Error") < 1 Then
              't = t & li.SubItems(2) & vbCrLf
-             t = t & li.SubItems(2) & "," & path & "\" & li.text & vbCrLf 'new format hash,path
+             t = t & li.subItems(2) & "," & path & "\" & li.text & vbCrLf 'new format hash,path
         End If
     Next
     
@@ -1580,10 +1647,10 @@ Private Sub mnuVTLookupSelected_Click()
     
     For Each li In lv.ListItems
         If li.selected Then
-            h = li.SubItems(2)
+            h = li.subItems(2)
             If Len(h) > 0 And InStr(h, "Error") < 1 Then
                 'push hashs, li.SubItems(2)
-                push hashs, li.SubItems(2) & "," & path & "\" & li.text & vbCrLf 'new format hash,path
+                push hashs, li.subItems(2) & "," & path & "\" & li.text & vbCrLf 'new format hash,path
                 i = i + 1
             End If
         End If
