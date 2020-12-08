@@ -87,6 +87,9 @@ Begin VB.Form frmRecursiveHashFiles
       Begin VB.Menu mnuSafeExt 
          Caption         =   "Make all Ext Safe"
       End
+      Begin VB.Menu mnuFlattenToHash 
+         Caption         =   "Flatten to Hash"
+      End
    End
 End
 Attribute VB_Name = "frmRecursiveHashFiles"
@@ -201,19 +204,73 @@ Private Sub mnuCopyReport_Click()
     Clipboard.SetText Join(X, vbCrLf)
 End Sub
 
+Private Sub mnuFlattenToHash_Click()
+
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim pdir As String, fPath As String, fname As String, h As String
+    Dim i As Long, c As New CollectionEx, hits() As Long, hadDups As Boolean
+    Dim tmp() As String, useSHA As Boolean, sz As String
+    
+    useSHA = GetMySetting("mnuUseSHA256.Checked", 0)
+    
+    'pdir = fso.GetParentFolder(Text1) & "\flat" 'currently must exist to recommend...
+    pdir = dlg.FolderDialog2(Text1)
+    If Len(pdir) = 0 Then Exit Sub
+    
+    pdir = pdir & "\"
+    ReDim hits(lv.ListItems.Count)
+    
+    For Each li In lv.ListItems
+        fPath = li.subItems(2)
+        
+        If useSHA Then
+            h = LCase(hash.HashFile(fPath, 256))
+        Else
+            h = LCase(hash.HashFile(fPath))
+        End If
+        
+        If c.keyExists(h) Then
+            i = c.indexForKey(h)
+            hits(i) = hits(i) + 1
+        Else
+            c.Add fPath, h
+            hits(c.Count) = 1
+            FileCopy fPath, pdir & h
+        End If
+
+        DoEvents
+
+    Next
+    
+    push tmp, "Hits,Size,File,Hash,Type"
+    For i = 0 To UBound(hits)
+        fPath = c(i)
+        'sz = FileLen(fPath)
+        sz = FileSize(fPath, False)  'human readable size in mb,kb
+        push tmp, pad(hits(i), 4) & ", " & pad(sz, 10) & ",  " & fso.FileNameFromPath(fPath) & ",  " & c.keyForIndex(i) & ",  " & GetCompileDateOrType(fPath)
+    Next
+    'fPath = fso.GetFreeFileName(Environ("temp"))
+    fPath = pdir & "\index.txt"
+    fso.WriteFile fPath, Join(tmp, vbCrLf)
+    Shell "notepad.exe """ & fPath & """", vbNormalFocus
+    
+End Sub
+
 Private Sub mnuSafeExt_Click()
     
     On Error Resume Next
     
     Dim li As ListItem
-    Dim pdir As String, fpath As String, fname As String, h As String
+    Dim pdir As String, fPath As String, fname As String, h As String
     Dim i As Long
     
     For Each li In lv.ListItems
         i = 1
-        fpath = li.subItems(2)
-        fname = fso.FileNameFromPath(fpath)
-        pdir = fso.GetParentFolder(fpath) & "\"
+        fPath = li.subItems(2)
+        fname = fso.FileNameFromPath(fPath)
+        pdir = fso.GetParentFolder(fPath) & "\"
         h = fname & "_"
         
         If LCase(VBA.Right(fname, 4)) = ".txt" Then GoTo nextone  'txt files are fine..
@@ -225,7 +282,7 @@ Private Sub mnuSafeExt_Click()
             i = i + 1
         Wend
         
-        Name fpath As pdir & h
+        Name fPath As pdir & h
     
         li.subItems(2) = pdir & h
         li.EnsureVisible
