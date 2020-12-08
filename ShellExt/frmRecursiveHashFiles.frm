@@ -84,6 +84,9 @@ Begin VB.Form frmRecursiveHashFiles
       Begin VB.Menu mnuStringsForAll 
          Caption         =   "Strings for All"
       End
+      Begin VB.Menu mnuSafeExt 
+         Caption         =   "Make all Ext Safe"
+      End
    End
 End
 Attribute VB_Name = "frmRecursiveHashFiles"
@@ -196,6 +199,42 @@ Private Sub mnuCopyReport_Click()
     
     Clipboard.Clear
     Clipboard.SetText Join(X, vbCrLf)
+End Sub
+
+Private Sub mnuSafeExt_Click()
+    
+    On Error Resume Next
+    
+    Dim li As ListItem
+    Dim pdir As String, fpath As String, fname As String, h As String
+    Dim i As Long
+    
+    For Each li In lv.ListItems
+        i = 1
+        fpath = li.subItems(2)
+        fname = fso.FileNameFromPath(fpath)
+        pdir = fso.GetParentFolder(fpath) & "\"
+        h = fname & "_"
+        
+        If LCase(VBA.Right(fname, 4)) = ".txt" Then GoTo nextone  'txt files are fine..
+        If InStr(fname, ".") < 1 Then GoTo nextone                'no extension
+        If VBA.Right(fname, 1) = "_" Then GoTo nextone            'already safe
+        
+        While fso.FileExists(pdir & h) 'dont delete dups, but append counter onto end..
+            h = fname & "_" & i
+            i = i + 1
+        Wend
+        
+        Name fpath As pdir & h
+    
+        li.subItems(2) = pdir & h
+        li.EnsureVisible
+        'lv.Refresh
+        DoEvents
+        
+nextone:
+    Next
+    
 End Sub
 
 Private Sub mnuStringsForAll_Click()
