@@ -75,6 +75,7 @@ Begin VB.Form frmFileHash
       _Version        =   393217
       BackColor       =   -2147483633
       BorderStyle     =   0
+      Enabled         =   -1  'True
       Appearance      =   0
       TextRTF         =   $"frmFileHash.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -179,6 +180,9 @@ Begin VB.Form frmFileHash
    End
    Begin VB.Menu mnuExternal 
       Caption         =   "External"
+      Begin VB.Menu mnuCompareHash 
+         Caption         =   "Compare hash Sets"
+      End
       Begin VB.Menu mnuKryptoAnalyzer 
          Caption         =   "Krypto Analyzer"
       End
@@ -231,7 +235,7 @@ Dim pe As New sppe3.CPEEditor
 
 Private Declare Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteA" (ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal nShowCmd As Long) As Long
 Private Declare Function ExtractIcon Lib "shell32.dll" Alias "ExtractIconA" (ByVal hINst As Long, ByVal lpszExeFileName As String, ByVal nIconIndex As Long) As Long
-Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal x As Long, ByVal Y As Long, ByVal hIcon As Long) As Long
+Private Declare Function DrawIcon Lib "user32" (ByVal hDC As Long, ByVal X As Long, ByVal y As Long, ByVal hIcon As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Const WM_COMMAND = &H111
@@ -254,6 +258,10 @@ Enum opts
     oDiE
     oImpHash
 End Enum
+
+Private Sub mnuCompareHash_Click()
+    frmCompareHashSets.Show
+End Sub
 
 Private Sub mnuDateToStamp_Click()
     frmTimeStamp.Show
@@ -305,7 +313,7 @@ Private Sub Text1_Click()
          
          If curWord = "Resources:" Then
             'if they have a copy of reshacker in map dir then it overrides our internal one..
-            resHackPath = App.path & IIf(IsIde, "\..", Empty) & "\ResHacker.exe"
+            resHackPath = App.path & IIf(isIde, "\..", Empty) & "\ResHacker.exe"
             If pe.isLoaded And Not fso.FileExists(resHackPath) Then
                 frmResViewer.ShowResources pe
             Else
@@ -329,7 +337,7 @@ Function launchResHack(target As String)
     
     If Not fso.FileExists(target) Then Exit Function
     
-    exe = App.path & IIf(IsIde, "\..", Empty) & "\ResHacker.exe"
+    exe = App.path & IIf(isIde, "\..", Empty) & "\ResHacker.exe"
     
     If fso.FileExists(exe) Then
         Shell exe & """" & target & """", vbNormalFocus
@@ -380,12 +388,12 @@ Private Function isOpt(o As opts) As Boolean
     isOpt = mnuCopyHashMore(o).Checked
 End Function
 
-Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal x As Long = 0, Optional ByVal Y As Long = 0) As Boolean
+Function ShowIcon(ByVal fileName As String, ByVal hDC As Long, Optional ByVal iconIndex As Long = 0, Optional ByVal X As Long = 0, Optional ByVal y As Long = 0) As Boolean
     Dim hIcon As Long
     hIcon = ExtractIcon(App.hInstance, fileName, iconIndex)
 
     If hIcon Then
-        DrawIcon hDC, x, Y, hIcon
+        DrawIcon hDC, X, y, hIcon
         ShowIcon = True
     End If
     
@@ -393,8 +401,8 @@ End Function
 
 Function hasInterestingResources() As Boolean
     Dim r As CResData, i As Long
-    For i = 1 To pe.Resources.Entries.Count
-        Set r = pe.Resources.Entries(i)
+    For i = 1 To pe.Resources.entries.Count
+        Set r = pe.Resources.entries(i)
         If InStr(1, r.path, "icon", vbTextCompare) < 1 And InStr(1, r.path, "version", vbTextCompare) < 1 Then
             hasInterestingResources = True
             Exit Function
@@ -495,7 +503,7 @@ Function ShowFileStats(fPath As String, Optional fromAutomation As Boolean = Fal
     
     If pe.isLoaded Then
         If pe.Exports.functions.Count > 0 Then push ret(), "Exports:  " & pe.Exports.functions.Count
-        If hasInterestingResources Then push ret(), "Resources: " & pe.Resources.Entries.Count & " - " & pe.Resources.size & " bytes"
+        If hasInterestingResources Then push ret(), "Resources: " & pe.Resources.entries.Count & " - " & pe.Resources.Size & " bytes"
     End If
     
     If isPE And isOpt(oPEVer) Then push ret(), PEVersionReport(pe, True)
@@ -563,7 +571,7 @@ Function sizeFormToTextBox()
     Text1.Height = TextHeight(Text1.text) + 200
     Text1.Width = TextWidth(Text1.text) + 200
     
-    If IsIde Then
+    If isIde Then
         Text1.BackColor = &HC0C0C0
         fraLower.BackColor = &HA0A0A0
     End If
@@ -587,9 +595,9 @@ End Sub
 
 
 Function c2a(c As Collection) As Variant()
-    Dim tmp(), x
-    For Each x In c
-        push tmp, x
+    Dim tmp(), X
+    For Each X In c
+        push tmp, X
     Next
     c2a = tmp
 End Function
@@ -617,7 +625,7 @@ End Sub
 Private Sub cmdVT_Click()
     On Error Resume Next
     Dim vt As String
-    vt = App.path & IIf(IsIde(), "\..\", "") & "\virustotal.exe"
+    vt = App.path & IIf(isIde(), "\..\", "") & "\virustotal.exe"
     If Not fso.FileExists(vt) Then
         MsgBox "VirusTotal app not found?: " & vt, vbInformation
         Exit Sub
@@ -641,14 +649,14 @@ Private Sub Form_Load()
     mnuCorFlags.Enabled = False
     'mnuDllChar.Enabled = False
     
-    Dim ext As String, tmp() As String, x, i
+    Dim ext As String, tmp() As String, X, i
     
-    ext = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
+    ext = App.path & IIf(isIde(), "\..\", "") & "\shellext.external.txt"
     If fso.FileExists(ext) Then
         ext = fso.ReadFile(ext)
         tmp = Split(ext, vbCrLf)
-        For Each x In tmp
-            AddExternal CStr(x)
+        For Each X In tmp
+            AddExternal CStr(X)
         Next
     End If
     
@@ -702,12 +710,12 @@ Private Sub mnuExt_Click(index As Integer)
     Dim cmd As String
     
     If index = 0 Then
-        cmd = App.path & IIf(IsIde(), "\..\", "") & "\shellext.external.txt"
+        cmd = App.path & IIf(isIde(), "\..\", "") & "\shellext.external.txt"
         Shell "notepad.exe " & GetShortName(cmd), vbNormalFocus
     Else
         cmd = mnuExt(index).Tag
         cmd = Replace(cmd, "%1", GetShortName(LoadedFile))
-        cmd = Replace(cmd, "%app_path%", App.path & IIf(IsIde(), "\..\", "\"))
+        cmd = Replace(cmd, "%app_path%", App.path & IIf(isIde(), "\..\", "\"))
         Shell cmd, vbNormalFocus
     End If
     
@@ -795,14 +803,14 @@ End Sub
 Private Sub mnuStrings_Click()
     On Error Resume Next
     Dim exe As String
-    exe = App.path & IIf(IsIde(), "\..\", "") & "\shellext.exe"
+    exe = App.path & IIf(isIde(), "\..\", "") & "\shellext.exe"
     Shell exe & " """ & LoadedFile & """ /peek"
 End Sub
 
 Private Sub mnuSubmitToVT_Click()
     On Error Resume Next
     Dim vt As String
-    vt = App.path & IIf(IsIde(), "\..\", "") & "\virustotal.exe"
+    vt = App.path & IIf(isIde(), "\..\", "") & "\virustotal.exe"
     If Not fso.FileExists(vt) Then
         MsgBox "VirusTotal app not found?: " & vt, vbInformation
         Exit Sub
@@ -983,15 +991,15 @@ End Sub
 'End Sub
 
 
-Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub Text1_MouseMove(Button As Integer, Shift As Integer, X As Single, y As Single)
     Dim z
     On Error Resume Next
     
-    lastX = x
-    lastY = Y
+    lastX = X
+    lastY = y
     
     'this code below is a little processor heavy but what else are we doing...
-    curWord = WordUnderCursor(Text1, x, Y, startPos)
+    curWord = WordUnderCursor(Text1, X, y, startPos)
     'Debug.Print curWord
     
     For Each z In links
