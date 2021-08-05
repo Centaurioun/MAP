@@ -2,7 +2,7 @@ VERSION 5.00
 Begin VB.Form frmMain 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Install Shell Extensions"
-   ClientHeight    =   4620
+   ClientHeight    =   5205
    ClientLeft      =   45
    ClientTop       =   330
    ClientWidth     =   5745
@@ -10,7 +10,7 @@ Begin VB.Form frmMain
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   4620
+   ScaleHeight     =   5205
    ScaleWidth      =   5745
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
@@ -19,10 +19,11 @@ Begin VB.Form frmMain
       Enabled         =   0   'False
       Interval        =   1000
       Left            =   0
-      Top             =   3645
+      Top             =   3945
    End
    Begin VB.PictureBox pict 
       AutoRedraw      =   -1  'True
+      BackColor       =   &H00000000&
       BeginProperty Font 
          Name            =   "Courier"
          Size            =   9.75
@@ -33,10 +34,10 @@ Begin VB.Form frmMain
          Strikethrough   =   0   'False
       EndProperty
       ForeColor       =   &H0000FFFF&
-      Height          =   2895
+      Height          =   3195
       Left            =   120
       Picture         =   "frmMain.frx":030A
-      ScaleHeight     =   2835
+      ScaleHeight     =   3135
       ScaleWidth      =   5505
       TabIndex        =   6
       Top             =   60
@@ -47,7 +48,7 @@ Begin VB.Form frmMain
       Height          =   1110
       Left            =   90
       TabIndex        =   2
-      Top             =   3000
+      Top             =   3300
       Width           =   5595
       Begin VB.CheckBox chkUseSha256 
          Caption         =   "Use SHA256 as Default"
@@ -107,7 +108,7 @@ Begin VB.Form frmMain
       Height          =   315
       Left            =   4635
       TabIndex        =   1
-      Top             =   4230
+      Top             =   4530
       Width           =   1035
    End
    Begin VB.CommandButton cmdRemoveRegKeys 
@@ -115,7 +116,7 @@ Begin VB.Form frmMain
       Height          =   315
       Left            =   3240
       TabIndex        =   0
-      Top             =   4230
+      Top             =   4530
       Width           =   1035
    End
    Begin VB.Label Label2 
@@ -133,7 +134,7 @@ Begin VB.Form frmMain
       Index           =   1
       Left            =   1035
       TabIndex        =   8
-      Top             =   4275
+      Top             =   4575
       Width           =   2100
    End
 End
@@ -195,6 +196,7 @@ Private Declare Function IsWindowVisible Lib "user32" (ByVal hwnd As Long) As Lo
 Const peek = "*\shell\Strings\command"
 Const hash = "Folder\shell\Hash Files\command"
 Const hSearch = "Folder\shell\Hash Search\command"
+Const hashSets = "Folder\shell\Compare HashSets\command"
 Const deco = "chm.file\shell\Decompile\command"
 Const m5 = "*\shell\Md5 Hash\command"
 Const vt = "*\shell\Virus Total\command"
@@ -221,6 +223,7 @@ Sub InstallRegKeys()
     Dim cmdline_6 As String
     Dim cmdline_7 As String
     Dim cmdline_8 As String
+    Dim cmdline_9 As String
     
     Dim reg As New clsRegistry2
     
@@ -235,6 +238,7 @@ Sub InstallRegKeys()
     cmdline_6 = """" & ap() & "\virustotal.exe"" ""%1"" /submit"
     cmdline_7 = """" & ap() & "\shellext.exe"" ""%1"" /hsch"
     cmdline_8 = """" & ap() & "\tlbViewer.exe"" ""%1"""
+    cmdline_9 = """" & ap() & "\shellext.exe"" ""%1"" /hset"
     
     On Error GoTo hell
     
@@ -283,6 +287,10 @@ Sub InstallRegKeys()
     
     If reg.CreateKey(tlb3) Then
         reg.SetValue tlb3, "", cmdline_8, REG_SZ
+    End If
+    
+    If reg.CreateKey(hashSets) Then
+        reg.SetValue hashSets, "", cmdline_9, REG_SZ
     End If
     
     If Not autoInstall Then MsgBox "Entries Added", vbInformation
@@ -380,6 +388,11 @@ Function RemoveRegKeys()
         b = reg.DeleteKey("Folder\shell\Hash Search")
     End If
     
+    If reg.keyExists(hashSets) Then
+        b = reg.DeleteKey(hashSets)
+        b = reg.DeleteKey("Folder\shell\Compare HashSets")
+    End If
+    
     If reg.keyExists(deco) Then
        c = reg.DeleteKey(deco)
        c = reg.DeleteKey("chm.file\shell\Decompile")
@@ -435,6 +448,7 @@ Private Sub Form_Load()
                " All folders:" & vbCrLf & _
                "    Hash Files" & vbCrLf & _
                "    Hash Search" & vbCrLf & _
+               "    Compare HashSets" & vbCrLf & _
                "" & vbCrLf & _
                " Dll/OCX/TLB Files: " & vbCrLf & _
                "    Type Library Viewer" & vbCrLf & _
@@ -469,6 +483,7 @@ Private Sub Form_Load()
         If VBA.Right(cmd, 5) = "/md5f" Then mode = 4
         If VBA.Right(cmd, 5) = "/hsch" Then mode = 7
         If VBA.Right(cmd, 5) = "/hexv" Then mode = 8 'if /base is supplied it must be before /hexv
+        If VBA.Right(cmd, 5) = "/hset" Then mode = 9
         
         If VBA.Right(cmd, 8) = "/install" Then
             mode = 5 'required for Vista run elevated mode
@@ -500,6 +515,7 @@ Private Sub Form_Load()
             Case 6: RemoveRegKeys
             Case 7: frmMD5FileSearch.Launch cmd
             Case 8: frmHexView.HexView cmd
+            Case 9: frmCompareHashSets.Show
             Case Else: MsgBox "Unknown Option: " & Command & vbCrLf & "Last5 = " & Right(cmd, 5), vbExclamation
         End Select
         
