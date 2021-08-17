@@ -11,8 +11,75 @@ Begin VB.Form frmCompareHashSets
    ScaleHeight     =   7650
    ScaleWidth      =   16725
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton cmdBaseRight 
+      Caption         =   "g"
+      BeginProperty Font 
+         Name            =   "Wingdings 3"
+         Size            =   9.75
+         Charset         =   2
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Height          =   315
+      Left            =   4380
+      TabIndex        =   21
+      Top             =   420
+      Width           =   555
+   End
+   Begin VB.CommandButton cmdCmpLeft 
+      Caption         =   "f"
+      BeginProperty Font 
+         Name            =   "Wingdings 3"
+         Size            =   9.75
+         Charset         =   2
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Height          =   315
+      Left            =   10020
+      TabIndex        =   20
+      Top             =   420
+      Width           =   555
+   End
+   Begin VB.CommandButton cmdCompareOnly 
+      Caption         =   "Compare Only"
+      Height          =   255
+      Left            =   14820
+      TabIndex        =   19
+      Top             =   480
+      Width           =   1215
+   End
+   Begin VB.CommandButton cmdBaseOnly 
+      Caption         =   "Base Only"
+      Height          =   255
+      Left            =   13560
+      TabIndex        =   18
+      Top             =   480
+      Width           =   1095
+   End
+   Begin VB.CommandButton cmdShared 
+      Caption         =   "Shared"
+      Height          =   255
+      Left            =   12780
+      TabIndex        =   16
+      Top             =   480
+      Width           =   735
+   End
    Begin VB.CommandButton Command3 
       Caption         =   "..."
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   13.5
+         Charset         =   0
+         Weight          =   700
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
       Height          =   315
       Left            =   10620
       TabIndex        =   13
@@ -21,6 +88,15 @@ Begin VB.Form frmCompareHashSets
    End
    Begin VB.CommandButton Command2 
       Caption         =   "..."
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   13.5
+         Charset         =   0
+         Weight          =   700
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
       Height          =   315
       Left            =   4980
       TabIndex        =   12
@@ -36,7 +112,6 @@ Begin VB.Form frmCompareHashSets
       _ExtentX        =   9551
       _ExtentY        =   10927
       _Version        =   393217
-      Enabled         =   -1  'True
       ScrollBars      =   3
       OLEDropMode     =   1
       TextRTF         =   $"frmCompareHashSets.frx":0000
@@ -103,7 +178,6 @@ Begin VB.Form frmCompareHashSets
       _ExtentX        =   9551
       _ExtentY        =   10927
       _Version        =   393217
-      Enabled         =   -1  'True
       ScrollBars      =   3
       OLEDropMode     =   1
       TextRTF         =   $"frmCompareHashSets.frx":007C
@@ -126,7 +200,6 @@ Begin VB.Form frmCompareHashSets
       _ExtentX        =   9551
       _ExtentY        =   10927
       _Version        =   393217
-      Enabled         =   -1  'True
       ScrollBars      =   3
       OLEDropMode     =   1
       TextRTF         =   $"frmCompareHashSets.frx":00F8
@@ -139,6 +212,14 @@ Begin VB.Form frmCompareHashSets
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
+   End
+   Begin VB.Label Label4 
+      Caption         =   "Copy:"
+      Height          =   255
+      Left            =   12240
+      TabIndex        =   17
+      Top             =   480
+      Width           =   435
    End
    Begin VB.Label lblFile2 
       ForeColor       =   &H00FF0000&
@@ -231,6 +312,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+Private both As String
+Private baseOnly As String
+Private compareOnly As String
 
 Function KeyExistsInCollection(c As Collection, val As String) As Boolean
     On Error GoTo nope
@@ -242,10 +326,32 @@ nope: KeyExistsInCollection = False
 End Function
 
 
+Private Sub cmdBaseOnly_Click()
+    Clipboard.Clear
+    Clipboard.SetText baseOnly
+End Sub
+
 Private Sub cmdClear_Click()
     Text1 = Empty
     Text2 = Empty
     Text3 = Empty
+End Sub
+
+Private Sub cmdCmpLeft_Click()
+    Text1.text = Text2.text
+    lblFile1.Caption = lblFile2.Caption
+    Text2.text = Empty
+    lblFile2.Caption = Empty
+End Sub
+
+Private Sub cmdCompareOnly_Click()
+    Clipboard.Clear
+    Clipboard.SetText compareOnly
+End Sub
+
+Private Sub cmdShared_Click()
+    Clipboard.Clear
+    Clipboard.SetText both
 End Sub
 
 Private Sub cmdUnique_Click()
@@ -280,6 +386,10 @@ Private Sub Command1_Click()
     
     Dim h1() As String
     Dim h2() As String
+    
+    both = Empty
+    baseOnly = Empty
+    compareOnly = Empty
     
     Text3.text = Empty
     h1 = Split(Text1.text, vbCrLf)
@@ -329,6 +439,10 @@ Private Sub Command1_Click()
     
     If Len(r) > 0 Then
         
+        both = r
+        baseOnly = Join(unique1, vbCrLf)
+        compareOnly = Join(unique2, vbCrLf)
+        
         report = "Base set:    " & (UBound(h1) + 1) & " hashs / " & hashs.Count & " unique" & vbCrLf & _
                  "Compare set: " & (UBound(h2) + 1) & " hashs / " & hashs2.Count & " unique" & vbCrLf & vbCrLf & _
                  "Hashs found in both sets:  " & totalHits & vbCrLf & vbCrLf & _
@@ -339,6 +453,7 @@ Private Sub Command1_Click()
                  Join(unique2, vbCrLf)
                 
         Text3.text = report
+
     Else
         MsgBox "There were no hash matches in these two sample sets.", vbInformation
     End If
@@ -381,6 +496,13 @@ Private Sub Command3_Click()
             lblFile2.Caption = fso.FileNameFromPath(f)
         End If
     End If
+End Sub
+
+Private Sub cmdBaseRight_Click()
+    Text2.text = Text1.text
+    lblFile2.Caption = lblFile1.Caption
+    Text1.text = Empty
+    lblFile1.Caption = Empty
 End Sub
 
 Private Sub Form_Load()
