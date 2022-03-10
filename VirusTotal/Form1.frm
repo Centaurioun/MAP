@@ -322,6 +322,9 @@ Dim humanReadableSizes As Boolean
 Dim files As New Collection 'of cfile
 Private Declare Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
 
+'hash, detects, subs, size, date, first seen, description
+'4000,800,700,1440,1440,1440,1440
+
 'current subitems:
     'li.subItems(1) = Right("   " & scan.positives, 3)
     'li.subItems(2) = Right("   " & scan.times_submitted, 3)
@@ -391,8 +394,8 @@ Sub cmdQuery_Click()
     List1.AddItem "Max: " & pb.Max & " Interval: " & vt.delayInterval
     
     If Not vt.usingPrivateKey Then
-        lv.ColumnHeaders(2).Width = 0 'times submitted 'codesize(3) avail to all?
-        lv.ColumnHeaders(5).Width = 0 'first seen only available w/ priv key
+        lv.ColumnHeaders(3).Width = 0 'times submitted 'codesize(3) avail to all?
+        lv.ColumnHeaders(6).Width = 0 'first seen only available w/ priv key
     End If
     
     For Each lI In lv.ListItems

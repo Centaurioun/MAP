@@ -75,7 +75,6 @@ Begin VB.Form frmFileHash
       _Version        =   393217
       BackColor       =   -2147483633
       BorderStyle     =   0
-      Enabled         =   -1  'True
       Appearance      =   0
       TextRTF         =   $"frmFileHash.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -260,6 +259,7 @@ Enum opts
 End Enum
 
 Private Sub mnuCompareHash_Click()
+    frmCompareHashSets.preload LoadedFile
     frmCompareHashSets.Show
 End Sub
 

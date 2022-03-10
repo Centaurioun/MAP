@@ -200,7 +200,7 @@ Private Function LoadDie() As Boolean
     Dim p As String
     
     If hDieDll = 0 Then
-        p = App.path & IIf(IsIde(), "\..", "") & "\die\diedll.dll"
+        p = App.path & IIf(isIde(), "\..", "") & "\die\diedll.dll"
         If fso.FileExists(p) Then
             SetDllDirectory fso.GetParentFolder(p) 'requires: xp sp1 which is fine
             hDieDll = LoadLibrary(p)               'msvcr100.dll actually wont load on xpsp0 anyway...
@@ -234,7 +234,7 @@ Function DiEScan(fPath As String, ByRef outVal) As Boolean
     Dim flags As Long
     Dim a As Long
     Dim tmp() As String
-    Dim x
+    Dim X
     Const et = "Entropy"
     
     On Error GoTo hell
@@ -245,7 +245,7 @@ Function DiEScan(fPath As String, ByRef outVal) As Boolean
     flags = DIE_SHOWOPTIONS Or DIE_SHOWVERSION Or DIE_SINGLELINEOUTPUT 'Or DIE_SHOWENTROPY
     buf = String(1000, Chr(0))
     'v = DiEScanA(fPath, buf, Len(buf), flags)
-    v = dieScanEx(fPath, buf, Len(buf), flags, App.path & IIf(IsIde(), "\..", "") & "\die\db\")
+    v = dieScanEx(fPath, buf, Len(buf), flags, App.path & IIf(isIde(), "\..", "") & "\die\db\")
     
     a = InStr(buf, Chr(0))
     If a > 0 Then buf = Left(buf, a - 1)
@@ -288,9 +288,9 @@ Function HexDump(ByVal str, Optional hexOnly = 0, Optional offset As Long = 0) A
         tt = Hex(ary(i))
         If Len(tt) = 1 Then tt = "0" & tt
         tmp = tmp & tt & " "
-        x = ary(i)
+        X = ary(i)
         'chars = chars & IIf((x > 32 And x < 127) Or x > 191, Chr(x), ".") 'x > 191 causes \x0 problems on non us systems... asc(chr(x)) = 0
-        chars = chars & IIf((x > 32 And x < 127), Chr(x), ".")
+        chars = chars & IIf((X > 32 And X < 127), Chr(X), ".")
         If i > 1 And i Mod 16 = 0 Then
             h = Hex(offset)
             While Len(h) < 6: h = "0" & h: Wend
@@ -329,8 +329,8 @@ End Function
 
 Private Sub push(ary, value) 'this modifies parent ary object
     On Error GoTo init
-    Dim x As Integer
-    x = UBound(ary) '<-throws Error If Not initalized
+    Dim X As Integer
+    X = UBound(ary) '<-throws Error If Not initalized
     ReDim Preserve ary(UBound(ary) + 1)
     ary(UBound(ary)) = value
     Exit Sub
@@ -369,9 +369,9 @@ Function GetAllElements(lv As ListView, Optional selOnly As Boolean = False) As 
         
         For i = 1 To lv.ColumnHeaders.Count - 1
             If selOnly Then
-                If li.selected Then tmp = tmp & li.SubItems(i) & vbTab
+                If li.selected Then tmp = tmp & li.subItems(i) & vbTab
             Else
-                tmp = tmp & li.SubItems(i) & vbTab
+                tmp = tmp & li.subItems(i) & vbTab
             End If
         Next
         
@@ -385,18 +385,18 @@ End Function
 
 Function GetAllText(lv As ListView, Optional subItemRow As Long = 0) As String
     Dim i As Long
-    Dim tmp As String, x As String
+    Dim tmp As String, X As String
     
     For i = 1 To lv.ListItems.Count
         If subItemRow = 0 Then
-            x = lv.ListItems(i).text
-            If Len(x) > 0 Then
-                tmp = tmp & x & vbCrLf
+            X = lv.ListItems(i).text
+            If Len(X) > 0 Then
+                tmp = tmp & X & vbCrLf
             End If
         Else
-            x = lv.ListItems(i).SubItems(subItemRow)
-            If Len(x) > 0 Then
-                tmp = tmp & x & vbCrLf
+            X = lv.ListItems(i).subItems(subItemRow)
+            If Len(X) > 0 Then
+                tmp = tmp & X & vbCrLf
             End If
         End If
     Next
@@ -404,11 +404,11 @@ Function GetAllText(lv As ListView, Optional subItemRow As Long = 0) As String
     GetAllText = tmp
 End Function
 
-Function IsIde() As Boolean
+Function isIde() As Boolean
     On Error GoTo hell
     Debug.Print 1 \ 0
 Exit Function
-hell: IsIde = True
+hell: isIde = True
 End Function
 
 Sub SetLiColor(li As ListItem, newcolor As Long)
@@ -458,6 +458,9 @@ End Function
 
 'ported from Detect It Easy - Binary::calculateEntropy
 '   https://github.com/horsicq/DIE-engine/blob/master/binary.cpp#L2319
+'   https://github.com/dzzie/DIE-engine/blob/master/binary.cpp#L2300
+' more:
+'   https://rosettacode.org/wiki/Entropy#FreeBASIC
 Function fileEntropy(pth As String, Optional offset As Long = 0, Optional leng As Long = -1) As Single
     
     Dim sz As Long

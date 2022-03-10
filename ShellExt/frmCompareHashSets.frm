@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "richtx32.ocx"
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.2#0"; "MSCOMCTL.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Begin VB.Form frmCompareHashSets 
    Caption         =   "Compare Hash Sets"
    ClientHeight    =   7650
@@ -471,6 +471,25 @@ Sub push(ary, value) 'this modifies parent ary object
 init:     ReDim ary(0): ary(0) = value
 End Sub
 
+Public Sub preload(file1 As String, Optional file2 As String)
+    
+    lblFile1.Caption = Empty
+    If Len(file1) > 0 Then
+        If fso.FileExists(file1) Then
+            Text1.text = fso.ReadFile(file1)
+            lblFile1.Caption = fso.FileNameFromPath(file1)
+        End If
+    End If
+    
+    lblFile2.Caption = Empty
+    If Len(file2) > 0 Then
+        If fso.FileExists(file2) Then
+            Text2.text = fso.ReadFile(file2)
+            lblFile2.Caption = fso.FileNameFromPath(file2)
+        End If
+    End If
+    
+End Sub
 
 Private Sub Command2_Click()
     Dim f As String
