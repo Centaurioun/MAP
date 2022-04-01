@@ -192,6 +192,8 @@ Option Explicit
 Private Declare Function IsWindow Lib "user32" (ByVal hwnd As Long) As Long
 Private Declare Function IsWindowVisible Lib "user32" (ByVal hwnd As Long) As Long
 
+Const copy = "*\shell\Copy Path\command"
+Const copy2 = "Folder\shell\Copy Path\command"
 
 Const peek = "*\shell\Strings\command"
 Const hash = "Folder\shell\Hash Files\command"
@@ -224,6 +226,7 @@ Sub InstallRegKeys()
     Dim cmdline_7 As String
     Dim cmdline_8 As String
     Dim cmdline_9 As String
+    Dim cmdline_10 As String
     
     Dim reg As New clsRegistry2
     
@@ -239,10 +242,29 @@ Sub InstallRegKeys()
     cmdline_7 = """" & ap() & "\shellext.exe"" ""%1"" /hsch"
     cmdline_8 = """" & ap() & "\tlbViewer.exe"" ""%1"""
     cmdline_9 = """" & ap() & "\shellext.exe"" ""%1"" /hset"
+    cmdline_10 = """" & ap() & "\shellext.exe"" ""%1"" /copy"
     
     On Error GoTo hell
     
     reg.hive = HKEY_CLASSES_ROOT
+    
+    If reg.CreateKey(copy) Then
+        reg.SetValue copy, "", cmdline_10, REG_SZ
+    Else
+        If Not autoInstall Then
+            MsgBox "You may not have permission to write to HKCR", vbExclamation
+        End If
+        Exit Sub
+    End If
+    
+    If reg.CreateKey(copy2) Then
+        reg.SetValue copy2, "", cmdline_10, REG_SZ
+    Else
+        If Not autoInstall Then
+            MsgBox "You may not have permission to write to HKCR", vbExclamation
+        End If
+        Exit Sub
+    End If
     
     If reg.CreateKey(peek) Then
         reg.SetValue peek, "", cmdline_1, REG_SZ
@@ -413,6 +435,16 @@ Function RemoveRegKeys()
        c = reg.DeleteKey("tlbfile\shell\Type Library Viewer\")
     End If
     
+    If reg.keyExists(copy) Then
+        a = reg.DeleteKey(copy)
+        a = reg.DeleteKey("*\shell\Copy Path\")
+    End If
+    
+    If reg.keyExists(copy2) Then
+        a = reg.DeleteKey(copy2)
+        a = reg.DeleteKey("Folder\shell\Copy Path\")
+    End If
+    
     If Not autoInstall Then
         If a And b And c Then
             MsgBox "Keys deleted        ", vbInformation
@@ -484,6 +516,7 @@ Private Sub Form_Load()
         If VBA.Right(cmd, 5) = "/hsch" Then mode = 7
         If VBA.Right(cmd, 5) = "/hexv" Then mode = 8 'if /base is supplied it must be before /hexv
         If VBA.Right(cmd, 5) = "/hset" Then mode = 9
+        If VBA.Right(cmd, 5) = "/copy" Then mode = 10
         
         If VBA.Right(cmd, 8) = "/install" Then
             mode = 5 'required for Vista run elevated mode
@@ -516,6 +549,7 @@ Private Sub Form_Load()
             Case 7: frmMD5FileSearch.Launch cmd
             Case 8: frmHexView.HexView cmd
             Case 9: frmCompareHashSets.Show
+            Case 10: Clipboard.Clear: Clipboard.SetText Replace(cmd, """", Empty)
             Case Else: MsgBox "Unknown Option: " & Command & vbCrLf & "Last5 = " & Right(cmd, 5), vbExclamation
         End Select
         
