@@ -2,7 +2,7 @@ VERSION 5.00
 Begin VB.Form frmMain 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Install Shell Extensions"
-   ClientHeight    =   5205
+   ClientHeight    =   5745
    ClientLeft      =   45
    ClientTop       =   330
    ClientWidth     =   5745
@@ -10,7 +10,7 @@ Begin VB.Form frmMain
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   5205
+   ScaleHeight     =   5745
    ScaleWidth      =   5745
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
@@ -18,8 +18,8 @@ Begin VB.Form frmMain
    Begin VB.Timer tmrCloseWithHexEditor 
       Enabled         =   0   'False
       Interval        =   1000
-      Left            =   0
-      Top             =   3945
+      Left            =   -60
+      Top             =   4665
    End
    Begin VB.PictureBox pict 
       AutoRedraw      =   -1  'True
@@ -34,10 +34,10 @@ Begin VB.Form frmMain
          Strikethrough   =   0   'False
       EndProperty
       ForeColor       =   &H0000FFFF&
-      Height          =   3195
+      Height          =   3795
       Left            =   120
       Picture         =   "frmMain.frx":030A
-      ScaleHeight     =   3135
+      ScaleHeight     =   3735
       ScaleWidth      =   5505
       TabIndex        =   6
       Top             =   60
@@ -46,9 +46,9 @@ Begin VB.Form frmMain
    Begin VB.Frame Frame1 
       Caption         =   " Options "
       Height          =   1110
-      Left            =   90
+      Left            =   30
       TabIndex        =   2
-      Top             =   3300
+      Top             =   4020
       Width           =   5595
       Begin VB.CheckBox chkUseSha256 
          Caption         =   "Use SHA256 as Default"
@@ -106,17 +106,17 @@ Begin VB.Form frmMain
    Begin VB.CommandButton cmdInstallRegKeys 
       Caption         =   "Install"
       Height          =   315
-      Left            =   4635
+      Left            =   4575
       TabIndex        =   1
-      Top             =   4530
+      Top             =   5250
       Width           =   1035
    End
    Begin VB.CommandButton cmdRemoveRegKeys 
       Caption         =   "Remove"
       Height          =   315
-      Left            =   3240
+      Left            =   3180
       TabIndex        =   0
-      Top             =   4530
+      Top             =   5250
       Width           =   1035
    End
    Begin VB.Label Label2 
@@ -132,9 +132,9 @@ Begin VB.Form frmMain
       EndProperty
       Height          =   255
       Index           =   1
-      Left            =   1035
+      Left            =   975
       TabIndex        =   8
-      Top             =   4575
+      Top             =   5295
       Width           =   2100
    End
 End
@@ -192,8 +192,10 @@ Option Explicit
 Private Declare Function IsWindow Lib "user32" (ByVal hwnd As Long) As Long
 Private Declare Function IsWindowVisible Lib "user32" (ByVal hwnd As Long) As Long
 
+
 Const copy = "*\shell\Copy Path\command"
 Const copy2 = "Folder\shell\Copy Path\command"
+Const cmdh = "Folder\shell\Cmd Here\command"
 
 Const peek = "*\shell\Strings\command"
 Const hash = "Folder\shell\Hash Files\command"
@@ -227,6 +229,7 @@ Sub InstallRegKeys()
     Dim cmdline_8 As String
     Dim cmdline_9 As String
     Dim cmdline_10 As String
+    Dim cmdline_11 As String
     
     Dim reg As New clsRegistry2
     
@@ -243,10 +246,20 @@ Sub InstallRegKeys()
     cmdline_8 = """" & ap() & "\tlbViewer.exe"" ""%1"""
     cmdline_9 = """" & ap() & "\shellext.exe"" ""%1"" /hset"
     cmdline_10 = """" & ap() & "\shellext.exe"" ""%1"" /copy"
+    cmdline_11 = """" & ap() & "\shellext.exe"" ""%1"" /cmdh"
     
     On Error GoTo hell
     
     reg.hive = HKEY_CLASSES_ROOT
+    
+    If reg.CreateKey(cmdh) Then
+        reg.SetValue cmdh, "", cmdline_11, REG_SZ
+    Else
+        If Not autoInstall Then
+            MsgBox "You may not have permission to write to HKCR", vbExclamation
+        End If
+        Exit Sub
+    End If
     
     If reg.CreateKey(copy) Then
         reg.SetValue copy, "", cmdline_10, REG_SZ
@@ -445,6 +458,11 @@ Function RemoveRegKeys()
         a = reg.DeleteKey("Folder\shell\Copy Path\")
     End If
     
+    If reg.keyExists(cmdh) Then
+        a = reg.DeleteKey(cmdh)
+        a = reg.DeleteKey("Folder\shell\Cmd Here\")
+    End If
+    
     If Not autoInstall Then
         If a And b And c Then
             MsgBox "Keys deleted        ", vbInformation
@@ -459,7 +477,7 @@ End Function
 
 Private Sub Form_Load()
 
-    On Error Resume Next
+    'On Error Resume Next
     
     Dim mode As Long
     Dim cmd As String
@@ -476,11 +494,14 @@ Private Sub Form_Load()
                "    Md5 Hash" & vbCrLf & _
                "    VirusTotal" & vbCrLf & _
                "    Submit to VT" & vbCrLf & _
+               "    Copy Path" & vbCrLf & _
                "" & vbCrLf & _
                " All folders:" & vbCrLf & _
                "    Hash Files" & vbCrLf & _
                "    Hash Search" & vbCrLf & _
                "    Compare HashSets" & vbCrLf & _
+               "    Copy Path" & vbCrLf & _
+               "    Cmd Here" & vbCrLf & _
                "" & vbCrLf & _
                " Dll/OCX/TLB Files: " & vbCrLf & _
                "    Type Library Viewer" & vbCrLf & _
@@ -517,6 +538,7 @@ Private Sub Form_Load()
         If VBA.Right(cmd, 5) = "/hexv" Then mode = 8 'if /base is supplied it must be before /hexv
         If VBA.Right(cmd, 5) = "/hset" Then mode = 9
         If VBA.Right(cmd, 5) = "/copy" Then mode = 10
+        If VBA.Right(cmd, 5) = "/cmdh" Then mode = 11
         
         If VBA.Right(cmd, 8) = "/install" Then
             mode = 5 'required for Vista run elevated mode
@@ -550,6 +572,7 @@ Private Sub Form_Load()
             Case 8: frmHexView.HexView cmd
             Case 9: frmCompareHashSets.Show
             Case 10: Clipboard.Clear: Clipboard.SetText Replace(cmd, """", Empty)
+            Case 11: Shell "cmd.exe /k cd """ & cmd & """", vbNormalFocus
             Case Else: MsgBox "Unknown Option: " & Command & vbCrLf & "Last5 = " & Right(cmd, 5), vbExclamation
         End Select
         
