@@ -10,6 +10,21 @@ Begin VB.Form Form1
    ScaleHeight     =   6150
    ScaleWidth      =   8880
    StartUpPosition =   1  'CenterOwner
+   Begin VB.TextBox txtRebase 
+      Height          =   315
+      Left            =   6120
+      TabIndex        =   14
+      Top             =   720
+      Width           =   1335
+   End
+   Begin VB.CheckBox chkRebase 
+      Caption         =   "Rebase  0x"
+      Height          =   315
+      Left            =   4980
+      TabIndex        =   13
+      Top             =   720
+      Width           =   1275
+   End
    Begin VB.CheckBox chkHeader 
       Caption         =   "main()"
       Height          =   285
@@ -212,6 +227,8 @@ End Sub
 
 Private Sub Command1_Click()
     On Error Resume Next
+    Dim newBase As Long
+    
     hits = 0
     
     header = "#define UNLOADED_FILE   1" & vbCrLf & _
@@ -222,6 +239,14 @@ Private Sub Command1_Click()
     
     f = Text2
     f = Split(f, vbCrLf) 'lines
+    
+    If chkRebase.Value And Len(txtRebase) > 0 Then
+        newBase = CLng("&h" & txtRebase)
+        If Err.Number <> 0 Then
+            MsgBox "Rebase could not convert to numeric from 32 bit hex"
+            Exit Sub
+        End If
+    End If
     
     Dim addr As String
     Dim import As String
@@ -262,6 +287,10 @@ Private Sub Command1_Click()
         addr = Replace(addr, "`", Empty) 'windbg x64 splitter
         lZeroTrim addr
         import = import & "_"
+        
+        If chkRebase.Value Then
+            addr = Hex((newBase + (i * 4)))
+        End If
         
         Err.Clear
         unique.Add "0x" & addr, CStr(import)

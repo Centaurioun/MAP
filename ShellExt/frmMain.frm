@@ -328,6 +328,10 @@ Sub InstallRegKeys()
         reg.SetValue hashSets, "", cmdline_9, REG_SZ
     End If
     
+    'these are just not safe for us, requires logoff/reboot to take effect
+    reg.DeleteValue "lnkfile", "NeverShowExt"
+    reg.DeleteValue "piffile", "NeverShowExt"
+    
     If Not autoInstall Then MsgBox "Entries Added", vbInformation
     End
     
@@ -506,7 +510,8 @@ Private Sub Form_Load()
                " Dll/OCX/TLB Files: " & vbCrLf & _
                "    Type Library Viewer" & vbCrLf & _
                "" & vbCrLf & _
-               " CHM Files: Decompile"
+               " CHM Files: Decompile" & vbCrLf & _
+               " ShowExtensions: pif, lnk"
 
                  
     lastCmd = GetMySetting("lastCMD", "")
