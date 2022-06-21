@@ -1,8 +1,8 @@
 Type=Exe
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\stdole2.tlb#OLE Automation
-Reference=*\G{8B217740-717D-11CE-AB5B-D41203C10000}#1.0#0#C:\WINDOWS\SysWow64\TLBINF32.DLL#TypeLib Information
-Reference=*\G{DDC88AC2-2723-4C1B-9D61-C4F4D7CF5375}#2.5#0#C:\WINDOWS\SysWow64\vbdevkit.dll#Vb Developers Library From Sandsprite.com
-Object={831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0; MSCOMCTL.OCX
+Reference=*\G{8B217740-717D-11CE-AB5B-D41203C10000}#1.0#0#C:\Windows\SysWow64\TLBINF32.DLL#TypeLib Information
+Object={831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.2#0; MSCOMCTL.OCX
+Object={3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0; richtx32.ocx
 Form=frmTlbViewer.frm
 Class=CArgument; CArgument.cls
 Class=CClass; CClass.cls
@@ -14,15 +14,17 @@ Form=frmLoadFile.frm
 Module=Module1; Module1.bas
 Form=frmMsg.frm
 Form=frmProgIDLookup.frm
-Object={3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0; RICHTX32.OCX
 Module=modSyntaxHighlighting; modSyntaxHighlighting.bas
+Class=CFileSystem2; CFileSystem2.cls
+Class=clsCmnDlg; clsCmnDlg.cls
+Class=clsRegistry2; clsRegistry2.cls
 Startup="frmLoadFile"
 HelpFile=""
 Title="Project1"
 ExeName32="tlbViewer.exe"
 Path32=".."
 Command32=""
-Name="Project1"
+Name="tlbViewer"
 HelpContextID="0"
 CompatibleMode="0"
 MajorVer=1
@@ -51,4 +53,4 @@ MaxNumberOfThreads=1
 AutoRefresh=1
 
 [fastBuild]
-fullPath=D:\_code\iDef\MAP\tlbViewer.exe
+fullPath=%ap%\..\tlbViewer.exe

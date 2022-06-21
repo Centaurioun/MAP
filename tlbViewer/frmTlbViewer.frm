@@ -1,6 +1,6 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
-Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.2#0"; "MSCOMCTL.OCX"
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "richtx32.ocx"
 Begin VB.Form frmtlbViewer 
    Caption         =   "Type Library Viewer"
    ClientHeight    =   5370
@@ -12,6 +12,14 @@ Begin VB.Form frmtlbViewer
    ScaleHeight     =   5370
    ScaleWidth      =   9900
    StartUpPosition =   2  'CenterScreen
+   Begin VB.CommandButton cmdBrowse 
+      Caption         =   "..."
+      Height          =   315
+      Left            =   8520
+      TabIndex        =   5
+      Top             =   120
+      Width           =   375
+   End
    Begin RichTextLib.RichTextBox text2 
       Height          =   4830
       Left            =   3330
@@ -21,7 +29,6 @@ Begin VB.Form frmtlbViewer
       _ExtentX        =   11536
       _ExtentY        =   8520
       _Version        =   393217
-      Enabled         =   -1  'True
       ScrollBars      =   3
       TextRTF         =   $"frmTlbViewer.frx":0000
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
@@ -118,7 +125,7 @@ Begin VB.Form frmtlbViewer
       OLEDropMode     =   1  'Manual
       TabIndex        =   0
       Top             =   120
-      Width           =   7665
+      Width           =   7425
    End
    Begin VB.Label Label2 
       Caption         =   "COM Server"
@@ -194,14 +201,23 @@ Public cust As Collection
 Private LiveLoadWarned As Boolean
 Private MoreMode As Boolean
 
+Private Sub cmdBrowse_Click()
+    On Error Resume Next
+    Dim p As String
+    p = fso.GetParentFolder(Text1)
+    p = dlg.OpenDialog(AllFiles, p, "Open File", Me.hwnd)
+    Text1 = p
+    cmdLoad_Click
+End Sub
+
 Private Sub cmdLoad_Click()
     LoadFile Text1
 End Sub
 
-Function LoadFile(fPath As String, Optional onlyShowGuid As String) As Boolean
+Function LoadFile(fpath As String, Optional onlyShowGuid As String) As Boolean
     
     Me.Visible = True
-    Text1 = ExpandPath(fPath)
+    Text1 = ExpandPath(fpath)
     
     Dim c As CClass
     Dim i As CInterface
@@ -386,9 +402,9 @@ Private Sub mnuShowVOff_Click()
     mnuShowVOff.Checked = Not mnuShowVOff.Checked
 End Sub
 
-Private Sub Text1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub Text1_OLEDragDrop(data As DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single)
     On Error Resume Next
-    Text1 = Data.Files(1)
+    Text1 = data.files(1)
 End Sub
 
  
