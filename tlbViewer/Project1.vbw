@@ -1,4 +1,4 @@
-frmtlbViewer = 192, 57, 1187, 880, Z, 285, 142, 1134, 845, C
+frmtlbViewer = 192, 57, 1187, 880, C, 285, 142, 1134, 845, C
 CArgument = 132, 132, 868, 666, C
 CClass = 44, 44, 907, 396, 
 CInterface = 198, 198, 1171, 774, 
@@ -9,7 +9,7 @@ frmLoadFile = 88, 88, 796, 622, , 66, 66, 774, 600, C
 Module1 = 169, 121, 1037, 732, 
 frmMsg = 0, 0, 736, 534, , 22, 22, 758, 556, C
 frmProgIDLookup = 242, 242, 1239, 914, , 220, 220, 1217, 892, C
-modSyntaxHighlighting = 22, 22, 1038, 614, 
+modSyntaxHighlighting = 22, 22, 1038, 614, Z
 CFileSystem2 = 0, 0, 0, 0, C
 clsCmnDlg = 0, 0, 0, 0, C
 clsRegistry2 = 104, 104, 1076, 637, 

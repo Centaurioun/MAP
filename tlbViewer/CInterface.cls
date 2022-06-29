@@ -31,38 +31,45 @@ Attribute VB_Exposed = False
 '         this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 '         Place, Suite 330, Boston, MA 02111-1307 USA
 
-Public Name As String
+Public name As String
 Public GUID As String
 Public hasIDispatch As Boolean  'required because we use IDispatch::Invoke for fuzzing
 Public mMembers As New Collection ' as CMember
 Public DerivedString As String
 Public isDefault As Boolean
 Public AttributeMask As Integer
+Public attributes As String
+Public isEventInterface As Boolean
+Public iface As InterfaceInfo
 
 Private Ignored As New Collection
 
-Friend Sub LoadMembers(mm As Members, ownerClassGuid As String)
+'source = Event interface
+Function hasAttribute(name As String) As Boolean
+    If InStr(1, attributes, name, vbTextCompare) > 0 Then hasAttribute = True
+End Function
+
+
+Friend Sub LoadMembers(mm As members, ownerClassGuid As String, ii As InterfaceInfo)
         Dim m As MemberInfo
         Dim cm As CMember
         Dim ignoreThreshold As Integer
         Dim i As Long
+        Dim aas() As String, atrcnt As Long, ats() As String
         
-        'If Not hasIDispatch Then
-        '    Name = Name & " - No IDisp"
-        '    Exit Sub
-        'End If
+        Set Me.iface = ii
         
+        atrcnt = iface.AttributeStrings(aas)
+        If atrcnt > 0 Then
+           Me.attributes = Join(aas, ",")
+           Me.isEventInterface = Me.hasAttribute("source")
+        End If
         
-        'i = 1
-        'ignoreThreshold = 3 'for IUnknown methods (must be present)
-        'ignoreThreshold = ignoreThreshold + 4 'skip idisp meths too
-
         For Each m In mm
-            'If i > ignoreThreshold Then
-            If Not KeyExistsInCollection(Ignored, m.Name) Then
-                dbg vbTab & "Method: " & m.Name
+            If Not KeyExistsInCollection(Ignored, m.name) Then
+                dbg vbTab & "Method: " & m.name
                 Set cm = New CMember
-                cm.LoadMember m, ownerClassGuid
+                cm.LoadMember m, ownerClassGuid, Me.isEventInterface
                 If cm.CallType = ftPropGet Or cm.CallType = ftPropLet Or cm.CallType = ftPropSet Then
                     If duplicateProp(cm) Then GoTo nextOne
                 End If
@@ -73,6 +80,8 @@ nextOne:
             i = i + 1
         Next
         
+        
+        
 End Sub
 
 'since prop let/get are seperate in odl, this will scan to see if one was already set in members and update prototype with Get/Set if so less noise
@@ -81,7 +90,7 @@ Private Function duplicateProp(cm As CMember) As Boolean
     Dim cur As String, n As String
     
     For Each m In mMembers
-        If cm.Name = m.Name Then
+        If cm.name = m.name Then
             If m.CallType = ftPropGet Or m.CallType = ftPropLet Or m.CallType = ftPropSet Then
                 cur = sPropType(m.CallType)
                 n = sPropType(cm.CallType)

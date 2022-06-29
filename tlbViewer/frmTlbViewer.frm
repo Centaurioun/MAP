@@ -223,6 +223,7 @@ Function LoadFile(fpath As String, Optional onlyShowGuid As String) As Boolean
     Dim i As CInterface
     Dim m As CMember
     Dim pi As ParameterInfo
+    Dim isEventIface As Boolean
     
     Dim n0 As Node
     Dim n1 As Node
@@ -233,6 +234,7 @@ Function LoadFile(fpath As String, Optional onlyShowGuid As String) As Boolean
     Dim mInterfaces As Long
     Dim x As Long
     Dim loaded As Boolean
+    Dim icon As String, icon2 As String
     
     Set tlb = Nothing
     Set tlb = New CTlbParse
@@ -254,7 +256,7 @@ Function LoadFile(fpath As String, Optional onlyShowGuid As String) As Boolean
         Set n0 = tv.Nodes.Add(, , , tlb.LibName, "lib")
         
         For Each c In tlb.mClasses
-        
+            
             If Len(onlyShowGuid) > 0 Then
                 If InStr(1, c.GUID, onlyShowGuid, vbTextCompare) < 1 Then
                     GoTo nextOne
@@ -267,10 +269,18 @@ Function LoadFile(fpath As String, Optional onlyShowGuid As String) As Boolean
             mMembers = 0
             For Each i In c.mInterfaces
                 mInterfaces = mInterfaces + 1
-                Set n2 = tv.Nodes.Add(n1, tvwChild, , i.name, "interface")
+                icon = IIf(i.hasAttribute("source"), "event", "interface")
+                Set n2 = tv.Nodes.Add(n1, tvwChild, , i.name, icon)
                 Set n2.Tag = i
                 For Each m In i.mMembers
-                    Set n3 = tv.Nodes.Add(n2, tvwChild, , m.mMemberInfo.name, IIf(m.CallType > 1, "prop", "sub"))
+                
+                    If icon = "event" Then
+                        icon2 = "event"
+                    Else
+                        icon2 = IIf(m.CallType > 1, "prop", "sub")
+                    End If
+                        
+                    Set n3 = tv.Nodes.Add(n2, tvwChild, , m.mMemberInfo.name, icon2)
                     Set n3.Tag = m
                     mMembers = mMembers + 1
                     'If ObjPtr(n3) And Not m.SupportsFuzzing Then n3.ForeColor = &H606060
@@ -448,7 +458,9 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
     Dim i As CInterface
     Dim cc As CClass
     Dim tmp() As String
+    Dim flags() As String
     Dim report As String
+    
     On Error Resume Next
     
     Set ActiveNode = Node
@@ -474,12 +486,17 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
     If TypeName(Node.Tag) = "CInterface" Then
         Set i = Node.Tag
         push tmp, "Interface " & i.name & i.DerivedString
-        push tmp, "Default Interface: " & i.isDefault
-        'push tmp, "Public: " & i.isPublic()
-        'push tmp, "Dual: " & i.isDual()
-        'push tmp, "Creatable: " & i.isCreatable()
-        'push tmp, "Licensed: " & i.isLicensed()
+        
+        If i.isDefault Then push flags, "Default"
+        If i.isPublic Then push flags, "Public"
+        If i.isDual() Then push flags, "Dual"
+        If i.isCreatable() Then push flags, "Creatable"
+        If i.isLicensed() Then push flags, "Licensed"
+        If i.isEventInterface Then push flags, "EventInterface"
+        If Not AryIsEmpty(flags) Then push tmp, "Flags: " & Join(flags, " ,")
+        
         push tmp, "Members : " & i.mMembers.Count
+        push tmp, "Attributes : " & i.attributes
         
         push tmp, Empty
         'If mnuFullProtos.Checked Then push tmp, Empty

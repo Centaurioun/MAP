@@ -48,7 +48,7 @@ Attribute VB_Exposed = False
 'Private Const IIDSTR_IUnknown = "{00000000-0000-0000-C000-000000000046}"
 'Private Const CLSCTX_INPROC_SERVER As Long = 1&
 
-Public Name As String
+Public name As String
 Public GUID As String
 Public ProgID As String
 Public BeenAudited As Boolean
@@ -128,18 +128,17 @@ Sub AddInterface(iface As InterfaceInfo)
         
         On Error Resume Next
         Dim mi As New CInterface
-        'Dim aas() As String
         
         mi.DerivedString = GetDerivedInterfaces(iface, mi)
-        dbg "Interface: " & iface.Name & " " & mi.DerivedString & IIf(mi.isPublic, " : Public", " : Private")
+        dbg "Interface: " & iface.name & " " & mi.DerivedString & IIf(mi.isPublic, " : Public", " : Private")
             
         'If InStr(1, iface.Name, "command", vbTextCompare) > 0 Then Stop
         
         With iface
             mi.GUID = .GUID
-            mi.Name = .Name
-            If .Name = DefaultInterface Then mi.isDefault = True
-            mi.LoadMembers .Members, Me.GUID
+            mi.name = .name
+            If .name = DefaultInterface Then mi.isDefault = True
+            mi.LoadMembers .members, Me.GUID, iface
             mInterfaces.Add mi
         End With
         
@@ -156,8 +155,8 @@ Private Function GetDerivedInterfaces(iface As InterfaceInfo, mi As CInterface) 
     mi.AttributeMask = iface.AttributeMask
     
     For Each ii In iface.ImpliedInterfaces
-        If ii.Name = "IDispatch" Then mi.hasIDispatch = True
-        tmp = tmp & " : " & ii.Name
+        If ii.name = "IDispatch" Then mi.hasIDispatch = True
+        tmp = tmp & " : " & ii.name
     Next
     
     GetDerivedInterfaces = tmp

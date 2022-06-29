@@ -50,6 +50,7 @@ Public Enum FType
     ftPropGet = 3
     ftPropSet = 4
     ftUnknown = 5
+    ftEvent = 6
 End Enum
 
 Public ClassGUID As String
@@ -65,13 +66,15 @@ Public vTableOffset As Long
 Private Declare Function GetTickCount Lib "kernel32" () As Long
 
 
-Sub LoadMember(m As MemberInfo, ownerClassGuid As String)
+Sub LoadMember(m As MemberInfo, ownerClassGuid As String, isEvent As Boolean)
     
     'If m.Name = "insertBefore" Then Stop
     
     Set mMemberInfo = m
     name = m.name
     'If Name = "OpenTextFile" Then Stop
+    
+    If isEvent Then CallType = ftEvent 'used in buildfuncname
     
     ClassGUID = ownerClassGuid
     ArgCount = m.Parameters.Count
@@ -252,15 +255,23 @@ Private Sub ParseObjArg(tmp, pi As ParameterInfo, arg As CArgument, TIResolved A
    
                                 
 End Sub
+
+
 Private Sub BuildFuncName(tmp)
     
     With mMemberInfo
+    
         If .InvokeKind = INVOKE_FUNC Or .InvokeKind = INVOKE_EVENTFUNC Then
             Select Case .ReturnType.VarType
                   Case VT_VOID, VT_HRESULT
-                      push tmp, "Sub"
-                      CallType = ftsub
-                      If .Parameters.Count = 0 Then SupportsFuzzing = False
+                      If CallType = ftEvent Then
+                            push tmp, "Event"
+                            SupportsFuzzing = False
+                      Else
+                            push tmp, "Sub"
+                            CallType = ftsub
+                            If .Parameters.Count = 0 Then SupportsFuzzing = False
+                       End If
                   Case Else
                       push tmp, "Function"
                       CallType = ftFunc
