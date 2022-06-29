@@ -59,7 +59,7 @@ Public mMemberInfo As MemberInfo
 Public ArgCount As Integer
 Public SupportsFuzzing As Boolean 'entire method cant be fuzzed
 Public Args As New Collection 'of CArgument
-Public Name As String
+Public name As String
 Public vTableOffset As Long
 
 Private Declare Function GetTickCount Lib "kernel32" () As Long
@@ -70,7 +70,7 @@ Sub LoadMember(m As MemberInfo, ownerClassGuid As String)
     'If m.Name = "insertBefore" Then Stop
     
     Set mMemberInfo = m
-    Name = m.Name
+    name = m.name
     'If Name = "OpenTextFile" Then Stop
     
     ClassGUID = ownerClassGuid
@@ -120,7 +120,7 @@ Dim isFirst As Boolean
                     
                     If pi.default Or pi.Optional Then
                           If .OptionalCount = -1 Then  'paramarray
-                              arg.DataType = atParamAry
+                              arg.dataType = atParamAry
                               push tmp, "[ParamArray " 'This will be the only optional parameter
                               SupportsFuzzing = False
                           End If
@@ -141,7 +141,7 @@ Dim isFirst As Boolean
                           End If
                     End With
                     
-                    arg.Name = pi.Name 'added late in game!
+                    arg.name = pi.name 'added late in game!
                     Args.Add arg
               Next
               
@@ -164,7 +164,7 @@ Private Sub ParseStdArg(tmp, pi As ParameterInfo, arg As CArgument)
     With pi.VarTypeInfo
     
         arg.isByVal = IIf(.PointerLevel = 0, True, False)
-        glue tmp, vbTab & IIf(arg.isOptional, "[ ", "") & IIf(arg.isByVal, "ByVal ", "ByRef ") & pi.Name
+        glue tmp, vbTab & IIf(arg.isOptional, "[ ", "") & IIf(arg.isByVal, "ByVal ", "ByRef ") & pi.name
                                     
         If .VarType <> vbVariant Then
               strTypeName = TypeName(.TypedVariant)
@@ -218,8 +218,8 @@ Private Sub ParseObjArg(tmp, pi As ParameterInfo, arg As CArgument, TIResolved A
                           arg.isByVal = .PointerLevel = 1
                   Case TKIND_RECORD 'Records not passed ByVal in VB
                           arg.isByVal = False
-                          arg.ManSetType atLong, True
-                          overRideAsLong = True
+                          arg.ManSetType atOther, True  'switched from long: 6-28-22
+                          overRideAsLong = False
                   Case TKIND_ENUM
                           arg.ManSetType atLong, True
                           arg.isByVal = .PointerLevel = 0
@@ -228,17 +228,17 @@ Private Sub ParseObjArg(tmp, pi As ParameterInfo, arg As CArgument, TIResolved A
                           arg.isByVal = .PointerLevel = 0
             End Select
             
-            glue tmp, vbTab & IIf(arg.isOptional, "[ ", "") & IIf(arg.isByVal, "ByVal ", "ByRef ") & pi.Name
+            glue tmp, vbTab & IIf(arg.isOptional, "[ ", "") & IIf(arg.isByVal, "ByVal ", "ByRef ") & pi.name
             
             If TIType Is Nothing Then 'Error
                   glue tmp, "As ?"
             Else
                   If .IsExternalType Then
-                          glue tmp, "As " & .TypeLibInfoExternal.Name & "." & TIType.Name
-                          arg.ObjectType = .TypeLibInfoExternal.Name & "." & TIType.Name
+                          glue tmp, "As " & .TypeLibInfoExternal.name & "." & TIType.name
+                          arg.ObjectType = .TypeLibInfoExternal.name & "." & TIType.name
                   Else
-                          glue tmp, "As " & IIf(overRideAsLong, "Long", TIType.Name)
-                          arg.ObjectType = IIf(overRideAsLong, "Long", TIType.Name)
+                          glue tmp, "As " & IIf(overRideAsLong, "Long", TIType.name)
+                          arg.ObjectType = IIf(overRideAsLong, "Long", TIType.name)
                   End If
             End If
             
@@ -295,7 +295,7 @@ Private Sub BuildFuncName(tmp)
             
         End If
         
-        glue tmp, .Name
+        glue tmp, .name
         'If .Name = "GetSpecialFolder" Then Stop
     End With
     
@@ -334,9 +334,9 @@ Private Function GetReturnType(tmp, fIsConstant As Boolean)
                                glue tmp, " As ?"
                            Else
                                If .IsExternalType Then
-                                       glue tmp, " As " & .TypeLibInfoExternal.Name & "." & .TypeInfo.Name
+                                       glue tmp, " As " & .TypeLibInfoExternal.name & "." & .TypeInfo.name
                                Else
-                                       glue tmp, " As " & .TypeInfo.Name
+                                       glue tmp, " As " & .TypeInfo.name
                                End If
                            End If
                        End If
@@ -363,7 +363,7 @@ Private Function GetReturnType(tmp, fIsConstant As Boolean)
                                     arg.SetStdType strTypeName   'will handle this special case
                                     arg.isDefault = False
                                     arg.isOptional = False
-                                    arg.Name = mMemberInfo.Name
+                                    arg.name = mMemberInfo.name
                                     Args.Add arg
                                     ArgCount = 1
                                End If
@@ -412,9 +412,9 @@ Dim TKind As TypeKinds
         Loop
         If ti.TypeKind = TKIND_ENUM Then
             lTrackVal = DefVal
-            For Each mi In ti.Members
+            For Each mi In ti.members
                 If mi.value = lTrackVal Then
-                    ProduceDefaultValue = mi.Name
+                    ProduceDefaultValue = mi.name
                     Exit For
                 End If
             Next

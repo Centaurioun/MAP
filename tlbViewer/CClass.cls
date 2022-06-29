@@ -128,7 +128,8 @@ Sub AddInterface(iface As InterfaceInfo)
         
         On Error Resume Next
         Dim mi As New CInterface
-
+        'Dim aas() As String
+        
         mi.DerivedString = GetDerivedInterfaces(iface, mi)
         dbg "Interface: " & iface.Name & " " & mi.DerivedString & IIf(mi.isPublic, " : Public", " : Private")
             
@@ -147,6 +148,10 @@ End Sub
 Private Function GetDerivedInterfaces(iface As InterfaceInfo, mi As CInterface) As String
     Dim ii As InterfaceInfo
     Dim tmp As String
+    Dim aas() As String
+    
+    'Debug.Print ii.AttributeStrings(aas)
+    
     
     mi.AttributeMask = iface.AttributeMask
     

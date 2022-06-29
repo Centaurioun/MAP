@@ -42,6 +42,9 @@ Public LoadedFromLiveInst As Boolean
 Public NO_VALID_TLB As Boolean
 Public NumClassesInLib As Long
 
+Public enums As New Collection  'added 6.27.22
+Public types As New Collection  'added 6.27.22
+
 
 Function LoadFile(path As String, Optional targetGUID As String) As Boolean
     Dim ccinfo As CoClassInfo
@@ -59,7 +62,7 @@ Function LoadFile(path As String, Optional targetGUID As String) As Boolean
         Exit Function
     End If
     
-    LibName = tli.Name
+    LibName = tli.name
     NumClassesInLib = tli.CoClasses.Count
     
     For Each ccinfo In tli.CoClasses
@@ -71,7 +74,7 @@ Function LoadFile(path As String, Optional targetGUID As String) As Boolean
         Set c = New CClass
         With ccinfo
             'If InStr(1, .Name, "command", vbTextCompare) > 0 Then Stop
-            c.Name = .Name
+            c.name = .name
             c.GUID = .GUID
             c.LoadInterfaces ccinfo.Interfaces, ccinfo.DefaultInterface
             mClasses.Add c
@@ -79,8 +82,81 @@ Function LoadFile(path As String, Optional targetGUID As String) As Boolean
         
 nextOne:
     Next
+    
+ 
+    
+    Dim ti As TypeInfo, mi As MemberInfo, ci As ConstantInfo, cc
+    Dim ri As RecordInfo
+
+    Dim r As CRecord 'udts
+    For Each ri In tli.Records
+       Set r = New CRecord
+       r.name = ri.name
+       For Each mi In ri.members
+            r.members.Add mi.name
+            r.types.Add mi.ReturnType.VarType
+            r.typedName.Add GetTypedName(mi)
+            'Debug.Print mi.name & " " & mi.ReturnType.VarType
+       Next
+       types.Add r
+    Next
+
+    Dim e As CEnum
+    For Each ci In tli.Constants
+        Set e = New CEnum
+        e.name = ci.name
+        For Each mi In ci.members
+            e.members.Add mi.name
+            e.values.Add mi.value
+            'Debug.Print mi.name & " " & mi.value
+        Next
+        enums.Add e
+    Next
+       
     LoadFile = True
 
+End Function
+
+Private Function GetTypedName(mi As MemberInfo)
+    
+    On Error Resume Next
+    Dim strReturn As String, intVatTypeCur As Long
+    
+    With mi.ReturnType
+        intVarTypeCur = .VarType
+        If intVarTypeCur = 0 Or (intVarTypeCur And Not (VT_ARRAY Or VT_VECTOR)) = 0 Then
+            If Not .TypeInfo Is Nothing Then
+                If Err Then 'Information not available
+                    strReturn = strReturn & " As ?"
+                Else
+                    If .IsExternalType Then
+                        strReturn = strReturn & .TypeLibInfoExternal.name & "." & .TypeInfo.name
+                    Else
+                        strReturn = strReturn & .TypeInfo.name
+                    End If
+                End If
+            End If
+            
+            If intVarTypeCur And (VT_ARRAY Or VT_VECTOR) Then
+                strReturn = strReturn & "()"
+            End If
+            On Error GoTo 0
+        Else
+            Select Case intVarTypeCur
+                Case VT_VARIANT, VT_VOID, VT_HRESULT
+                Case Else
+                    strTypeName = TypeName(.TypedVariant)
+                    If intVarTypeCur And (VT_ARRAY Or VT_VECTOR) Then
+                        strReturn = strReturn & Left$(strTypeName, Len(strTypeName) - 2) & "()"
+                    Else
+                        strReturn = strReturn & strTypeName
+                    End If
+            End Select
+        End If
+    End With
+     
+    GetTypedName = strReturn
+            
 End Function
 
 Function LoadFromMem(targetGUID As String) As Boolean
@@ -113,14 +189,14 @@ Function LoadFromMem(targetGUID As String) As Boolean
         
         Set c = New CClass
         NumClassesInLib = ii.Parent.CoClasses.Count
-        LibName = ii.Parent.Name
+        LibName = ii.Parent.name
         
         If ii.Parent.CoClasses.Count = 0 Then
             With ii
-                c.Name = .Name
+                c.name = .name
                 c.GUID = targetGUID
                 c.AddInterface ii
-                c.DefaultInterface = ii.Name
+                c.DefaultInterface = ii.name
                 mClasses.Add c
             End With
             Debug.Print "No other CoClasses found? Typename(o)= " & TypeName(o) & " libname: " & LibName
@@ -129,7 +205,7 @@ Function LoadFromMem(targetGUID As String) As Boolean
                 If LCase(ccinfo.GUID) <> LCase(targetGUID) Then GoTo nextOne
                 Set c = New CClass
                 With ccinfo
-                    c.Name = .Name
+                    c.name = .name
                     c.GUID = .GUID
                     c.LoadInterfaces ccinfo.Interfaces, ccinfo.DefaultInterface
                     mClasses.Add c

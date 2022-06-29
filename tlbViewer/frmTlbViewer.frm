@@ -261,16 +261,16 @@ Function LoadFile(fpath As String, Optional onlyShowGuid As String) As Boolean
                 End If
             End If
             
-            Set n1 = tv.Nodes.Add(n0, tvwChild, , c.Name, IIf(c.isControl, "control", "class"))
+            Set n1 = tv.Nodes.Add(n0, tvwChild, , c.name, IIf(c.isControl, "control", "class"))
             Set n1.Tag = c
             mInterfaces = 0
             mMembers = 0
             For Each i In c.mInterfaces
                 mInterfaces = mInterfaces + 1
-                Set n2 = tv.Nodes.Add(n1, tvwChild, , i.Name, "interface")
+                Set n2 = tv.Nodes.Add(n1, tvwChild, , i.name, "interface")
                 Set n2.Tag = i
                 For Each m In i.mMembers
-                    Set n3 = tv.Nodes.Add(n2, tvwChild, , m.mMemberInfo.Name, IIf(m.CallType > 1, "prop", "sub"))
+                    Set n3 = tv.Nodes.Add(n2, tvwChild, , m.mMemberInfo.name, IIf(m.CallType > 1, "prop", "sub"))
                     Set n3.Tag = m
                     mMembers = mMembers + 1
                     'If ObjPtr(n3) And Not m.SupportsFuzzing Then n3.ForeColor = &H606060
@@ -284,7 +284,7 @@ nextOne:
         Next
         
         For x = tv.Nodes.Count To 1 Step -1
-            If tv.Nodes(x).Index <> n0.Index Then
+            If tv.Nodes(x).index <> n0.index Then
                 If Not IsObject(tv.Nodes(x).Tag) Then
                     tv.Nodes.Remove x
                 Else
@@ -296,7 +296,26 @@ nextOne:
         Next
         
         n0.Expanded = True
-    
+        
+        If tlb.types.Count > 0 Then
+            Dim t As CRecord
+            Set n1 = tv.Nodes.Add(n0, tvwChild, , "Structs", "prop")
+            For Each t In tlb.types
+                Set n2 = tv.Nodes.Add(n1, tvwChild, , t.name, "prop")
+                Set n2.Tag = t
+            Next
+        End If
+        
+        If tlb.enums.Count > 0 Then
+            Dim e As CEnum
+            Set n1 = tv.Nodes.Add(n0, tvwChild, , "Enums", "const")
+            For Each e In tlb.enums
+                Set n2 = tv.Nodes.Add(n1, tvwChild, , e.name, "const")
+                Set n2.Tag = e
+            Next
+        End If
+        
+        
     End If
     
     If tv.Nodes.Count = 0 Then
@@ -352,7 +371,7 @@ Private Sub mnuCopyFuncNames_Click()
     Set i = ActiveNode.Tag
 
     For Each c In i.mMembers
-        push tmp, c.Name
+        push tmp, c.name
     Next
     
     Clipboard.Clear
@@ -434,7 +453,7 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
     
     Set ActiveNode = Node
        
-    If Node.Index = 1 Then
+    If Node.index = 1 Then
         push tmp(), "Loaded File: " & Text1
         push tmp(), "Name:        " & tlb.LibName
         If Len(tlb.tli.GUID) > 0 Then
@@ -442,19 +461,19 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
             push tmp(), "Version:     " & tlb.tli.MajorVersion & "." & tlb.tli.MinorVersion
         End If
         push tmp(), "Lib Classes: " & tlb.NumClassesInLib
-        text2 = Join(tmp, vbCrLf)
+        text2 = vbCrLf & Join(tmp, vbCrLf)
     End If
     
     If TypeName(Node.Tag) = "CMember" Then
         Set c = Node.Tag
         report = IIf(mnuShowVOff.Checked, c.vTableOffset & "|" & Hex(c.vTableOffset) & vbCrLf, Empty) & c.ProtoString
-        text2 = report
+        text2 = vbCrLf & report
         
     End If
     
     If TypeName(Node.Tag) = "CInterface" Then
         Set i = Node.Tag
-        push tmp, "Interface " & i.Name & i.DerivedString
+        push tmp, "Interface " & i.name & i.DerivedString
         push tmp, "Default Interface: " & i.isDefault
         'push tmp, "Public: " & i.isPublic()
         'push tmp, "Dual: " & i.isDual()
@@ -480,18 +499,18 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
             '    push tmp, vbTab & c.mMemberInfo.Name
             'End If
         Next
-        text2 = Join(tmp, vbCrLf)
+        text2 = vbCrLf & Join(tmp, vbCrLf)
     End If
     
     If TypeName(Node.Tag) = "CClass" Then
         Set cc = Node.Tag
-        push tmp, "Class " & cc.Name
+        push tmp, "Class " & cc.name
         push tmp, "GUID: " & cc.GUID
         push tmp, "Number of Interfaces: " & cc.mInterfaces.Count
         
         If cc.mInterfaces.Count > 0 Then
             For Each i In cc.mInterfaces
-                push tmp, vbTab & i.Name & " - " & i.GUID & " " & i.DerivedString
+                push tmp, vbTab & i.name & " - " & i.GUID & " " & i.DerivedString
             Next
         End If
         
@@ -510,9 +529,23 @@ Private Sub tv_NodeClick(ByVal Node As MSComctlLib.Node)
             If cc.isControl Then push tmp, "Control"
         End If
                 
-        text2 = Join(tmp, vbCrLf)
+        text2 = vbCrLf & Join(tmp, vbCrLf)
     End If
     
+    
+     If TypeName(Node.Tag) = "CRecord" Then
+        Dim cr As CRecord
+        Set cr = Node.Tag
+        text2 = cr.dump()
+     End If
+     
+     If TypeName(Node.Tag) = "CEnum" Then
+        Dim ce As CEnum
+        Set ce = Node.Tag
+        text2 = ce.dump()
+     End If
+     
+     
 End Sub
 
 Private Sub mnuStringScanner_Click()
@@ -532,12 +565,12 @@ Private Sub mnuStringScanner_Click()
         If IsObject(n.Tag) Then
             If TypeName(n.Tag) = "CMember" Then
                 Set m = n.Tag
-                If AnyOfTheseInstr(m.mMemberInfo.Name, match) Then
-                    push tmp, "Clsid: " & m.ClassGUID & " function: " & m.mMemberInfo.Name
+                If AnyOfTheseInstr(m.mMemberInfo.name, match) Then
+                    push tmp, "Clsid: " & m.ClassGUID & " function: " & m.mMemberInfo.name
                 End If
                 For Each a In m.Args
-                    If AnyOfTheseInstr(a.Name, match) Then
-                        push tmp, "Clsid: " & m.ClassGUID & " function: " & m.mMemberInfo.Name & " Argument: " & a.Name
+                    If AnyOfTheseInstr(a.name, match) Then
+                        push tmp, "Clsid: " & m.ClassGUID & " function: " & m.mMemberInfo.name & " Argument: " & a.name
                     End If
                 Next
             End If
@@ -588,23 +621,23 @@ Sub ScanElementsFor(match As String, tmp() As String, alerted As Collection)
         If IsObject(n.Tag) Then
             If TypeName(n.Tag) = "CMember" Then
                 Set m = n.Tag
-                If AnyOfTheseInstr(m.mMemberInfo.Name, match) Then
-                    key = m.ClassGUID & "." & m.mMemberInfo.Name
+                If AnyOfTheseInstr(m.mMemberInfo.name, match) Then
+                    key = m.ClassGUID & "." & m.mMemberInfo.name
                     If Not KeyExistsInCollection(alerted, key) Then
                         alerted.Add key, key
                         push tmp, "Library: " & tv.Nodes(1).Text & " - " & Text1
-                        push tmp, "Class: " & GetParentClass(n).Name & "  " & m.ClassGUID & vbCrLf
+                        push tmp, "Class: " & GetParentClass(n).name & "  " & m.ClassGUID & vbCrLf
                         push tmp, m.ProtoString & vbCrLf
                         push tmp, String(40, "-")
                     End If
                 End If
                 For Each a In m.Args
-                    If AnyOfTheseInstr(a.Name, match) Then
-                        key = m.ClassGUID & "." & m.mMemberInfo.Name
+                    If AnyOfTheseInstr(a.name, match) Then
+                        key = m.ClassGUID & "." & m.mMemberInfo.name
                         If Not KeyExistsInCollection(alerted, key) Then
                             alerted.Add key, key
                             push tmp, "Library: " & tv.Nodes(1).Text & " - " & Text1
-                            push tmp, "Class: " & GetParentClass(n).Name & "  " & m.ClassGUID & vbCrLf
+                            push tmp, "Class: " & GetParentClass(n).name & "  " & m.ClassGUID & vbCrLf
                             push tmp, m.ProtoString & vbCrLf
                             push tmp, String(40, "-")
                         End If
