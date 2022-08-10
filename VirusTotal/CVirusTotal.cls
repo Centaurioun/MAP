@@ -31,8 +31,8 @@ Const URL_MAKE_COMMENT = "comments/put"
 Const URL_SEARCH = "file/search"
 
 Private API_KEY As String
-'Const PUBLIC_API_KEY = "a949ea9c64e7145a065b0e562673a66216a132712e958168c8c00ee5f451485b"
-Const PUBLIC_API_KEY = "cc766a4dd619aff188f98a4bc8851695744560da90b529a0c524d4bdd8a68e8e"
+Const PUBLIC_API_KEY = "[Enter your key here]"
+
 
 Public report_cache_dir As String 'if this is set it will cache the results here in case looked up again.
 Public debugLog As Object         'set to a listbox for live logging, or it will default to a collection

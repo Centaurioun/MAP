@@ -1,5 +1,5 @@
-frmMain = 104, 104, 1076, 613, , 156, 156, 1018, 614, C
-Module1 = 0, 0, 0, 0, C
+frmMain = 104, 104, 1076, 613, Z, 156, 156, 1018, 614, C
+Module1 = 130, 130, 944, 756, C
 frmStrings = 0, 0, 0, 0, C, 208, 208, 1070, 666, C
 frmHash = 0, 0, 0, 0, C, 26, 26, 888, 484, C
 frmFileHash = 78, 78, 940, 536, , 52, 52, 914, 510, C
@@ -20,7 +20,7 @@ CFont = 0, 0, 0, 0, C
 frmSelectFont = 0, 0, 0, 0, C, 130, 130, 992, 588, C
 modFont = 0, 0, 0, 0, C
 frmResViewer = 0, 0, 0, 0, C, 156, 156, 1018, 614, C
-frmDllCharacteristics = 130, 130, 1022, 670, Z, 182, 182, 1044, 640, C
+frmDllCharacteristics = 130, 130, 1022, 670, , 182, 182, 1044, 640, C
 frmTimeStamp = 0, 0, 0, 0, C, 208, 208, 1070, 666, C
 ucFilterList = 0, 0, 0, 0, C, 0, 0, 862, 458, C
 IExtColSort = 0, 0, 0, 0, C

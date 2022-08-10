@@ -2,7 +2,7 @@ VERSION 5.00
 Begin VB.Form frmMain 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Install Shell Extensions"
-   ClientHeight    =   5745
+   ClientHeight    =   7275
    ClientLeft      =   45
    ClientTop       =   330
    ClientWidth     =   5745
@@ -10,16 +10,32 @@ Begin VB.Form frmMain
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   5745
+   ScaleHeight     =   7275
    ScaleWidth      =   5745
    ShowInTaskbar   =   0   'False
    StartUpPosition =   2  'CenterScreen
    Visible         =   0   'False
+   Begin VB.CheckBox chkASLR 
+      Caption         =   "ASLR"
+      Height          =   375
+      Left            =   60
+      TabIndex        =   10
+      Top             =   6660
+      Width           =   795
+   End
+   Begin VB.CommandButton cmdSetASLR 
+      Caption         =   "Update"
+      Height          =   315
+      Left            =   900
+      TabIndex        =   9
+      Top             =   6720
+      Width           =   795
+   End
    Begin VB.Timer tmrCloseWithHexEditor 
       Enabled         =   0   'False
       Interval        =   1000
       Left            =   -60
-      Top             =   4665
+      Top             =   5025
    End
    Begin VB.PictureBox pict 
       AutoRedraw      =   -1  'True
@@ -34,10 +50,10 @@ Begin VB.Form frmMain
          Strikethrough   =   0   'False
       EndProperty
       ForeColor       =   &H0000FFFF&
-      Height          =   3795
+      Height          =   4215
       Left            =   120
       Picture         =   "frmMain.frx":030A
-      ScaleHeight     =   3735
+      ScaleHeight     =   4155
       ScaleWidth      =   5505
       TabIndex        =   6
       Top             =   60
@@ -48,7 +64,7 @@ Begin VB.Form frmMain
       Height          =   1110
       Left            =   30
       TabIndex        =   2
-      Top             =   4020
+      Top             =   4380
       Width           =   5595
       Begin VB.CheckBox chkUseSha256 
          Caption         =   "Use SHA256 as Default"
@@ -108,7 +124,7 @@ Begin VB.Form frmMain
       Height          =   315
       Left            =   4575
       TabIndex        =   1
-      Top             =   5250
+      Top             =   5610
       Width           =   1035
    End
    Begin VB.CommandButton cmdRemoveRegKeys 
@@ -116,8 +132,16 @@ Begin VB.Form frmMain
       Height          =   315
       Left            =   3180
       TabIndex        =   0
-      Top             =   5250
+      Top             =   5610
       Width           =   1035
+   End
+   Begin VB.Label Label1 
+      Caption         =   "( Requires Run as Admin)"
+      Height          =   255
+      Left            =   1800
+      TabIndex        =   11
+      Top             =   6720
+      Width           =   1875
    End
    Begin VB.Label Label2 
       Caption         =   "Shell extensions:"
@@ -134,7 +158,7 @@ Begin VB.Form frmMain
       Index           =   1
       Left            =   975
       TabIndex        =   8
-      Top             =   5295
+      Top             =   5655
       Width           =   2100
    End
 End
@@ -191,6 +215,17 @@ Option Explicit
 
 Private Declare Function IsWindow Lib "user32" (ByVal hwnd As Long) As Long
 Private Declare Function IsWindowVisible Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare Function RegisterTypeLib Lib "oleaut32.dll" (ByVal ptlib As Object, szFullPath As Byte, szHelpFile As Byte) As Long
+Private Declare Function LoadTypeLib Lib "oleaut32.dll" (pFileName As Byte, pptlib As Object) As Long
+
+'https://docs.microsoft.com/en-us/windows/win32/api/oleauto/nf-oleauto-unregistertypelib
+'HRESULT UnRegisterTypeLib(
+'  REFGUID libID,
+'  WORD    wVerMajor,
+'  WORD    wVerMinor,
+'  LCID    lcid,
+'  syskind syskind
+');
 
 
 Const copy = "*\shell\Copy Path\command"
@@ -205,9 +240,17 @@ Const deco = "chm.file\shell\Decompile\command"
 Const m5 = "*\shell\Md5 Hash\command"
 Const vt = "*\shell\Virus Total\command"
 Const vtsubmit = "*\shell\Submit to VirusTotal\command"
+
 Const tlb = "dllfile\shell\Type Library Viewer\command"
 Const tlb2 = "ocxfile\shell\Type Library Viewer\command"
 Const tlb3 = "tlbfile\shell\Type Library Viewer\command"
+
+Const reg1 = "dllfile\shell\Register\command"
+Const reg2 = "ocxfile\shell\Register\command"
+Const reg3 = "dllfile\shell\UnRegister\command"
+Const reg4 = "ocxfile\shell\UnRegister\command"
+Const reg5 = "tlbfile\shell\Register\command"
+
 
 Private autoInstall As Boolean
 Private formLoaded As Boolean
@@ -230,6 +273,9 @@ Sub InstallRegKeys()
     Dim cmdline_9 As String
     Dim cmdline_10 As String
     Dim cmdline_11 As String
+    Dim cmdline_12 As String
+    Dim cmdline_13 As String
+    Dim cmdline_14 As String
     
     Dim reg As New clsRegistry2
     
@@ -247,6 +293,11 @@ Sub InstallRegKeys()
     cmdline_9 = """" & ap() & "\shellext.exe"" ""%1"" /hset"
     cmdline_10 = """" & ap() & "\shellext.exe"" ""%1"" /copy"
     cmdline_11 = """" & ap() & "\shellext.exe"" ""%1"" /cmdh"
+    'cmdline_12 = "regsvr32.exe " & """%1"""  'defaults to x64 on 64bit systems, lets run through us..
+    cmdline_12 = """" & ap() & "\shellext.exe"" ""%1"" /regi"
+    cmdline_13 = """" & ap() & "\shellext.exe"" ""%1"" /ureg"
+    cmdline_14 = """" & ap() & "\shellext.exe"" ""%1"" /treg"
+      
     
     On Error GoTo hell
     
@@ -327,6 +378,29 @@ Sub InstallRegKeys()
     If reg.CreateKey(hashSets) Then
         reg.SetValue hashSets, "", cmdline_9, REG_SZ
     End If
+    
+    If reg.CreateKey(reg1) Then
+        reg.SetValue reg1, "", cmdline_12, REG_SZ
+    End If
+    
+    If reg.CreateKey(reg2) Then
+        reg.SetValue reg2, "", cmdline_12, REG_SZ
+    End If
+    
+    If reg.CreateKey(reg3) Then
+        reg.SetValue reg3, "", cmdline_13, REG_SZ
+    End If
+     
+    If reg.CreateKey(reg4) Then
+        reg.SetValue reg4, "", cmdline_13, REG_SZ
+    End If
+    
+    If reg.CreateKey(reg5) Then
+        reg.SetValue reg5, "", cmdline_14, REG_SZ
+    End If
+    
+    If reg.keyExists(".tlb") Then reg.SetValue ".tlb", "", "tlbfile", REG_SZ
+    
     
     'these are just not safe for us, requires logoff/reboot to take effect
     reg.DeleteValue "lnkfile", "NeverShowExt"
@@ -467,6 +541,31 @@ Function RemoveRegKeys()
         a = reg.DeleteKey("Folder\shell\Cmd Here\")
     End If
     
+    If reg.keyExists(reg1) Then
+        a = reg.DeleteKey(reg1)
+        a = reg.DeleteKey("dllfile\shell\Register\")
+    End If
+    
+    If reg.keyExists(reg2) Then
+        a = reg.DeleteKey(reg2)
+        a = reg.DeleteKey("ocxfile\shell\Register\")
+    End If
+    
+    If reg.keyExists(reg3) Then
+        a = reg.DeleteKey(reg3)
+        a = reg.DeleteKey("dllfile\shell\UnRegister\")
+    End If
+    
+    If reg.keyExists(reg4) Then
+        a = reg.DeleteKey(reg4)
+        a = reg.DeleteKey("ocxfile\shell\UnRegister\")
+    End If
+
+    If reg.keyExists(reg5) Then
+        a = reg.DeleteKey(reg5)
+        a = reg.DeleteKey("tlbfile\shell\Register\")
+    End If
+
     If Not autoInstall Then
         If a And b And c Then
             MsgBox "Keys deleted        ", vbInformation
@@ -479,6 +578,113 @@ Function RemoveRegKeys()
     
 End Function
 
+Function ElevateCmdIfReq(exe As String, args As String, Optional taskID As Long)
+                
+    If IsVistaPlus() Then
+        If Not IsUserAnAdministrator() Then
+            MsgBox "Must be an admin user to install these settings can not elevate.", vbInformation
+        Else
+            If IsProcessElevated() Then
+                If taskID = 14 Then
+                    args = Replace(args, "/treg", Empty)
+                    args = trim(Replace(args, """", Empty))
+                    RegisterTlbFile args
+                End If
+            Else
+                RunElevated exe, essSW_HIDE, , args
+            End If
+        End If
+    Else
+        If taskID = 14 Then
+            args = Replace(args, "/treg", Empty)
+            args = trim(Replace(args, """", Empty))
+            RegisterTlbFile args
+        Else
+            Shell exe & " " & args
+        End If
+    End If
+    
+End Function
+
+Function aslrValueExists() As Boolean
+    Dim reg As New clsRegistry2
+    Dim vals() As String, v, keyExists As Boolean
+    Const key = "\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\"
+    
+    reg.hive = HKEY_LOCAL_MACHINE
+    vals = reg.EnumValues(key) 'need a reg.valueExists, ReadValue will fail silently with 0 if not..
+    For Each v In vals
+        If LCase(v) = "moveimages" Then
+            aslrValueExists = True
+            Exit For
+        End If
+    Next
+End Function
+
+Function readASLR()
+    
+    Dim reg As New clsRegistry2
+    Dim aslr As Long
+    Dim vals() As String, v, keyExists As Boolean
+    '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management]
+    'MoveImages = 0  'disabled key may not exist
+    
+    Const key = "\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\"
+    aslr = 1
+    reg.hive = HKEY_LOCAL_MACHINE
+
+    If aslrValueExists() Then
+        aslr = reg.ReadValue(key, "MoveImages")
+    End If
+    
+    chkASLR.value = aslr
+    
+End Function
+
+Function setASLR(Optional enabled As Long)
+    
+    Dim reg As New clsRegistry2
+    Dim ok As Boolean
+    Const baseKey = "\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\"
+    Const key = "\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\MoveImages"
+    
+    '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management]
+    'MoveImages = 0  'disabled key may not exist
+    
+    reg.hive = HKEY_LOCAL_MACHINE
+    
+    If enabled = 1 Then
+    
+        If aslrValueExists() Then
+            If reg.DeleteValue(baseKey, "MoveImages") Then
+                MsgBox "ASLR enabled. Changes take effect on next reboot.", vbInformation
+            Else
+                MsgBox "Failed to enable ASLR?", vbInformation
+            End If
+        Else
+            MsgBox "MoveImages key does not exist already enabled.", vbInformation
+        End If
+        
+    Else
+    
+        'If Not reg.keyExists(key) Then reg.CreateKey key
+ 
+        If reg.SetValue(baseKey, "MoveImages", enabled, REG_DWORD) Then
+            MsgBox "ASLR value set to " & IIf(enabled = 1, "Enabled", "Disabled") & " reboot required for changes to take effect", vbInformation
+        Else
+            MsgBox "Failed to change ASLR value"
+        End If
+        
+    End If
+        
+    
+End Function
+
+
+Private Sub cmdSetASLR_Click()
+    setASLR chkASLR.value
+End Sub
+
 Private Sub Form_Load()
 
     'On Error Resume Next
@@ -487,7 +693,7 @@ Private Sub Form_Load()
     Dim cmd As String
     Dim lastCmd As String
     Dim isLastCmd As Boolean
-    
+   
     'MsgBox "frmmain.load"
     
     Set myIcon = Me.Icon 'this prevents sub forms from accidently recalling frmMain.form_load if it unloads, but they want to use its main icon as their own..
@@ -509,12 +715,20 @@ Private Sub Form_Load()
                "" & vbCrLf & _
                " Dll/OCX/TLB Files: " & vbCrLf & _
                "    Type Library Viewer" & vbCrLf & _
+               "    Register / UnRegister (ActX)" & vbCrLf & _
                "" & vbCrLf & _
                " CHM Files: Decompile" & vbCrLf & _
+               "" & vbCrLf & _
                " ShowExtensions: pif, lnk"
-
                  
+    
+    readASLR
     lastCmd = GetMySetting("lastCMD", "")
+    
+    cmdSetASLR.enabled = False
+    If IsVistaPlus() Then
+        If IsProcessElevated() Then cmdSetASLR.enabled = True
+    End If
     
     If isIde() And Len(lastCmd) > 0 Then
         cmd = Replace(lastCmd, """", "")
@@ -544,6 +758,9 @@ Private Sub Form_Load()
         If VBA.Right(cmd, 5) = "/hset" Then mode = 9
         If VBA.Right(cmd, 5) = "/copy" Then mode = 10
         If VBA.Right(cmd, 5) = "/cmdh" Then mode = 11
+        If VBA.Right(cmd, 5) = "/regi" Then mode = 12
+        If VBA.Right(cmd, 5) = "/ureg" Then mode = 13
+        If VBA.Right(cmd, 5) = "/treg" Then mode = 14
         
         If VBA.Right(cmd, 8) = "/install" Then
             mode = 5 'required for Vista run elevated mode
@@ -578,6 +795,9 @@ Private Sub Form_Load()
             Case 9: frmCompareHashSets.Show
             Case 10: Clipboard.Clear: Clipboard.SetText Replace(cmd, """", Empty)
             Case 11: Shell "cmd.exe /k cd """ & cmd & """", vbNormalFocus
+            Case 12: ElevateCmdIfReq "regsvr32.exe", """" & cmd & """"
+            Case 13: ElevateCmdIfReq "regsvr32.exe", "/u """ & cmd & """"
+            Case 14: ElevateCmdIfReq App.path & "\shellext.exe", """" & cmd & """ /treg", 14
             Case Else: MsgBox "Unknown Option: " & Command & vbCrLf & "Last5 = " & Right(cmd, 5), vbExclamation
         End Select
         
@@ -590,6 +810,26 @@ Private Sub Form_Load()
     End If
     
     
+End Sub
+
+Private Sub RegisterTlbFile(FilePath As String)
+  Dim ResultMessage As Long
+  Dim TypeLibraryPointer As Object
+  Dim TypeLibraryPath() As Byte
+
+  TypeLibraryPath = FilePath & vbNullChar
+  ResultMessage = LoadTypeLib(TypeLibraryPath(0), TypeLibraryPointer)
+  
+  If ResultMessage = 0 Then
+        ResultMessage = RegisterTypeLib(TypeLibraryPointer, TypeLibraryPath(0), 0)
+  End If
+  
+  If ResultMessage = 0 Then
+        MsgBox "Type Library successfully registered", vbInformation, "Registration Successful"
+  Else
+        MsgBox "Registration of Type Library Failed: " & FilePath, vbInformation, "Registration Failed"
+  End If
+  
 End Sub
 
 
